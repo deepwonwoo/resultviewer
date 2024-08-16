@@ -138,9 +138,7 @@ def backup_file(dir_path, file_path):
     backup_dir = os.path.join(dir_path, "backup")
     create_directory(backup_dir)
     file_owner = get_file_owner(file_path)
-    file_timestamp = datetime.datetime.fromtimestamp(
-        os.path.getmtime(file_path)
-    ).strftime("%Y%m%d_%H%M")
+    file_timestamp = datetime.datetime.fromtimestamp(os.path.getmtime(file_path)).strftime("%Y%m%d_%H%M")
     # split the file path into directory and file
     dir_path, filename = os.path.split(file_path)
     # split the filename into name and extension
@@ -176,9 +174,7 @@ def file2df(csv_file_path, workspace=True):
             # check if the directory exists
             if os.access(os.path.dirname(csv_file_path), os.W_OK):
                 DATAFRAME["readonly"] = False
-                DATAFRAME["lock"] = SoftFileLock(
-                    f"{csv_file_path}.lock", thread_local=False
-                )
+                DATAFRAME["lock"] = SoftFileLock(f"{csv_file_path}.lock", thread_local=False)
                 DATAFRAME["lock"].acquire(timeout=1, poll_interval=0.05)
 
     return df
@@ -266,19 +262,13 @@ def displaying_df(filtred_apply=False):
             if CACHE.get("hide_waiver") and "waiver" in dff.columns:
                 conditions_expr = dff["waiver"] == "Waiver."
                 update_waiver_column = (
-                    pl.when(conditions_expr)
-                    .then(pl.lit("Waiver"))
-                    .otherwise(pl.col("waiver"))
-                    .alias("waiver")
+                    pl.when(conditions_expr).then(pl.lit("Waiver")).otherwise(pl.col("waiver")).alias("waiver")
                 )
                 dff = dff.with_columns(update_waiver_column)
 
                 conditions_expr = dff["waiver"] == "Fixed."
                 update_waiver_column = (
-                    pl.when(conditions_expr)
-                    .then(pl.lit("Fixed"))
-                    .otherwise(pl.col("waiver"))
-                    .alias("waiver")
+                    pl.when(conditions_expr).then(pl.lit("Fixed")).otherwise(pl.col("waiver")).alias("waiver")
                 )
                 dff = dff.with_columns(update_waiver_column)
 

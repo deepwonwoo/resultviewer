@@ -261,9 +261,7 @@ class FileExplorer:
             df = pd.DataFrame(all_file_details)
             df = df.rename(columns={"icon": "", "option": ""})
 
-            table = dbc.Table.from_dataframe(
-                df, striped=False, bordered=False, hover=True, size="sm"
-            )
+            table = dbc.Table.from_dataframe(df, striped=False, bordered=False, hover=True, size="sm")
             return dbc.Spinner(
                 html.Div(table),
                 type="grow",
@@ -301,18 +299,11 @@ class FileExplorer:
                     "n_clicks",
                 ),
                 Input({"type": "remove-workspace-file", "index": ALL}, "n_clicks"),
-                State(
-                    {"type": "rename-workspace-file-newfilename", "index": ALL}, "value"
-                ),
+                State({"type": "rename-workspace-file-newfilename", "index": ALL}, "value"),
                 prevent_initial_call=True,
             )
-            def handel_file_operations(
-                open_ns, copy_ns, rename_ns, remove_ns, new_filenames
-            ):
-                if (
-                    not ctx.triggered_id
-                    or sum(open_ns + copy_ns + rename_ns + remove_ns) == 0
-                ):
+            def handel_file_operations(open_ns, copy_ns, rename_ns, remove_ns, new_filenames):
+                if not ctx.triggered_id or sum(open_ns + copy_ns + rename_ns + remove_ns) == 0:
                     raise exceptions.PreventUpdate
 
                 triggered_btn = ctx.triggered_id["type"]
@@ -348,26 +339,20 @@ class FileExplorer:
                                 position="center",
                                 icon_name="bx-info-circle",
                             )
-                            ret_mode = dmc.Badge(
-                                "Read Only", radius="sm", size="xs", color="orange"
-                            )
+                            ret_mode = dmc.Badge("Read Only", radius="sm", size="xs", color="orange")
                         else:
                             ret_mode = ""
                         ret_drawer_open = False
                         ret_columnDefs = generate_column_definitions(df)
                         ret_dashGridOptions = patched_dashGridOptions
                         ret_total_row_count = f"Total Rows: {len(df)}"
-                        ret_display_file_path = file_path.replace(
-                            WORKSPACE, "WORKSPACE"
-                        )
+                        ret_display_file_path = file_path.replace(WORKSPACE, "WORKSPACE")
                         ret_csv_mod_time = os.path.getmtime(file_path)
 
                     elif triggered_btn == "copy-workspace-file":
                         index = copy_ns.index(1)
                         ret_refresh_flags[index] = True
-                        current_time = (
-                            datetime.datetime.now().time().strftime("%m%d_%H:%M")
-                        )
+                        current_time = datetime.datetime.now().time().strftime("%m%d_%H:%M")
                         name, ext = os.path.splitext(file_path)
                         new_file_path = f"{name}_{USERNAME}_{current_time}{ext}"
                         shutil.copy(file_path, new_file_path)

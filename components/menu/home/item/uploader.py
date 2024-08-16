@@ -278,9 +278,7 @@ class Uploader:
                     patched_dashGridOptions["treeData"] = False
 
                 except Exception as e:
-                    noti = create_notification(
-                        message=f"Read Data Error: {e}", position="center"
-                    )
+                    noti = create_notification(message=f"Read Data Error: {e}", position="center")
                     return (
                         no_update,
                         no_update,
@@ -326,23 +324,17 @@ class Uploader:
             State("cwd", "children"),
             prevent_initial_call=True,
         )
-        def upload_data_to_workspace(
-            n, csv_file_path, library_name, cell_name, so_app, cwd
-        ):
+        def upload_data_to_workspace(n, csv_file_path, library_name, cell_name, so_app, cwd):
             if not n or not csv_file_path:
                 raise exceptions.PreventUpdate
             try:
                 dff = validate_df(csv_file_path).drop(["uniqid", "childCount"])
             except Exception as e:
-                noti = create_notification(
-                    message=f"Error loading {csv_file_path}: {e}", position="center"
-                )
+                noti = create_notification(message=f"Error loading {csv_file_path}: {e}", position="center")
                 return no_update, noti
 
             dir_path = (
-                os.path.join(WORKSPACE, library_name, cell_name)
-                if library_name
-                else os.path.join(WORKSPACE, USERNAME)
+                os.path.join(WORKSPACE, library_name, cell_name) if library_name else os.path.join(WORKSPACE, USERNAME)
             )
             create_directory(dir_path)
 

@@ -21,9 +21,7 @@ def determine_column_type(column_expr):
         return "string"
 
 
-def generate_column_definition(
-    column_name, column_expr, col_hide=[], cellClassRules=None, is_editable=False
-):
+def generate_column_definition(column_name, column_expr, col_hide=[], cellClassRules=None, is_editable=False):
     """Generate a single column definition for AG Grid based on the column name and its Polars Series."""
     # col_def = {"headerName": column_name, "field": column_name, "headerComponent": "SelectColumn"}
     col_def = {"headerName": column_name, "field": column_name}
@@ -92,10 +90,6 @@ def generate_column_definition(
 
 def generate_column_definitions(df, col_hide=[]):
     """Generate column definitions for all columns in a Polars DataFrame suitable for AG Grid."""
-    column_defs = [
-        generate_column_definition(col, df[col], col_hide)
-        for col in df.columns
-        if col != "uniqid"
-    ]
+    column_defs = [generate_column_definition(col, df[col], col_hide) for col in df.columns if col != "uniqid"]
 
     return column_defs

@@ -1,5 +1,4 @@
 import dash
-
 dash._dash_renderer._set_react_version("18.2.0")
 import argparse
 from flask import Flask

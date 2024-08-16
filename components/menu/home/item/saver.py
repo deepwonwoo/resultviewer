@@ -94,18 +94,12 @@ class Saver:
                 return no_update
 
             if displaying_df() is None:
-                return create_notification(
-                    message="No Dataframe loaded", position="center"
-                )
+                return create_notification(message="No Dataframe loaded", position="center")
             elif not csv_file_path.startswith("WORKSPACE"):
-                return create_notification(
-                    message="data is not from WORKSPACE", position="center"
-                )
+                return create_notification(message="data is not from WORKSPACE", position="center")
 
             elif DATAFRAME.get("readonly"):
-                return create_notification(
-                    message="file is READ ONLY mode", position="center"
-                )
+                return create_notification(message="file is READ ONLY mode", position="center")
 
             return dmc.Notification(
                 id="save-workspace-noti",
@@ -204,9 +198,7 @@ class Saver:
         )
         def get_save_file_path(n, csv_file_path):
             cmd = f"{SCRIPT}/QFileDialog/save_dialog"
-            result = subprocess.run(
-                [cmd, csv_file_path], capture_output=True, text=True
-            )
+            result = subprocess.run([cmd, csv_file_path], capture_output=True, text=True)
             save_path = result.stdout.strip()
             return save_path if save_path else no_update
 
@@ -222,9 +214,7 @@ class Saver:
             df_to_save = displaying_df()
             if df_to_save is None:
                 return (
-                    create_notification(
-                        message="No Dataframe loaded", position="center"
-                    ),
+                    create_notification(message="No Dataframe loaded", position="center"),
                     False,
                     no_update,
                 )
@@ -254,9 +244,7 @@ class Saver:
                         df_to_save.write_csv(save_path)
                 except Exception as e:
                     return (
-                        create_notification(
-                            message=f"File Save Error: {e}", position="center"
-                        ),
+                        create_notification(message=f"File Save Error: {e}", position="center"),
                         False,
                     )
                 return (
