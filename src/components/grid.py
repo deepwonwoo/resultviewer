@@ -1,10 +1,10 @@
 import flask
 import dash_ag_grid as dag
 from dash import Input, Output, no_update
-from components.grid.DAG.columnDef import defaultColDef
-from components.grid.DAG.serverSide import extract_rows_from_data
+from components.dag.column_definitions import defaultColDef
+from components.dag.server_side_operations import extract_rows_from_data
 from utils.db_management import ROW_COUNTER, DATAFRAME
-from utils.logging_config import logger
+from utils.logging_utils import logger
 from dash_extensions import EventListener
 
 

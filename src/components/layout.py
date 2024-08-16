@@ -1,6 +1,6 @@
 import dash_mantine_components as dmc
 from dash import html, dcc
-from components.grid.data_grid import DataGrid
+from components.grid import DataGrid
 from components.menu.home.home import HomeMenu
 # from components.menu.view.view import ViewMenu
 from components.menu.edit.edit import EditMenu

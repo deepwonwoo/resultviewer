@@ -1,11 +1,11 @@
 import dash_mantine_components as dmc
 from dash import html
-from components.menu.home.item.saver import Saver
-from components.menu.home.item.uploader import Uploader
-from components.menu.home.item.columnSizer import ColumnSizer
-from components.menu.home.item.groupRow import groupRow
-from components.menu.home.item.filter import Filter
-from components.menu.home.item.crossProber import CrossProber
+from components.menu.home.item.save import Saver
+from components.menu.home.item.upload import Uploader
+from components.menu.home.item.column_sizing import ColumnSizer
+from components.menu.home.item.group_row import groupRow
+from components.menu.home.item.filtering import Filter
+from components.menu.home.item.cross_probing import CrossProber
 
 
 class HomeMenu:

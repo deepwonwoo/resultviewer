@@ -1,6 +1,6 @@
 import polars as pl
 from utils.db_management import CACHE
-from utils.logging_config import logger
+from utils.logging_utils import logger
 
 # Default column definition for AG Grid
 defaultColDef = {

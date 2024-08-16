@@ -1,7 +1,7 @@
 import dash_mantine_components as dmc
 from dash import html
-from components.menu.script.item.ChartEditor import ChartEditor
-from components.menu.script.item.compare import Compare
+from components.menu.script.item.chart_editor import ChartEditor
+from components.menu.script.item.data_comparison import Compare
 
 
 class ScriptMenu:

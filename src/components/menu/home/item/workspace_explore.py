@@ -18,7 +18,7 @@ from dash import (
     dcc,
     MATCH,
 )
-from components.grid.DAG.columnDef import generate_column_definitions
+from components.dag.column_definitions import generate_column_definitions
 from utils.process_helpers import (
     file2df,
     create_notification,
@@ -30,7 +30,7 @@ from utils.process_helpers import (
     create_directory,
     debugging_decorator,
 )
-from utils.logging_config import logger
+from utils.logging_utils import logger
 from utils.db_management import WORKSPACE, USERNAME, SCRIPT, CACHE, DATAFRAME
 
 

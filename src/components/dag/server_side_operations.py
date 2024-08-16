@@ -2,7 +2,7 @@ import pprint
 import time
 import traceback
 import polars as pl
-from utils.logging_config import logger
+from utils.logging_utils import logger
 from utils.db_management import CACHE, ROW_COUNTER, DATAFRAME
 
 

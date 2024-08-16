@@ -5,7 +5,7 @@ from flask import Flask
 from flaskwebgui import FlaskUI
 from dash import DiskcacheManager
 from dash_extensions.enrich import DashProxy
-from components.RV import ResultViewer
+from components.layout import ResultViewer
 from utils.process_helpers import preprocess, postprocess, get_monitor_size
 from utils.db_management import CACHE
 

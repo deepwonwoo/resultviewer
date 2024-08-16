@@ -5,11 +5,11 @@ from utils.process_helpers import create_notification
 from utils.process_helpers import displaying_df
 from utils.process_helpers import get_icon
 from utils.db_management import DATAFRAME, CACHE, USERNAME
-from components.grid.DAG.columnDef import (
+from components.dag.column_definitions import (
     generate_column_definitions,
     generate_column_definition,
 )
-from utils.logging_config import logger
+from utils.logging_utils import logger
 
 
 class columnOrder:

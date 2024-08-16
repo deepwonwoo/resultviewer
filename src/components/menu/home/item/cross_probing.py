@@ -4,11 +4,11 @@ import re
 import socket
 import dash_mantine_components as dmc
 from dash import Input, Output, State, html, exceptions, ctx, no_update, ALL, Patch
-from components.grid.DAG.columnDef import generate_column_definitions
+from components.dag.column_definitions import generate_column_definitions
 from utils.process_helpers import *
 from utils.db_management import WORKSPACE, USERNAME, SCRIPT, CACHE, DATAFRAME
 from utils.process_helpers import create_notification, backup_file
-from utils.logging_config import logger
+from utils.logging_utils import logger
 
 
 class CrossProber:
