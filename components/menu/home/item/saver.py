@@ -93,14 +93,17 @@ class Saver:
             if not n:
                 return no_update
 
+            print(f"save_csv_workspace_noti1, {displaying_df()}")
             if displaying_df() is None:
+                print("save_csv_workspace_noti2")
                 return create_notification(message="No Dataframe loaded", position="center")
             elif not csv_file_path.startswith("WORKSPACE"):
+                print("save_csv_workspace_noti3")
                 return create_notification(message="data is not from WORKSPACE", position="center")
-
             elif DATAFRAME.get("readonly"):
+                print("save_csv_workspace_noti4")
                 return create_notification(message="file is READ ONLY mode", position="center")
-
+            print("save_csv_workspace_noti5")
             return dmc.Notification(
                 id="save-workspace-noti",
                 title="Save to Workspace",

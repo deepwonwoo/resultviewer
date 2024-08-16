@@ -8,14 +8,14 @@ from utils.process_helpers import create_notification
 from utils.logging_config import logger
 from components.menu.edit.item.columns import Columns
 from components.menu.edit.item.columnOrder import columnOrder
-from components.menu.edit.item.propagation import Propagation
+#from components.menu.edit.item.propagation import Propagation
 
 
 class EditMenu:
     def __init__(self) -> None:
         self.cols = Columns()
         self.colOrder = columnOrder()
-        self.propagation = Propagation()
+        #self.propagation = Propagation()
 
     def layout(self):
         return html.Div(
@@ -28,4 +28,4 @@ class EditMenu:
     def register_callbacks(self, app):
         self.cols.register_callbacks(app)
         self.colOrder.register_callbacks(app)
-        self.propagation.register_callbacks(app)
+        #self.propagation.register_callbacks(app)

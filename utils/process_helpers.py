@@ -1,5 +1,5 @@
 import os
-import pwd
+#import pwd
 import time
 import shutil
 import datetime
@@ -125,9 +125,9 @@ def get_icon(icon, width=20, height=20):
 
 def get_file_owner(file_path):
     try:
-        file_owner_id = os.stat(file_path).st_uid
-        file_owner_name = pwd.getpwuid(file_owner_id).pw_name
-        return file_owner_name
+        #file_owner_id = os.stat(file_path).st_uid
+        #file_owner_name = pwd.getpwuid(file_owner_id).pw_name
+        return "file_owner_name"
     except Exception as e:
         logger.error(f"get_file_owner error: {e}")
         return e
@@ -158,6 +158,7 @@ def create_directory(path):
 
 def file2df(csv_file_path, workspace=True):
     try:
+        
         df = validate_df(csv_file_path)
     except:
         raise
@@ -206,12 +207,14 @@ def validate_df(csv_file):
     # 파일 확장자에 따라 처리
     else:
         try:
+            
             df = pl.read_csv(
                 csv_file,
                 ignore_errors=True,
                 infer_schema_length=0,
                 separator=detect_separator(csv_file),
             )
+            
         except pl.PolarsError as e:
             if "truncate_ragged_lines=True" in str(e):
                 try:
@@ -229,13 +232,20 @@ def validate_df(csv_file):
             raise
 
         # strip
+        
         df = df.rename({col: col.strip() for col in df.columns})
-        for col in df.columns:
-            if df[col].dtype == pl.Utf8:
-                df = df.with_columns(pl.col(col).str.strip().alias(col))
+        
+        # for col in df.columns:
+        #     if df[col].dtype == pl.Utf8:
+        #         df = df.with_columns(pl.col(col).str.strip().alias(col))
+        
+
         # 컬럼 별로 타입 캐스팅 시도
         for col in df.columns:
             try:
+                if df[col].dtype == pl.Utf8:
+                    df = df.with_columns(pl.col(col).str.strip().alias(col))
+                    
                 # 문자열 컬럼을 pl.Float64로 캐스팅 시도
                 df = df.with_columns(pl.col(col).cast(pl.Float64()).alias(col))
                 # 캐스팅 성공 시, 모든 값이 정수인지 확인하여 정수로만 구성되면 pl.Int64로 다시 캐스팅
@@ -252,7 +262,7 @@ def validate_df(csv_file):
 
 
 def displaying_df(filtred_apply=False):
-
+    
     dff = DATAFRAME.get("df", None)
 
     if dff is None:
@@ -278,4 +288,7 @@ def displaying_df(filtred_apply=False):
             logger.error(f"displaying_df Error : {e}")
             dff = DATAFRAME["df"]
 
-        return dff.drop(["uniqid", "childCount"])
+        if "childCount" in dff.columns:
+            dff.drop("childCount")
+
+        return dff.drop(["uniqid"])

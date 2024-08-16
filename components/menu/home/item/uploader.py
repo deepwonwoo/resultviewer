@@ -328,7 +328,9 @@ class Uploader:
             if not n or not csv_file_path:
                 raise exceptions.PreventUpdate
             try:
-                dff = validate_df(csv_file_path).drop(["uniqid", "childCount"])
+                dff = validate_df(csv_file_path).drop(["uniqid"])
+                if "childCount" in dff.columns:
+                    dff = dff.drop("childCount")
             except Exception as e:
                 noti = create_notification(message=f"Error loading {csv_file_path}: {e}", position="center")
                 return no_update, noti

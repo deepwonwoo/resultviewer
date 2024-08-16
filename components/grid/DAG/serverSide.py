@@ -7,7 +7,7 @@ from utils.db_management import CACHE, ROW_COUNTER, DATAFRAME
 
 
 def apply_filters(df, request):
-    def filterDf(dff, filter_model, col):
+    def filterDf(dff, filter_model, col): 
 
         if "filter" in filter_model:
             crit1 = filter_model["filter"]
@@ -110,7 +110,7 @@ def apply_filters(df, request):
         raise
 
 
-def apply_group(df, request, counter):
+def apply_group(df, request):
 
     # 집계 함수 매핑 정의
     agg_function_mapping = {
@@ -204,7 +204,7 @@ def apply_group(df, request, counter):
 
 
 def apply_sort(df, request):
-
+    
     sortModel = request.get("sortModel")
     try:
         if sortModel:
@@ -244,7 +244,7 @@ def apply_sort(df, request):
 
                 df = df.sort(updated_sorting, descending=updated_asc)
 
-            return df
+        return df
 
     except Exception as e:
         logger.error(f"Error in apply_sort: {e}")
@@ -262,12 +262,12 @@ def extract_rows_from_data(request):
         start_time = time.time()
         dff = apply_filters(dff, request)
         filter_time = time.time() - start_time
-        logger.debug(f"filter time : {filter_time}")
+        logger.debug(f"filter time : {filter_time} / {dff.height}")
 
         start_time = time.time()
         dff = apply_sort(dff, request)
         sort_time = time.time() - start_time
-        logger.debug(f"sort time : {sort_time}")
+        logger.debug(f"sort time : {sort_time} / {dff.height}")
 
         if CACHE.get("TreeMode"):
             start_time = time.time()
@@ -278,11 +278,11 @@ def extract_rows_from_data(request):
             start_time = time.time()
             dff = apply_group(dff, request)
             group_time = time.time() - start_time
-            logger.debug(f"group time : {group_time}")
+            logger.debug(f"group time : {group_time} / {dff.height}")
             start_time = time.time()
             dff = apply_sort(dff, request)
             sort_time = time.time() - start_time
-            logger.debug(f"group sort time : {sort_time}")
+            logger.debug(f"group sort time : {sort_time} / {dff.height}")
 
     except Exception as e:
         logger.error(f"extract_rows_from_data: {e}")

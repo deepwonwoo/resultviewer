@@ -19,7 +19,7 @@ class HomeMenu:
         self.crossProber = CrossProber()
 
     def layout(self):
-        return html.Div(
+        return dmc.Group(
             [
                 self.uploader.layout(),
                 self.saver.layout(),
@@ -33,7 +33,8 @@ class HomeMenu:
                 dmc.Divider(orientation="vertical"),
                 self.crossProber.layout(),
             ],
-            className="d-grid gap-2 d-md-flex justify-content-md-start m-2",
+            justify='flex-start',
+            gap='xs'
         )
 
     def register_callbacks(self, app):
@@ -41,5 +42,5 @@ class HomeMenu:
         self.saver.register_callbacks(app)
         self.columnSizer.register_callbacks(app)
         self.groupRow.register_callbacks(app)
-        self.filter.register_callbacks(app)
+        # self.filter.register_callbacks(app)
         self.crossProber.register_callbacks(app)

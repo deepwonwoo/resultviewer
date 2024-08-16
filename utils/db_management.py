@@ -3,10 +3,10 @@ import tempfile
 import diskcache as dc
 
 DEBUG = True
-USERNAME = os.getenv("USER")
-WORKSPACE = "/user/ecolake/DATA/VERIFY/SIGNOFF/ResultViewer"
-SCRIPT = "/user/verifier14/deepwonwoo/Release/scripts"
 
+USERNAME = "deepwonwoo" # os.getenv("USER")
+WORKSPACE = "C:/Users/deepw/OneDrive/문서/Python" # "/user/ecolake/DATA/VERIFY/SIGNOFF/ResultViewer"
+SCRIPT = "/user/verifier14/deepwonwoo/Release/scripts"
 
 # Determine the workspace directory based on write access to the current directory
 # or fall back to a temporary directory if no write access.

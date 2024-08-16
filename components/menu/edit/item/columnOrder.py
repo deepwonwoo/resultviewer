@@ -36,11 +36,6 @@ class columnOrder:
             for col in colDefs:
                 colDefs_dict[col["field"]] = col
 
-            # updated_colDefs = []
-            # for col in columnState:
-            #     if col.get("colId") != "ag-Grid-AutoColumn":
-            #         updated_colDefs.append(colDefs_dict[col['colId']])
-
             try:
                 DATAFRAME["df"] = DATAFRAME["df"].select(
                     ["uniqid"] + [col.get("colId") for col in columnState if col.get("colId") != "ag-Grid-AutoColumn"]

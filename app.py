@@ -48,19 +48,21 @@ def main():
     RV = ResultViewer(app)
     app.layout = RV.layout()
 
+    app.run(debug=True)
+
     # Get monitor size and set FlaskUI parameters
-    width, height = get_monitor_size()
-    flask_ui_params = {
-        "app": application,
-        "server": "flask",
-        "width": width,
-        "height": height,
-        "on_startup": preprocess,
-        "on_shutdown": postprocess,
-    }
+    # width, height = get_monitor_size()
+    # flask_ui_params = {
+    #     "app": application,
+    #     "server": "flask",
+    #     "width": width,
+    #     "height": height,
+    #     "on_startup": preprocess,
+    #     "on_shutdown": postprocess,
+    # }
 
     # Run FlaskUI with the specified parameters
-    FlaskUI(**flask_ui_params).run()
+    # FlaskUI(**flask_ui_params).run()
 
 
 if __name__ == "__main__":
