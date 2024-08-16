@@ -13,7 +13,9 @@ class DataGrid:
         dash_grid_options = {
             "rowHeight": 24,
             "headerHeight": 30,
-            "cacheBlockSize": 1000,
+            "cacheBlockSize": 1000,  # This sets the block size to 1000
+            "maxBlocksInCache": 3,  # This means the grid will keep two blocks in memory only
+            "blockLoadDebounceMillis": 100,  # loading of blocks is delayed by 100ms
             "enableCharts": True,
             "undoRedoCellEditing": True,
             "enableRangeSelection": True,

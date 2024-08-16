@@ -8,14 +8,7 @@ from utils.db_management import CACHE, ROW_COUNTER, DATAFRAME
 
 def apply_filters(df, request):
     def filterDf(dff, filter_model, col):
-        operators = {
-            "greaterThanOrEqual": "ge",
-            "lessThanOrEqual": "le",
-            "lessThan": "lt",
-            "greaterThan": "gt",
-            "notEqual": "ne",
-            "equals": "eq",
-        }
+
         if "filter" in filter_model:
             crit1 = filter_model["filter"]
 
@@ -45,18 +38,23 @@ def apply_filters(df, request):
             elif filter_model["type"] == "notBlank":
                 dff = dff.loc[~dff[col].isnull()]
 
-            elif (
-                filter_model["filterType"] == "number"
-                and filter_model["type"] == "inRange"
-            ):
+            elif filter_model["filterType"] == "number" and filter_model["type"] == "inRange":
                 if "filterTo" in filter_model:
-                    crit2 = pd.Series(filter_model["filterTo"]).astype(dff[col].dtype)[
-                        0
-                    ]
-                    dff = dff.loc[dff[col].between(crit1, crit2)]
-
+                    crit2 = filter_model["filterTo"]
+                    dff = dff.filter(pl.col(col).is_between(crit1, crit2))
             else:
-                dff = dff.loc[getattr(dff[col], operators[filter_model["type"]])(crit1)]
+                if filter_model["type"] == "greaterThanOrEqual":
+                    dff = dff.filter(pl.col(col) >= crit1)
+                elif filter_model["type"] == "lessThanOrEqual":
+                    dff = dff.filter(pl.col(col) <= crit1)
+                elif filter_model["type"] == "lessThan":
+                    dff = dff.filter(pl.col(col) < crit1)
+                elif filter_model["type"] == "greaterThan":
+                    dff = dff.filter(pl.col(col) > crit1)
+                elif filter_model["type"] == "notEqual":
+                    dff = dff.filter(pl.col(col) != crit1)
+                elif filter_model["type"] == "equals":
+                    dff = dff.filter(pl.col(col) == crit1)
 
         return dff
 
@@ -68,18 +66,14 @@ def apply_filters(df, request):
         if operator == "AND":
             for condition in conditions:
                 if "conditions" in condition:  # 중첩된 조건 처리
-                    df = process_conditions(
-                        df, condition["conditions"], condition["type"]
-                    )
+                    df = process_conditions(df, condition["conditions"], condition["type"])
                 else:
                     df = filter_df(df, condition)
         elif operator == "OR":
             expressions = []
             for condition in conditions:
                 if "conditions" in condition:
-                    temp_df = process_conditions(
-                        df.clone(), condition["conditions"], condition["type"]
-                    )
+                    temp_df = process_conditions(df.clone(), condition["conditions"], condition["type"])
                     expressions.append(temp_df)
 
                 else:
@@ -118,8 +112,6 @@ def apply_filters(df, request):
 
 def apply_group(df, request, counter):
 
-    logger.debug("apply_group")
-
     # 집계 함수 매핑 정의
     agg_function_mapping = {
         "avg": pl.mean,  # 평균
@@ -131,6 +123,7 @@ def apply_group(df, request, counter):
         "sum": pl.sum,  # 합계
     }
     try:
+
         global ROW_COUNTER
         ROW_COUNTER["groupby"] = 0
 
@@ -141,59 +134,53 @@ def apply_group(df, request, counter):
         if CACHE.get("hide_waiver") and "waiver" in df.columns:
             df = df.filter(~pl.col("waiver").str.ends_with("."))
 
-        if groupKeys:
-            group_counts = df.group_by(groupBy[0]).agg(pl.len().alias("childCount"))
-            ROW_COUNTER["groupby"] = f"{len(group_counts['childCount'])} "
+        if groupBy:
+            if groupKeys:
+                group_counts = df.group_by(groupBy[0]).agg(pl.len().alias("childCount"))
+                ROW_COUNTER["groupby"] = f"{len(group_counts['childCount'])} "
 
-            additional_hier_group_info = "("
+                additional_hier_group_info = "("
 
-            for i in range(len(groupKeys)):
-                # 현재 그룹 키에 해당하는 데이터 필터링
-                if groupKeys[i] is None:
-                    df = df.clear()
-                    break
-                else:
-                    df = df.filter(pl.col(groupBy[i]) == groupKeys[i])
+                for i in range(len(groupKeys)):
+                    # 현재 그룹 키에 해당하는 데이터 필터링
+                    if groupKeys[i] is None:
+                        df = df.clear()
+                        break
+                    else:
+                        df = df.filter(pl.col(groupBy[i]) == groupKeys[i])
 
-                    # 다음 그룹화 컬럼에 대한 개수 정보 추가
-                    if i + 1 < len(groupBy):
-                        group_counts_next = df.group_by(groupBy[i + 1]).agg(
-                            pl.len().alias("count")
-                        )
-                        total_count = len(group_counts_next["count"])
-                        additional_hier_group_info += f"{groupKeys[i]}: {total_count}, "
+                        # 다음 그룹화 컬럼에 대한 개수 정보 추가
+                        if i + 1 < len(groupBy):
+                            group_counts_next = df.group_by(groupBy[i + 1]).agg(pl.len().alias("count"))
+                            total_count = len(group_counts_next["count"])
+                            additional_hier_group_info += f"{groupKeys[i]}: {total_count}, "
 
-            # 문자열 마무리 처리
-            if additional_hier_group_info.endswith(", "):
-                ROW_COUNTER["groupby"] += additional_hier_group_info[:-2] + ")"
+                # 문자열 마무리 처리
+                if additional_hier_group_info.endswith(", "):
+                    ROW_COUNTER["groupby"] += additional_hier_group_info[:-2] + ")"
 
-            # GROUPED_DF_CACHE[grouped_df_key[1:]] = df
+                # GROUPED_DF_CACHE[grouped_df_key[1:]] = df
 
-            if len(groupKeys) != len(groupBy):
-                group_counts = df.group_by(groupBy[: len(groupKeys) + 1]).agg(
-                    pl.len().alias("childCount")
-                )
-                # 제공된 agg에 따라 집계를 수행하거나, 없으면 각 그룹의 첫 번째 행을 선택
-                if agg:
-                    # 그룹별 자식 수와 집계 결과를 합침
-                    df = df_agg.join(
-                        group_counts, on=groupBy[: len(groupKeys) + 1], how="left"
-                    )
-                    df = df.sort(groupBy[len(groupKeys)])
-                    if "waiver" in df.columns and "waiver" not in groupBy:
-                        df = df.drop("waiver")
-                        df = df.with_columns(pl.lit("").alias("waiver"))
-                    df = df.with_columns(pl.lit(True).alias("group"))
-                else:
-                    df = df.with_columns(pl.lit(False).alias("group"))
-        else:
-            if groupBy:
+                if len(groupKeys) != len(groupBy):
+                    group_counts = df.group_by(groupBy[: len(groupKeys) + 1]).agg(pl.len().alias("childCount"))
+                    # 제공된 agg에 따라 집계를 수행하거나, 없으면 각 그룹의 첫 번째 행을 선택
+                    if agg:
+                        # 그룹별 자식 수와 집계 결과를 합침
+                        df = df_agg.join(group_counts, on=groupBy[: len(groupKeys) + 1], how="left")
+                        df = df.sort(groupBy[len(groupKeys)])
+                        if "waiver" in df.columns and "waiver" not in groupBy:
+                            df = df.drop("waiver")
+                            df = df.with_columns(pl.lit("").alias("waiver"))
+                        df = df.with_columns(pl.lit(True).alias("group"))
+                    else:
+                        df = df.with_columns(pl.lit(False).alias("group"))
+            else:
+
                 group_counts = df.group_by(groupBy[0]).agg(pl.len().alias("childCount"))
                 if agg:
                     # 집계 함수 매핑을 사용하여 집계 표현식 리스트 생성
                     agg_expressions = [
-                        agg_function_mapping[agg_func](col_name).alias(col_name)
-                        for col_name, agg_func in agg.items()
+                        agg_function_mapping[agg_func](col_name).alias(col_name) for col_name, agg_func in agg.items()
                     ]
                     df_agg = df.group_by(groupBy[0]).agg(agg_expressions)
 
@@ -222,22 +209,42 @@ def apply_sort(df, request):
     try:
         if sortModel:
             # 각 컬럼에 대한 정렬 방향을 설정합니다.
-            sorting = [
-                sort["colId"]
-                for sort in sortModel
-                if sort["colId"] != "ag-Grid-AutoColumn"
-            ]
-            asc = [
-                sort["sort"] == "asc"
-                for sort in sortModel
-                if sort["colId"] != "ag-Grid-AutoColumn"
-            ]
+            sorting = [sort["colId"] for sort in sortModel if sort["colId"] != "ag-Grid-AutoColumn"]
+            asc = [sort["sort"] == "asc" for sort in sortModel if sort["colId"] != "ag-Grid-AutoColumn"]
 
-            logger.debug(f"sorting:{sorting}, asc:{asc}")
+            groupBy = [col["id"] for col in request.get("rowGroupCols", [])]
 
-            df = df.sort(sorting, descending=asc)
+            if len(groupBy) and "childCount" in df.columns:
+                group_sort = []
+                group_asc = []
+                non_group_sort = []
+                non_group_asc = []
+                for i, s in enumerate(sorting):
+                    if s in groupBy:
+                        group_sort.append(s)
+                        group_asc.append(asc[i])
+                    else:
+                        non_group_sort.append(s)
+                        non_group_asc.append(asc[i])
+                if group_sort:
+                    df = df.sort(by=["childCount"], descending=group_asc[0])
+                elif non_group_sort:
+                    # Convert necessary columns to a sortable type
+                    for col in non_group_sort:
+                        df = df.with_columns(pl.col(col).cast(pl.Utf8))
 
-        return df
+                    df = df.sort(non_group_sort, descending=non_group_asc)
+            else:
+                updated_sorting = []
+                updated_asc = []
+                for i, s in enumerate(sorting):
+                    if s in df.columns:
+                        updated_sorting.append(sorting[i])
+                        updated_asc.append(asc[i])
+
+                df = df.sort(updated_sorting, descending=updated_asc)
+
+            return df
 
     except Exception as e:
         logger.error(f"Error in apply_sort: {e}")
@@ -249,19 +256,44 @@ def extract_rows_from_data(request):
     global DATAFRAME
     dff = DATAFRAME["df"]
     CACHE.set("REQUEST", request)
-    logger.debug("requsest:")
-    logger.debug(f"{pprint.pformat(request)}")
+    logger.debug(f"request:\n{pprint.pformat(request)}")
     try:
+        # Measure time for applying filters
+        start_time = time.time()
         dff = apply_filters(dff, request)
+        filter_time = time.time() - start_time
+        logger.debug(f"filter time : {filter_time}")
+
+        start_time = time.time()
         dff = apply_sort(dff, request)
-        dff = apply_group(dff, request)
+        sort_time = time.time() - start_time
+        logger.debug(f"sort time : {sort_time}")
+
+        if CACHE.get("TreeMode"):
+            start_time = time.time()
+            # dff = apply_tree(dff, request)
+            tree_time = time.time() - start_time
+            logger.debug(f"tree time : {tree_time}")
+        else:
+            start_time = time.time()
+            dff = apply_group(dff, request)
+            group_time = time.time() - start_time
+            logger.debug(f"group time : {group_time}")
+            start_time = time.time()
+            dff = apply_sort(dff, request)
+            sort_time = time.time() - start_time
+            logger.debug(f"group sort time : {sort_time}")
+
     except Exception as e:
+        logger.error(f"extract_rows_from_data: {e}")
+        time.sleep(0.1)
         dff = DATAFRAME["df"]
+
     # 결과 데이터 슬라이싱
     start_row = request.get("startRow", 0)
     end_row = request.get("endRow", 1000)
     partial_df = dff.slice(start_row, end_row - start_row)
-    logger.debug(partial_df)
+
     return {
         "rowData": partial_df.to_dicts(),
         "rowCount": dff.height,
