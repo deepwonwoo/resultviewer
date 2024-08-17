@@ -2,11 +2,15 @@ import pprint
 import time
 import traceback
 import polars as pl
-from utils.logging_utils import logger
+from utils.logging_utils import logger, debugging_decorator
 from utils.db_management import CACHE, ROW_COUNTER, DATAFRAME
 
-
+@debugging_decorator
 def apply_filters(df, request):
+    filterModel = request.get("filterModel")
+    if not filterModel:
+        return df
+    
     def filterDf(dff, filter_model, col): 
 
         if "filter" in filter_model:
@@ -58,7 +62,7 @@ def apply_filters(df, request):
 
         return dff
 
-    def filter_df(df, condition):
+    def apply_filter_condition(df, condition):
         col = condition["colId"]
         return filterDf(df, condition, col)
 
@@ -68,7 +72,7 @@ def apply_filters(df, request):
                 if "conditions" in condition:  # 중첩된 조건 처리
                     df = process_conditions(df, condition["conditions"], condition["type"])
                 else:
-                    df = filter_df(df, condition)
+                    df = apply_filter_condition(df, condition)
         elif operator == "OR":
             expressions = []
             for condition in conditions:
@@ -77,7 +81,7 @@ def apply_filters(df, request):
                     expressions.append(temp_df)
 
                 else:
-                    temp_df = filter_df(df.clone(), condition)
+                    temp_df = apply_filter_condition(df.clone(), condition)
                     expressions.append(temp_df)
 
             # OR 조건을 만족하는 모든 행을 포함하는 단일 DataFrame을 생성합니다.
@@ -89,18 +93,18 @@ def apply_filters(df, request):
                 df = final_df
         return df
 
-    filterModel = request.get("filterModel")
+    
     try:
         global ROW_COUNTER
         ROW_COUNTER["filtered"] = 0
-        if filterModel:
-            if "colId" in filterModel:
-                df = filter_df(df, filterModel)
-            elif "conditions" in filterModel:
-                operator = filterModel.get("type", "AND")
-                df = process_conditions(df, filterModel["conditions"], operator)
+    
+        if "colId" in filterModel:
+            df = apply_filter_condition(df, filterModel)
+        elif "conditions" in filterModel:
+            operator = filterModel.get("type", "AND")
+            df = process_conditions(df, filterModel["conditions"], operator)
 
-            ROW_COUNTER["filtered"] = len(df)
+        ROW_COUNTER["filtered"] = len(df)
 
         return df
 
@@ -109,7 +113,7 @@ def apply_filters(df, request):
         logger.error(traceback.format_exc())
         raise
 
-
+@debugging_decorator
 def apply_group(df, request):
 
     # 집계 함수 매핑 정의
@@ -123,12 +127,11 @@ def apply_group(df, request):
         "sum": pl.sum,  # 합계
     }
     try:
-
         global ROW_COUNTER
         ROW_COUNTER["groupby"] = 0
 
         groupBy = [col["id"] for col in request.get("rowGroupCols", [])]
-        groupKeys = request.get("groupKeys")
+        groupKeys = request.get("groupKeys", [])
         agg = {col["id"]: col["aggFunc"] for col in request.get("valueCols", [])}
 
         if CACHE.get("hide_waiver") and "waiver" in df.columns:
@@ -175,7 +178,6 @@ def apply_group(df, request):
                     else:
                         df = df.with_columns(pl.lit(False).alias("group"))
             else:
-
                 group_counts = df.group_by(groupBy[0]).agg(pl.len().alias("childCount"))
                 if agg:
                     # 집계 함수 매핑을 사용하여 집계 표현식 리스트 생성
@@ -202,47 +204,48 @@ def apply_group(df, request):
         logger.error(traceback.format_exc())
         raise
 
-
+@debugging_decorator
 def apply_sort(df, request):
-    
-    sortModel = request.get("sortModel")
+    sort_model  = request.get("sort_model ")
+    if not sort_model :
+        return df
     try:
-        if sortModel:
-            # 각 컬럼에 대한 정렬 방향을 설정합니다.
-            sorting = [sort["colId"] for sort in sortModel if sort["colId"] != "ag-Grid-AutoColumn"]
-            asc = [sort["sort"] == "asc" for sort in sortModel if sort["colId"] != "ag-Grid-AutoColumn"]
 
-            groupBy = [col["id"] for col in request.get("rowGroupCols", [])]
+        # 각 컬럼에 대한 정렬 방향을 설정합니다.
+        sorting = [sort["colId"] for sort in sort_model  if sort["colId"] != "ag-Grid-AutoColumn"]
+        asc = [sort["sort"] == "asc" for sort in sort_model  if sort["colId"] != "ag-Grid-AutoColumn"]
 
-            if len(groupBy) and "childCount" in df.columns:
-                group_sort = []
-                group_asc = []
-                non_group_sort = []
-                non_group_asc = []
-                for i, s in enumerate(sorting):
-                    if s in groupBy:
-                        group_sort.append(s)
-                        group_asc.append(asc[i])
-                    else:
-                        non_group_sort.append(s)
-                        non_group_asc.append(asc[i])
-                if group_sort:
-                    df = df.sort(by=["childCount"], descending=group_asc[0])
-                elif non_group_sort:
-                    # Convert necessary columns to a sortable type
-                    for col in non_group_sort:
-                        df = df.with_columns(pl.col(col).cast(pl.Utf8))
+        groupBy = [col["id"] for col in request.get("rowGroupCols", [])]
 
-                    df = df.sort(non_group_sort, descending=non_group_asc)
-            else:
-                updated_sorting = []
-                updated_asc = []
-                for i, s in enumerate(sorting):
-                    if s in df.columns:
-                        updated_sorting.append(sorting[i])
-                        updated_asc.append(asc[i])
+        if len(groupBy) and "childCount" in df.columns:
+            group_sort = []
+            group_asc = []
+            non_group_sort = []
+            non_group_asc = []
+            for i, s in enumerate(sorting):
+                if s in groupBy:
+                    group_sort.append(s)
+                    group_asc.append(asc[i])
+                else:
+                    non_group_sort.append(s)
+                    non_group_asc.append(asc[i])
+            if group_sort:
+                df = df.sort(by=["childCount"], descending=group_asc[0])
+            elif non_group_sort:
+                # Convert necessary columns to a sortable type
+                for col in non_group_sort:
+                    df = df.with_columns(pl.col(col).cast(pl.Utf8))
 
-                df = df.sort(updated_sorting, descending=updated_asc)
+                df = df.sort(non_group_sort, descending=non_group_asc)
+        else:
+            updated_sorting = []
+            updated_asc = []
+            for i, s in enumerate(sorting):
+                if s in df.columns:
+                    updated_sorting.append(sorting[i])
+                    updated_asc.append(asc[i])
+
+            df = df.sort(updated_sorting, descending=updated_asc)
 
         return df
 
@@ -251,39 +254,25 @@ def apply_sort(df, request):
         logger.error(traceback.format_exc())
         raise
 
-
+@debugging_decorator
 def extract_rows_from_data(request):
     global DATAFRAME
     dff = DATAFRAME["df"]
     CACHE.set("REQUEST", request)
     logger.debug(f"request:\n{pprint.pformat(request)}")
     try:
-        # Measure time for applying filters
-        start_time = time.time()
+        
         dff = apply_filters(dff, request)
-        filter_time = time.time() - start_time
-        logger.debug(f"filter time : {filter_time} / {dff.height}")
-
-        start_time = time.time()
+        
         dff = apply_sort(dff, request)
-        sort_time = time.time() - start_time
-        logger.debug(f"sort time : {sort_time} / {dff.height}")
-
+        
         if CACHE.get("TreeMode"):
-            start_time = time.time()
-            # dff = apply_tree(dff, request)
-            tree_time = time.time() - start_time
-            logger.debug(f"tree time : {tree_time}")
+            pass
+            # dff = apply_tree(dff, request)        
         else:
-            start_time = time.time()
             dff = apply_group(dff, request)
-            group_time = time.time() - start_time
-            logger.debug(f"group time : {group_time} / {dff.height}")
-            start_time = time.time()
-            dff = apply_sort(dff, request)
-            sort_time = time.time() - start_time
-            logger.debug(f"group sort time : {sort_time} / {dff.height}")
-
+            dff = apply_sort(dff, request)  # Re-sort after grouping
+            
     except Exception as e:
         logger.error(f"extract_rows_from_data: {e}")
         time.sleep(0.1)
@@ -291,7 +280,7 @@ def extract_rows_from_data(request):
 
     # 결과 데이터 슬라이싱
     start_row = request.get("startRow", 0)
-    end_row = request.get("endRow", 1000)
+    end_row = request.get("endRow", len(dff))
     partial_df = dff.slice(start_row, end_row - start_row)
 
     return {

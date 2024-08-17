@@ -1,9 +1,21 @@
 import polars as pl
-from utils.db_management import CACHE
-from utils.logging_utils import logger
+from typing import Dict, Any, List, Union
+from enum import Enum
 
-# Default column definition for AG Grid
-defaultColDef = {
+# 상수 정의
+class ColumnType(Enum):
+    NUMERIC = "numeric"
+    STRING = "text"
+
+class WaiverStatus(Enum):
+    WAIVER = "Waiver"
+    WAIVER_DOT = "Waiver."
+    FIXED = "Fixed"
+    FIXED_DOT = "Fixed."
+    ERROR = "Error"
+
+# 기본 열 정의
+DEFAULT_COL_DEF: Dict[str, Any] = {
     "filter": True,
     "sortable": True,
     "resizable": True,
@@ -13,74 +25,67 @@ defaultColDef = {
 }
 
 
-def determine_column_type(column_expr):
+def determine_column_type(column_expr: pl.Expr) -> ColumnType:
     """Determine the most appropriate column type for AG Grid based on the Polars Series dtype."""
-    if column_expr.dtype == pl.Float64 or column_expr.dtype == pl.Int64:
-        return "numeric"
-    else:
-        return "string"
+    if column_expr.dtype in (pl.Float64, pl.Int64):
+        return ColumnType.NUMERIC
+    return ColumnType.STRING
 
 
-def generate_column_definition(column_name, column_expr, col_hide=[], cellClassRules=None, is_editable=False):
-    """Generate a single column definition for AG Grid based on the column name and its Polars Series."""
-    # col_def = {"headerName": column_name, "field": column_name, "headerComponent": "SelectColumn"}
+
+
+def generate_waiver_column_definition(column_name: str) -> Dict[str, Any]:
+    return {
+        "headerName": column_name,
+        "field": column_name,
+        "cellDataType": "text",
+        "checkboxSelection": {"function": "params.data.group != true"},
+        "cellStyle": {
+            "styleConditions": [
+                {"condition": f"params.data.waiver == '{status.value}'", 
+                 "style": {"backgroundColor": color}}
+                for status, color in [
+                    (WaiverStatus.WAIVER, "lightskyblue"),
+                    (WaiverStatus.WAIVER_DOT, "lightskyblue"),
+                    (WaiverStatus.FIXED, "limegreen"),
+                    (WaiverStatus.FIXED_DOT, "limegreen"),
+                    (WaiverStatus.ERROR, "lightcoral"),
+                ]
+            ] + [{"condition": "params.data.waiver == ''", "style": {}}]
+        },
+        "editable": True,
+        "cellClass": "text-dark"
+    }
+
+
+def generate_column_definition(
+    column_name: str, 
+    column_expr: pl.Expr, 
+    col_hide: List[str] = [], 
+    cellClassRules: Dict[str, str] = None, 
+    is_editable: bool = False
+) -> Dict[str, Any]:
+
+    """    Generate a single column definition for AG Grid based on the column name and its Polars Series."""
+
+    if column_name == "waiver":
+        return generate_waiver_column_definition(column_name)
+
     col_def = {"headerName": column_name, "field": column_name}
+    
 
     col_data_type = determine_column_type(column_expr)
-    if column_name == "waiver":
+    if col_data_type == ColumnType.STRING:
         col_def.update({"cellDataType": "text"})
-        col_def.update({"checkboxSelection": {"function": "params.data.group != true"}})
-        col_def.update(
-            {
-                "cellStyle": {
-                    "styleConditions": [
-                        {
-                            "condition": "params.data.waiver == 'Waiver'",
-                            "style": {"backgroundColor": "lightskyblue"},
-                        },
-                        {
-                            "condition": "params.data.waiver == 'Waiver.'",
-                            "style": {"backgroundColor": "lightskyblue"},
-                        },
-                        {
-                            "condition": "params.data.waiver == 'Fixed'",
-                            "style": {"backgroundColor": "limegreen"},
-                        },
-                        {
-                            "condition": "params.data.waiver == 'Fixed.'",
-                            "style": {"backgroundColor": "limegreen"},
-                        },
-                        {
-                            "condition": "params.data.waiver == 'Error'",
-                            "style": {"backgroundColor": "lightcoral"},
-                        },
-                        {
-                            "condition": "params.data.waiver == ''",
-                            "style": {},
-                        },
-                    ]
-                }
-            }
-        )
-    elif col_data_type == "string":
-        col_def.update({"cellDataType": "text"})
-
-    elif col_data_type == "numeric":
-        col_def.update({"cellDataType": "number", "type": "rightAligned"})
+    elif col_data_type == ColumnType.NUMERIC:
+        col_def.update({"cellDataType": "number"})
 
     if column_name in col_hide:
-        # col_def.update({"rowGroup": True}),
         col_def.update({"hide": True})
-    # else:
-    # col_def.update({"rowGroup": False}),
-    # col_def.update({"hide": False})
 
-    if is_editable or column_name == "waiver":
-        col_def["editable"] = True
-        col_def["cellClass"] = "text-dark"
-    else:
-        col_def["editable"] = False
-        col_def["cellClass"] = "text-secondary"
+    col_def["editable"] = is_editable
+    col_def["cellClass"] = "text-dark" if col_def["editable"] else "text-secondary"
+
 
     if cellClassRules:
         col_def["cellClassRules"] = cellClassRules
@@ -88,8 +93,12 @@ def generate_column_definition(column_name, column_expr, col_hide=[], cellClassR
     return col_def
 
 
-def generate_column_definitions(df, col_hide=[]):
-    """Generate column definitions for all columns in a Polars DataFrame suitable for AG Grid."""
-    column_defs = [generate_column_definition(col, df[col], col_hide) for col in df.columns if col != "uniqid"]
 
-    return column_defs
+def generate_column_definitions(df: pl.DataFrame, col_hide: List[str] = []) -> List[Dict[str, Any]]:
+
+    """Generate column definitions for all columns in a Polars DataFrame suitable for AG Grid."""
+    return [
+        generate_column_definition(col, df[col], col_hide)
+        for col in df.columns
+        if col != "uniqid"
+    ]

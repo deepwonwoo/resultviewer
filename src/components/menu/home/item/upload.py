@@ -8,6 +8,7 @@ from components.dag.column_definitions import generate_column_definitions
 from utils.db_management import WORKSPACE, USERNAME, SCRIPT, CACHE, DATAFRAME
 from utils.noti_helpers import create_notification, get_icon
 from utils.file_operations import backup_file
+from utils.dataframe_operations import file2df
 from utils.logging_utils import logger, debugging_decorator
 from components.menu.home.item.workspace_explore import FileExplorer
 

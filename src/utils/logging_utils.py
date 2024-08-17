@@ -70,17 +70,13 @@ def debugging_decorator(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         try:
-            if ctx.triggered:
-                logger.debug(f"Triggered by {ctx.triggered}")
             start = time.time()
             result = func(*args, **kwargs)
             end = time.time()
-            logger.debug(f"{func.__name__} took {end - start:.2f}s to execute.")
+            logger.info(f"{func.__name__} took {end - start:.2f}s to execute.")
+            return result
         except Exception as e:
-            logger.debug(f"Exception occurred in {func.__name__}")
+            logger.debug(f"Exception occurred in {func.__name__}: {str(e)}")
             logger.debug(f"{traceback.format_exc()}")
-            raise exceptions.PreventUpdate
-        finally:
-            logger.debug("=" * 10)
-        return result
+            raise 
     return wrapper
