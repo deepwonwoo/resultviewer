@@ -1,8 +1,10 @@
+import os
 import polars as pl
 from collections import Counter
-from components.dag.server_side_operations import apply_filters
-from utils.db_management import CACHE, DATAFRAME
 from utils.logging_utils import logger
+from utils.file_operations import get_lock_status, acquire_file_lock
+from utils.db_management import DATAFRAME, CACHE
+from components.dag.server_side_operations import apply_filters
 
 
 def read_csv_file(csv_file):
@@ -64,6 +66,33 @@ def read_csv_file(csv_file):
 def validate_df(csv_file):
     df = pl.read_parquet(csv_file) if csv_file.endswith(".parquet") else read_csv_file(csv_file)
     return df
+
+
+
+def file2df(csv_file_path, workspace=True):
+    try:
+        df = validate_df(csv_file_path)
+    except Exception as e:
+        logger.error(f"Error validating DataFrame: {e}")
+        raise
+
+    global DATAFRAME
+    DATAFRAME["df"] = df
+
+    if DATAFRAME.get("lock") is not None:
+        DATAFRAME["lock"].release()
+
+    if workspace:
+        lock, owner = get_lock_status(csv_file_path)
+        if lock:
+            DATAFRAME["readonly"] = True
+        else:
+            if os.access(os.path.dirname(csv_file_path), os.W_OK):
+                DATAFRAME["readonly"] = False
+                DATAFRAME["lock"] = acquire_file_lock(csv_file_path)
+
+    return df
+
 
 def displaying_df(filtred_apply=False):
     

@@ -1,7 +1,5 @@
-import argparse
-from typing import Dict, Any
-
 import dash
+import argparse
 from dash import DiskcacheManager
 from dash_extensions.enrich import DashProxy
 from flask import Flask
