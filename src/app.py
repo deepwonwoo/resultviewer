@@ -1,17 +1,22 @@
-import dash
-dash._dash_renderer._set_react_version("18.2.0")
 import argparse
-from flask import Flask
-from flaskwebgui import FlaskUI
+from typing import Dict, Any
+
+import dash
 from dash import DiskcacheManager
 from dash_extensions.enrich import DashProxy
+from flask import Flask
+from flaskwebgui import FlaskUI
+
 from components.layout import ResultViewer
-from utils.process_helpers import preprocess, postprocess, get_monitor_size
 from utils.db_management import CACHE
+from utils.process_helpers import preprocess, postprocess, get_monitor_size
+
+dash._dash_renderer._set_react_version("18.2.0")
 
 
-def main():
-    """Entry point of the application."""
+
+def parse_arguments() -> argparse.Namespace:
+    """Parse command line arguments."""
     parser = argparse.ArgumentParser(description="ResultViewer options")
     parser.add_argument("-csv", "--csv", help="CSV to Display")
     parser.add_argument("-tool", "--tool", default="")
@@ -19,9 +24,12 @@ def main():
     parser.add_argument("-port", "--port", default=0, type=int)
     parser.add_argument("-lib", "--lib", default="")
     parser.add_argument("-cell", "--cell", default="")
-    args = parser.parse_args()
+    return parser.parse_args()
 
-    # add CrossProbing info to Disk cache CACHE
+
+
+def setup_cache(args: argparse.Namespace) -> None:
+    """Set up the disk cache with initial values."""
     CACHE.set("init_csv", args.csv)
     CACHE.set(
         "CP",
@@ -34,7 +42,9 @@ def main():
         },
     )
 
-    # Initialize Flask and Dash
+
+def create_dash_app() -> DashProxy:
+    """Create and configure the Dash application."""
     application = Flask(__name__)
     app = DashProxy(
         server=application,
@@ -43,12 +53,23 @@ def main():
         prevent_initial_callbacks="initial_duplicate",
         background_callback_manager=DiskcacheManager(CACHE),
     )
+    return app
+
+
+
+def main() -> None:
+    """Entry point of the application."""
+    args = parse_arguments()
+    setup_cache(args)
+    
+    app = create_dash_app()
 
     # Initialize the layout of the app using ResultViewer component
-    RV = ResultViewer(app)
-    app.layout = RV.layout()
-
+    result_viewer = ResultViewer(app)
+    app.layout = result_viewer.layout()
+    
     app.run(debug=True)
+
 
     # Get monitor size and set FlaskUI parameters
     # width, height = get_monitor_size()
@@ -60,7 +81,6 @@ def main():
     #     "on_startup": preprocess,
     #     "on_shutdown": postprocess,
     # }
-
     # Run FlaskUI with the specified parameters
     # FlaskUI(**flask_ui_params).run()
 
