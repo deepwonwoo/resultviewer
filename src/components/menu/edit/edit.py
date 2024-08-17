@@ -4,7 +4,6 @@ import dash_mantine_components as dmc
 from dash import html, Input, Output, State, ALL, MATCH, no_update, exceptions, ctx, dcc
 from utils.db_management import DATAFRAME, CACHE, USERNAME
 from components.dag.column_definitions import generate_column_definitions
-from utils.process_helpers import create_notification
 from utils.logging_utils import logger
 from components.menu.edit.item.column_operations import Columns
 from components.menu.edit.item.column_order import columnOrder
