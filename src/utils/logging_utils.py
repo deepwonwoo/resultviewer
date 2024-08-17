@@ -1,5 +1,9 @@
 import os
 import logging
+import time
+import traceback
+from functools import wraps
+from dash import exceptions, ctx
 from logging.handlers import RotatingFileHandler
 from typing import Optional
 from utils.db_management import USER_RV_DIR, DEBUG
@@ -60,3 +64,23 @@ class ResultViewerLogger:
 
 # Global logger instance
 logger = ResultViewerLogger.get_instance()
+
+
+def debugging_decorator(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            if ctx.triggered:
+                logger.debug(f"Triggered by {ctx.triggered}")
+            start = time.time()
+            result = func(*args, **kwargs)
+            end = time.time()
+            logger.debug(f"{func.__name__} took {end - start:.2f}s to execute.")
+        except Exception as e:
+            logger.debug(f"Exception occurred in {func.__name__}")
+            logger.debug(f"{traceback.format_exc()}")
+            raise exceptions.PreventUpdate
+        finally:
+            logger.debug("=" * 10)
+        return result
+    return wrapper

@@ -6,10 +6,11 @@ from dash import DiskcacheManager
 from dash_extensions.enrich import DashProxy
 from flask import Flask
 from flaskwebgui import FlaskUI
+from screeninfo import get_monitors
+
 
 from components.layout import ResultViewer
-from utils.db_management import CACHE
-from utils.process_helpers import preprocess, postprocess, get_monitor_size
+from utils.db_management import CACHE, DATAFRAME
 
 dash._dash_renderer._set_react_version("18.2.0")
 
@@ -55,7 +56,17 @@ def create_dash_app() -> DashProxy:
     )
     return app
 
+def get_monitor_size():
+    monitor = get_monitors()[-1]
+    return monitor.width, monitor.height
 
+def preprocess():
+    CACHE.clear()
+
+def postprocess():
+    if DATAFRAME.get("lock") is not None:
+        DATAFRAME["lock"].release()
+    CACHE.close()
 
 def main() -> None:
     """Entry point of the application."""
