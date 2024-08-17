@@ -1,39 +1,62 @@
 import os
 import logging
+from logging.handlers import RotatingFileHandler
+from typing import Optional
 from utils.db_management import USER_RV_DIR, DEBUG
 
+class ResultViewerLogger:
+    _instance: Optional['ResultViewerLogger'] = None
 
-def setup_logger(debug_mode, log_file="application.log"):
-    """Configure application logging."""
+    def __init__(self, debug_mode: bool = DEBUG):
+        self.logger = logging.getLogger("ResultViewer")
+        self.logger.setLevel(logging.DEBUG)  # Set to DEBUG to capture all levels
+        self.logger.handlers.clear()  # Clear existing handlers to avoid duplication
 
-    level = logging.DEBUG if debug_mode else logging.INFO
-    logger = logging.getLogger(__name__)
-    logger.setLevel(level)
+        self._setup_console_handler()
+        self._setup_file_handler()
 
-    # Create console handler and set level to INFO
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.INFO)
-    console_formatter = logging.Formatter("%(message)s")
-    console_handler.setFormatter(console_formatter)
+        # Ensure the logger doesn't propagate messages to the root logger
+        self.logger.propagate = False
 
-    # Create file handler and set level to DEBUG
-    log_path = os.path.join(USER_RV_DIR, log_file)
-    file_handler = logging.FileHandler(log_path, mode="w")
-    file_handler.setLevel(level)
-    # file_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-    file_formatter = logging.Formatter("%(message)s")
-    file_handler.setFormatter(file_formatter)
+        # Suppress other loggers
+        logging.getLogger("werkzeug").setLevel(logging.ERROR)
+        logging.getLogger("dash").setLevel(logging.ERROR)
 
-    # Add handlers to the logger
-    logger.addHandler(console_handler)
-    logger.addHandler(file_handler)
+    @classmethod
+    def get_instance(cls) -> 'ResultViewerLogger':
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
 
-    return logger
+    def _setup_console_handler(self):
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.INFO)  # Set console to INFO level
+        console_formatter = logging.Formatter("%(levelname)s: %(message)s")
+        console_handler.setFormatter(console_formatter)
+        self.logger.addHandler(console_handler)
 
+    def _setup_file_handler(self):
+        log_file = os.path.join(USER_RV_DIR, "resultviewer.log")
+        file_handler = RotatingFileHandler(log_file, maxBytes=10*1024*1024, backupCount=5)
+        file_handler.setLevel(logging.DEBUG)  # Set file handler to DEBUG to capture all levels
+        file_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s")
+        file_handler.setFormatter(file_formatter)
+        self.logger.addHandler(file_handler)
 
-# Configure logging for 'werkzeug' to minimize noise in the logs
-logging.getLogger("werkzeug").setLevel(logging.ERROR)
+    def debug(self, msg: str):
+        self.logger.debug(msg)
 
-# Initialize and configure the application logger
+    def info(self, msg: str):
+        self.logger.info(msg)
 
-logger = setup_logger(debug_mode=DEBUG)
+    def warning(self, msg: str):
+        self.logger.warning(msg)
+
+    def error(self, msg: str):
+        self.logger.error(msg, exc_info=True)
+
+    def critical(self, msg: str):
+        self.logger.critical(msg, exc_info=True)
+
+# Global logger instance
+logger = ResultViewerLogger.get_instance()
