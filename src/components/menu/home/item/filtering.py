@@ -1,30 +1,29 @@
 import os
 import datetime
-import shutil
-import subprocess
+import yaml
 import dash_mantine_components as dmc
-from dash import Input, Output, State, html, exceptions, ctx, no_update, ALL, dcc
-from components.dag.column_definitions import generate_column_definitions
-from utils.db_management import (
-    WORKSPACE,
-    USERNAME,
-    SCRIPT,
-    CACHE,
-    DATAFRAME,
-    USER_RV_DIR,
-)
+from dash import Input, Output, State, html, exceptions, ctx, no_update, ALL, dcc, callback
+from typing import Dict, Any, List
+from utils.db_management import CACHE, USER_RV_DIR
 from utils.logging_utils import logger
-from utils.noti_helpers import get_icon
-from components.menu.home.item.workspace_explore import FileExplorer
+from utils.noti_helpers import get_icon, create_notification
+from utils.dataframe_operations import displaying_df
 
+# Constants
+OPEN_FILTER_STORAGE = "open-filter-storage-btn"
+STORE_FILTER_CONDITION = "store-filter-condition-btn"
+CLEAR_FILTERS = "clear-filters-btn"
+CLOSE_FILTER_STORAGE = "close-filter-storage-btn"
+FILTER_PREVIEW = "filter-preview-btn"
+APPLY_FILTER = "apply-filter-btn"
 
 class Filter:
     def __init__(self) -> None:
         self.max_filters = 10  # 최대 필터 수 설정 가능
-        self.filter_yaml = f"{USER_RV_DIR}/filter.yaml"
+        self.filter_yaml = os.path.join(USER_RV_DIR, "filters.yaml")
 
     def filter_model_to_expression(self, filter_model):
-        """필터 모델을 표현식으로 변환."""
+        """Convert filter model to expression string."""
         operator_map = {
             "contains": "contains",
             "notContains": "does not contain",
@@ -80,7 +79,6 @@ class Filter:
         )
 
     def store_filter_condition_modal(self):
-        """필터 저장 모달."""
         return dmc.Modal(
             title="Filter Storage",
             id="filter-store-modal",
@@ -91,8 +89,8 @@ class Filter:
                     label="Current Filter:",
                     value="",
                     rightSection=dmc.Button(
-                        "store",
-                        id="store-filter-condition-btn",
+                        "Store",
+                        id=STORE_FILTER_CONDITION,
                         size="xs",
                         variant="outline",
                         color="grey",
@@ -112,15 +110,137 @@ class Filter:
                             "Clear Filters",
                             color="blue",
                             variant="outline",
-                            id="clear-filters-btn",
+                            id=CLEAR_FILTERS,
+                        ),
+                        dmc.Button(
+                            "Preview",
+                            color="green",
+                            variant="outline",
+                            id=FILTER_PREVIEW,
+                        ),
+                        dmc.Button(
+                            "Apply",
+                            color="indigo",
+                            variant="outline",
+                            id=APPLY_FILTER,
                         ),
                         dmc.Button(
                             "Close",
                             color="red",
                             variant="outline",
-                            id="close-filter-storage-btn",
+                            id=CLOSE_FILTER_STORAGE,
                         ),
                     ],
                 ),
+                dmc.Space(h=20),
+                dmc.Text("Filter History:", weight=500),
+                dmc.List([], id="filter-history", size="sm"),
             ],
         )
+
+    def register_callbacks(self, app):
+        @app.callback(
+            Output("filter-store-modal", "opened"),
+            Output("notifications", "children", allow_duplicate=True),
+            Input(OPEN_FILTER_STORAGE, "n_clicks"),
+            prevent_initial_call=True,
+        )
+        def open_filter_storage(n_clicks):
+            if n_clicks is None or n_clicks == 0:
+                raise exceptions.PreventUpdate
+            try:
+                self.load_filters()
+                return True, None
+            except Exception as e:
+                logger.error(f"Error opening filter storage: {str(e)}")
+                return False, create_notification(f"Error: {str(e)}", "Filter Storage Error", "red")
+
+        @app.callback(
+            Output("saved-filter-models", "children"),
+            Output("notifications", "children", allow_duplicate=True),
+            Input(STORE_FILTER_CONDITION, "n_clicks"),
+            State("store-filter-condition-input", "value"),
+            State("advancedFilterModel-store", "data"),
+            prevent_initial_call=True,
+        )
+        def store_filter_condition(n_clicks, filter_name, filter_model):
+            if n_clicks is None or n_clicks == 0 or not filter_name or not filter_model:
+                raise exceptions.PreventUpdate
+            try:
+                filters = self.load_filters()
+                filters[filter_name] = filter_model
+                self.save_filters(filters)
+                return self.generate_filter_list(filters), create_notification("Filter saved successfully", "Filter Saved", "green")
+            except Exception as e:
+                logger.error(f"Error storing filter condition: {str(e)}")
+                return no_update, create_notification(f"Error: {str(e)}", "Filter Storage Error", "red")
+
+        @app.callback(
+            Output("advancedFilterModel-store", "data", allow_duplicate=True),
+            Output("notifications", "children", allow_duplicate=True),
+            Input(CLEAR_FILTERS, "n_clicks"),
+            prevent_initial_call=True,
+        )
+        def clear_filters(n_clicks):
+            if n_clicks is None or n_clicks == 0:
+                raise exceptions.PreventUpdate
+            try:
+                return None, create_notification("Filters cleared", "Filters Cleared", "blue")
+            except Exception as e:
+                logger.error(f"Error clearing filters: {str(e)}")
+                return no_update, create_notification(f"Error: {str(e)}", "Clear Filters Error", "red")
+
+        @app.callback(
+            Output("notifications", "children", allow_duplicate=True),
+            Input(FILTER_PREVIEW, "n_clicks"),
+            State("advancedFilterModel-store", "data"),
+            prevent_initial_call=True,
+        )
+        def preview_filter(n_clicks, filter_model):
+            if n_clicks is None or n_clicks == 0 or not filter_model:
+                raise exceptions.PreventUpdate
+            try:
+                df = displaying_df()
+                if df is None:
+                    return create_notification("No data loaded", "Preview Error", "red")
+                filter_expr = self.filter_model_to_expression(filter_model)
+                filtered_df = df.filter(filter_expr)
+                return create_notification(f"Filter would return {len(filtered_df)} rows", "Filter Preview", "blue")
+            except Exception as e:
+                logger.error(f"Error previewing filter: {str(e)}")
+                return create_notification(f"Error: {str(e)}", "Preview Error", "red")
+
+        @app.callback(
+            Output("aggrid-table", "filterModel", allow_duplicate=True),
+            Output("filter-history", "children"),
+            Output("notifications", "children", allow_duplicate=True),
+            Input(APPLY_FILTER, "n_clicks"),
+            State("advancedFilterModel-store", "data"),
+            State("filter-history", "children"),
+            prevent_initial_call=True,
+        )
+        def apply_filter(n_clicks, filter_model, current_history):
+            if n_clicks is None or n_clicks == 0 or not filter_model:
+                raise exceptions.PreventUpdate
+            try:
+                filter_expr = self.filter_model_to_expression(filter_model)
+                new_history = current_history + [dmc.ListItem(filter_expr)]
+                if len(new_history) > 5:  # Keep only last 5 filters in history
+                    new_history = new_history[-5:]
+                return filter_model, new_history, create_notification("Filter applied successfully", "Filter Applied", "green")
+            except Exception as e:
+                logger.error(f"Error applying filter: {str(e)}")
+                return no_update, no_update, create_notification(f"Error: {str(e)}", "Apply Filter Error", "red")
+
+    def load_filters(self) -> Dict[str, Any]:
+        if os.path.exists(self.filter_yaml):
+            with open(self.filter_yaml, 'r') as file:
+                return yaml.safe_load(file) or {}
+        return {}
+
+    def save_filters(self, filters: Dict[str, Any]):
+        with open(self.filter_yaml, 'w') as file:
+            yaml.dump(filters, file)
+
+    def generate_filter_list(self, filters: Dict[str, Any]) -> List[dmc.ListItem]:
+        return [dmc.ListItem(name) for name in filters.keys()]
