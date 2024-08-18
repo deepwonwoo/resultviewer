@@ -1,8 +1,12 @@
+import time
 import dash_mantine_components as dmc
 from dash import html, dcc
+from typing import List
+from dash import Input, Output
+
 from components.grid import DataGrid
-from components.menu.home.home import HomeMenu
 # from components.menu.view.view import ViewMenu
+from components.menu.home.home import HomeMenu
 from components.menu.edit.edit import EditMenu
 from components.menu.script.script import ScriptMenu
 
@@ -17,7 +21,26 @@ class ResultViewer:
         self.register_callbacks(app)
 
     def layout(self):
-        header = html.Div(
+        """Generate the main layout of the application."""
+
+        return dmc.MantineProvider(
+            [
+                dmc.NotificationProvider(),
+                html.Div(id="notifications"),
+                dmc.AppShell(
+                    [
+                        dmc.AppShellHeader(self._create_header()),
+                        dmc.AppShellMain(self.data_grid.layout()),
+                        dmc.AppShellFooter(self._create_footer()),
+                    ],
+                    header={"height": 80},
+                )
+            ]
+        )
+
+    def _create_header(self) -> html.Div:
+        """Create the header section of the layout."""
+        return html.Div(
             [
                 dmc.Tabs(
                     [
@@ -40,8 +63,10 @@ class ResultViewer:
                 html.Div(id="app-menu-content"),
             ]
         )
-
-        status = html.Div(
+    
+    def _create_footer(self) -> dmc.Group:
+        """Create the footer section of the layout."""
+        return html.Div(
             [
                 dcc.Store("csv-mod-time"),
                 dcc.Store("refresh-route"),
@@ -69,25 +94,7 @@ class ResultViewer:
             ],
             className="bg-light border border-secondary border-top-0",
         )
-
-        return dmc.MantineProvider(
-            [
-                dmc.NotificationProvider(),
-                html.Div(id="notifications"),
-                dmc.AppShell(
-                    [
-                        dmc.AppShellHeader(header),
-                        dmc.AppShellMain(self.data_grid.layout()),
-                        dmc.AppShellFooter(
-                            status,
-                            mt=0,
-                            pt=0,
-                        ),
-                    ],
-                    header={"height": 80},
-                ),
-            ]
-        )
+    
 
     def register_callbacks(self, app):
         """컴포넌트별 콜백 함수 등록."""
@@ -95,4 +102,15 @@ class ResultViewer:
         # self.view_menu.register_callbacks(app)
         self.edit_menu.register_callbacks(app)
         self.script_menu.register_callbacks(app)
+
         self.data_grid.register_callbacks(app)
+
+        
+        @app.callback(
+            Output("notifications", "children", allow_duplicate=True),
+            Input("notifications", "children"),
+            prevent_initial_call=True,
+        )
+        def refresh_noti(n):
+            time.sleep(1)
+            return None

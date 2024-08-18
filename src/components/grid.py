@@ -153,13 +153,6 @@ class DataGrid:
             prevent_initial_call=True,
         )
 
-        @app.callback(
-            Output("notifications", "children", allow_duplicate=True),
-            Input("notifications", "children"),
-            prevent_initial_call=True,
-        )
-        def refresh_noti(n):
-            return None
 
 
 
