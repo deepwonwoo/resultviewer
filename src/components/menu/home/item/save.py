@@ -10,7 +10,9 @@ from utils.logging_utils import logger
 
 
 class Saver:
-    def layout(self):
+    
+
+    def layout(self) -> dmc.Menu:
         return dmc.Menu(
             [
                 dmc.MenuTarget(
@@ -77,6 +79,11 @@ class Saver:
         )
 
     def register_callbacks(self, app):
+        self._register_workspace_save_callback(app)
+        self._register_local_save_callback(app)
+
+
+    def _register_workspace_save_callback(self, app):
 
         @app.callback(
             Output("saver-notification", "children", allow_duplicate=True),
@@ -88,7 +95,6 @@ class Saver:
             if not n:
                 return no_update
 
-            print(f"save_csv_workspace_noti1, {displaying_df()}")
             if displaying_df() is None:
                 print("save_csv_workspace_noti2")
                 return create_notification(message="No Dataframe loaded", position="center")
@@ -188,6 +194,8 @@ class Saver:
                 icon=get_icon("bx-cool"),
             )
 
+    def _register_local_save_callback(self, app):
+
         @app.callback(
             Output("save-csv-path-input", "value", allow_duplicate=True),
             Input("save-csv-file-search", "n_clicks"),
@@ -233,27 +241,31 @@ class Saver:
             prevent_initial_call=True,
         )
         def open_local_saver(save_n, save_path, filtered_save_as):
+            if not save_n:
+                return no_update, no_update
+            
             df_to_save = displaying_df(filtred_apply=filtered_save_as)
-            if save_path:
-                try:
-                    if save_path.endswith(".parquet"):
-                        df_to_save.write_parquet(save_path)
-                    elif save_path.endswith(".csv"):
-                        df_to_save.write_csv(save_path)
-                except Exception as e:
-                    return (
-                        create_notification(message=f"File Save Error: {e}", position="center"),
-                        False,
-                    )
+            if not save_path:
                 return (
-                    create_notification(
-                        title="Saved",
-                        message=f"file saved to {save_path}",
-                        icon_name="bx-smile",
-                    ),
+                    create_notification(message="No save path given", position="center"),
+                    False,
+                )
+            
+            try:
+                if save_path.endswith(".parquet"):
+                    df_to_save.write_parquet(save_path)
+                elif save_path.endswith(".csv"):
+                    df_to_save.write_csv(save_path)
+            except Exception as e:
+                return (
+                    create_notification(message=f"File Save Error: {e}", position="center"),
                     False,
                 )
             return (
-                create_notification(message=f"no save path given", position="center"),
+                create_notification(
+                    title="Saved",
+                    message=f"file saved to {save_path}",
+                    icon_name="bx-smile",
+                ),
                 False,
             )

@@ -1,13 +1,14 @@
 import os
-import datetime
-import shutil
 import subprocess
+from typing import Dict, Any, Optional
+
 import dash_mantine_components as dmc
-from dash import Input, Output, State, html, exceptions, ctx, no_update, ALL, Patch
+from dash import html, Output, Input, State, Patch, no_update, exceptions
 from components.dag.column_definitions import generate_column_definitions
-from utils.db_management import WORKSPACE, USERNAME, SCRIPT, CACHE, DATAFRAME
+from utils.db_management import WORKSPACE, USERNAME, SCRIPT, CACHE
 from utils.noti_helpers import create_notification, get_icon
-from utils.file_operations import backup_file
+from utils.file_operations import create_directory
+from utils.dataframe_operations import displaying_df, validate_df
 from utils.dataframe_operations import file2df
 from utils.logging_utils import logger, debugging_decorator
 from components.menu.home.item.workspace_explore import FileExplorer
@@ -22,39 +23,42 @@ class Uploader:
     def layout(self):
         return html.Div(
             [
-                dmc.Menu(
-                    [
-                        dmc.MenuTarget(
-                            dmc.Button(
-                                "Open",
-                                variant="outline",
-                                color="indigo",
-                                size="xs",
-                                id="open-data-btn",
-                            )
-                        ),
-                        dmc.MenuDropdown(
-                            [
-                                dmc.MenuItem(
-                                    "Local",
-                                    id="open-local-btn",
-                                    n_clicks=0,
-                                    leftSection=get_icon("bx-folder-open"),
-                                ),
-                                dmc.MenuItem(
-                                    "WORKSPACE",
-                                    id="open-workspace-btn",
-                                    n_clicks=0,
-                                    leftSection=get_icon("bx-cloud-download"),
-                                ),
-                            ]
-                        ),
-                    ],
-                    trigger="hover",
-                ),
+                self.open_menu(),
                 self.local_modal(),
                 self.drawer(),
             ]
+        )
+
+    def open_menu(self):
+        return dmc.Menu(
+            [
+                dmc.MenuTarget(
+                    dmc.Button(
+                        "Open",
+                        variant="outline",
+                        color="indigo",
+                        size="xs",
+                        id="open-data-btn",
+                    )
+                ),
+                dmc.MenuDropdown(
+                    [
+                        dmc.MenuItem(
+                            "Local",
+                            id="open-local-btn",
+                            n_clicks=0,
+                            leftSection=get_icon("bx-folder-open"),
+                        ),
+                        dmc.MenuItem(
+                            "WORKSPACE",
+                            id="open-workspace-btn",
+                            n_clicks=0,
+                            leftSection=get_icon("bx-cloud-download"),
+                        ),
+                    ]
+                ),
+            ],
+            trigger="hover",
         )
 
     def local_modal(self):
@@ -190,7 +194,14 @@ class Uploader:
         )
 
     def register_callbacks(self, app):
+
+        self._register_workspace_save_callback(app)
+        self._register_local_save_callback(app)
+
         self.explorer.register_callbacks(app)
+
+    def _register_workspace_save_callback(self, app):
+        
         app.clientside_callback(
             """
             function updateLoadingState(n_clicks) {
@@ -214,6 +225,60 @@ class Uploader:
             if not open_n:
                 raise exceptions.PreventUpdate
             return True, "WORKSPACE", False
+
+        @app.callback(
+            Output("cwd", "children", allow_duplicate=True),
+            Output("notifications", "children"),
+            Input("upload-csv-workspace-btn", "n_clicks"),
+            State("upload-csv-path-input", "value"),
+            State("upload-library-name", "value"),
+            State("upload-cell-name", "value"),
+            State("upload-signoff-app", "value"),
+            State("cwd", "children"),
+            prevent_initial_call=True,
+        )
+        def upload_data_to_workspace(n, csv_file_path, library_name, cell_name, so_app, cwd):
+            if not n or not csv_file_path:
+                raise exceptions.PreventUpdate
+            try:
+                dff = validate_df(csv_file_path).drop(["uniqid"])
+                if "childCount" in dff.columns:
+                    dff = dff.drop("childCount")
+            except Exception as e:
+                noti = create_notification(message=f"Error loading {csv_file_path}: {e}", position="center")
+                return no_update, noti
+
+            dir_path = (
+                os.path.join(WORKSPACE, library_name, cell_name) if library_name else os.path.join(WORKSPACE, USERNAME)
+            )
+            create_directory(dir_path)
+
+            if so_app is None:
+                so_app = ""
+
+            upload_dir = os.path.join(dir_path, so_app)
+            create_directory(upload_dir)
+
+            filename = os.path.basename(csv_file_path)
+            if filename.endswith(".csv"):
+                filename = filename.replace(".csv", ".parquet")
+
+            new_file_path = os.path.join(upload_dir, filename)
+
+            dff.write_parquet(new_file_path)
+            os.chmod(new_file_path, 0o777)
+
+            noti = create_notification(
+                title="file uploaded to WORKSPACE",
+                message=f"{csv_file_path} uploaded",
+                icon_name="bx-smile",
+                position="top-center",
+            )
+            return cwd, noti
+
+
+
+    def __register_local_save_callback(self, app):
 
         @app.callback(
             Output("open-csv-path-input", "value", allow_duplicate=True),
@@ -313,53 +378,3 @@ class Uploader:
                 no_update,
                 False,
             )
-
-        @app.callback(
-            Output("cwd", "children", allow_duplicate=True),
-            Output("notifications", "children"),
-            Input("upload-csv-workspace-btn", "n_clicks"),
-            State("upload-csv-path-input", "value"),
-            State("upload-library-name", "value"),
-            State("upload-cell-name", "value"),
-            State("upload-signoff-app", "value"),
-            State("cwd", "children"),
-            prevent_initial_call=True,
-        )
-        def upload_data_to_workspace(n, csv_file_path, library_name, cell_name, so_app, cwd):
-            if not n or not csv_file_path:
-                raise exceptions.PreventUpdate
-            try:
-                dff = validate_df(csv_file_path).drop(["uniqid"])
-                if "childCount" in dff.columns:
-                    dff = dff.drop("childCount")
-            except Exception as e:
-                noti = create_notification(message=f"Error loading {csv_file_path}: {e}", position="center")
-                return no_update, noti
-
-            dir_path = (
-                os.path.join(WORKSPACE, library_name, cell_name) if library_name else os.path.join(WORKSPACE, USERNAME)
-            )
-            create_directory(dir_path)
-
-            if so_app is None:
-                so_app = ""
-
-            upload_dir = os.path.join(dir_path, so_app)
-            create_directory(upload_dir)
-
-            filename = os.path.basename(csv_file_path)
-            if filename.endswith(".csv"):
-                filename = filename.replace(".csv", ".parquet")
-
-            new_file_path = os.path.join(upload_dir, filename)
-
-            dff.write_parquet(new_file_path)
-            os.chmod(new_file_path, 0o777)
-
-            noti = create_notification(
-                title="file uploaded to WORKSPACE",
-                message=f"{csv_file_path} uploaded",
-                icon_name="bx-smile",
-                position="top-center",
-            )
-            return cwd, noti
