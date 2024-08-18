@@ -1,61 +1,25 @@
 import os
-import datetime
 import shutil
+import datetime
 import pandas as pd
+from pathlib import Path
+from typing import Dict, List, Tuple, Any
+
 import dash_mantine_components as dmc
 import dash_bootstrap_components as dbc
-from pathlib import Path
-from dash import (
-    Input,
-    Output,
-    State,
-    html,
-    exceptions,
-    ctx,
-    no_update,
-    ALL,
-    Patch,
-    dcc,
-    MATCH,
-)
-from components.dag.column_definitions import generate_column_definitions
-from utils.dataframe_operations import validate_df, file2df
-from utils.noti_helpers import create_notification, get_icon
+from dash import html, Output, Input, State, no_update, ctx, ALL, Patch, dcc, exceptions
+from utils.noti_helpers import get_icon, create_notification
 from utils.file_operations import get_file_owner, get_lock_status
+from utils.dataframe_operations import file2df
 from utils.logging_utils import logger
-from utils.db_management import WORKSPACE, USERNAME, SCRIPT, CACHE, DATAFRAME
-
+from utils.db_management import WORKSPACE, USERNAME, CACHE
+from components.dag.column_definitions import generate_column_definitions
 
 class FileExplorer:
     def __init__(self, id_prefix=""):
         self.id_prefix = id_prefix
-
-    def nowtimestamp(self, timestamp, fmt="%b %d, %Y %H:%M"):
-        return datetime.datetime.fromtimestamp(timestamp).strftime(fmt)
-
-    def file_info(self, path):
-        owner = get_file_owner(path)
-        is_locked, locked_by = get_lock_status(path)
-        file_stat = path.stat()
-        size = file_stat.st_size
-        units = ["B", "KB", "MB", "GB", "TB"]
-        index = 0
-        while size > 1024 and index < 4:
-            size /= 1024
-            index += 1
-        size_str = f"{size:.2f} {units[index]}" if path.is_file() else ""
-
-        d = {
-            "icon": path.suffix if not path.name.startswith(".") else path.name,
-            "filename": "",
-            "option": "",
-            "locked": locked_by if is_locked and not self.id_prefix else "",
-            "size": size_str,
-            "owner": owner,
-            "created": self.nowtimestamp(file_stat.st_ctime),
-            # "modified": nowtimestamp(file_stat.st_mtime)
-        }
-        return d
+        self.datetime_format = "%b %d, %Y %H:%M"
+        self.files=[]
 
     def layout(self) -> html.Div:
         return html.Div(
@@ -90,8 +54,38 @@ class FileExplorer:
                 ),
             ]
         )
+    
+    def file_info(self, path: Path) -> Dict[str, Any]:
+        owner = get_file_owner(path)
+        is_locked, locked_by = get_lock_status(path)
+        file_stat = path.stat()
+        size = self._format_size(file_stat.st_size)
+
+        return {
+            "icon": path.suffix if not path.name.startswith(".") else path.name,
+            "filename": "",
+            "option": "",
+            "locked": locked_by if is_locked and not self.id_prefix else "",
+            "size": size,
+            "owner": owner,
+            "created": self._format_timestamp(file_stat.st_ctime),
+        }
+
+
+    def _format_timestamp(self, timestamp: float) -> str:
+        return datetime.datetime.fromtimestamp(timestamp).strftime(self.datetime_format)
+
+
+    def _format_size(self, size: int) -> str:
+        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+            if size < 1024:
+                return f"{size:.2f} {unit}"
+            size /= 1024
+        return f"{size:.2f} PB"
+    
 
     def register_callbacks(self, app):
+
 
         @app.callback(
             Output(f"{self.id_prefix}cwd", "children", allow_duplicate=True),
@@ -101,7 +95,6 @@ class FileExplorer:
             prevent_initial_call=True,
         )
         def get_parent_directory(stored_cwd, n_clicks, currentdir):
-
             triggered_id = ctx.triggered_id
             if triggered_id == f"{self.id_prefix}stored_cwd" and stored_cwd:
 
@@ -113,6 +106,8 @@ class FileExplorer:
             parent = Path(currentdir).parent.as_posix()
             return parent.replace(WORKSPACE, "WORKSPACE")
 
+
+
         @app.callback(
             Output(f"{self.id_prefix}cwd_files", "children"),
             Input(f"{self.id_prefix}cwd", "children"),
@@ -120,7 +115,6 @@ class FileExplorer:
             prevent_initial_call=True,
         )
         def list_cwd_files(cwd, refresh_ns):
-
             if (
                 ctx.triggered_id
                 and isinstance(ctx.triggered_id, dict)
@@ -136,15 +130,21 @@ class FileExplorer:
             path = Path(cwd)
             all_file_details = []
             if path.is_dir():
+
                 files = sorted(os.listdir(path), key=str.lower)
+                self.files=[]
                 for i, file in enumerate(files):
-                    if file.endswith(".lock"):
-                        continue
+                    
                     filepath = Path(file)
                     full_path = os.path.join(cwd, filepath.as_posix())
-                    is_dir = Path(full_path).is_dir()
+                    
+                    self.files.append(full_path.replace(WORKSPACE, "WORKSPACE"))
+                    if file.endswith(".lock"):    
+                        continue
 
+                    is_dir = Path(full_path).is_dir()
                     details = self.file_info(Path(full_path))
+                    
 
                     if is_dir:
                         details["filename"] = html.A(
@@ -156,6 +156,7 @@ class FileExplorer:
                         )
                         details["icon"] = get_icon("bx-folder")
                     else:
+                        
                         details["filename"] = html.A(
                             file,
                             href="#",
@@ -261,6 +262,7 @@ class FileExplorer:
                 color="secondary",
             )
 
+
         @app.callback(
             Output(f"{self.id_prefix}stored_cwd", "data"),
             Input({"type": f"{self.id_prefix}listed_file", "index": ALL}, "n_clicks"),
@@ -270,7 +272,8 @@ class FileExplorer:
             if not n_clicks or set(n_clicks) == {None}:
                 raise exceptions.PreventUpdate
             index = ctx.triggered_id["index"]
-            return title[index]
+            
+            return self.files[index]
 
         if not self.id_prefix:
 
