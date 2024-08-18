@@ -7,7 +7,7 @@ from utils.logging_utils import logger
 from components.menu.home.item.workspace_explore import FileExplorer
 
 
-class groupRow:
+class GroupRow:
     def layout(self):
         return dmc.Group(
             [

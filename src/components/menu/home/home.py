@@ -1,22 +1,23 @@
 import dash_mantine_components as dmc
 from dash import html
+
 from components.menu.home.item.save import Saver
 from components.menu.home.item.upload import Uploader
 from components.menu.home.item.column_sizing import ColumnSizer
-from components.menu.home.item.group_row import groupRow
+from components.menu.home.item.group_row import GroupRow
 from components.menu.home.item.filtering import Filter
 from components.menu.home.item.cross_probing import CrossProber
 
 
 class HomeMenu:
 
-    def __init__(self) -> None:
+    def __init__(self):
         self.saver = Saver()
         self.uploader = Uploader()
-        self.columnSizer = ColumnSizer()
-        self.groupRow = groupRow()
+        self.column_sizer = ColumnSizer()
+        self.group_row = GroupRow()
         self.filter = Filter()
-        self.crossProber = CrossProber()
+        self.cross_prober = CrossProber()
 
     def layout(self):
         return dmc.Group(
@@ -25,13 +26,13 @@ class HomeMenu:
                 self.saver.layout(),
                 html.Div(id="file-mode"),
                 dmc.Divider(orientation="vertical"),
-                self.columnSizer.layout(),
+                self.column_sizer.layout(),
                 dmc.Divider(orientation="vertical"),
-                self.groupRow.layout(),
+                self.group_row.layout(),
                 dmc.Divider(orientation="vertical"),
                 self.filter.layout(),
                 dmc.Divider(orientation="vertical"),
-                self.crossProber.layout(),
+                self.cross_prober.layout(),
             ],
             justify='flex-start',
             gap='xs'
@@ -40,7 +41,7 @@ class HomeMenu:
     def register_callbacks(self, app):
         self.uploader.register_callbacks(app)
         self.saver.register_callbacks(app)
-        self.columnSizer.register_callbacks(app)
-        self.groupRow.register_callbacks(app)
+        self.column_sizer.register_callbacks(app)
+        self.group_row.register_callbacks(app)
         # self.filter.register_callbacks(app)
-        self.crossProber.register_callbacks(app)
+        self.cross_prober.register_callbacks(app)
