@@ -278,7 +278,7 @@ class Uploader:
 
 
 
-    def __register_local_save_callback(self, app):
+    def _register_local_save_callback(self, app):
 
         @app.callback(
             Output("open-csv-path-input", "value", allow_duplicate=True),
