@@ -13,7 +13,7 @@ from dash import (
     exceptions,
     ctx,
 )
-from utils.noti_helpers import create_notification, get_icon
+from utils.component_template import create_notification, get_icon
 from utils.dataframe_operations import displaying_df
 from utils.db_management import DATAFRAME, CACHE, USERNAME
 from components.dag.column_definitions import (
@@ -242,7 +242,162 @@ class Columns:
             ],
         )
 
+    def rename_modal(self):
+        return dmc.Modal(
+            title="Rename Column",
+            id="rename-column-modal",
+            children=[
+                dmc.Group(
+                    [
+                        dmc.Select(
+                            label="Select Columns to Rename",
+                            id="rename-column-select",
+                            clearable=False,
+                            data=[],
+                            w=200,
+                        ),
+                        dmc.TextInput(label="New Column Name", id="new-column-name-input", style={"width": 200}),
+                    ],
+                    gap="sm",
+                ),
+                dmc.Space(h=20),
+                dmc.Group(
+                    [
+                        dmc.Button("Submit", id="rename-column-submit-btn"),
+                    ],
+                    justify="flex-end",
+                ),
+            ],
+        )
+
+    def find_replace_modal(self):
+        return dmc.Modal(
+            title="Find and Replace",
+            id="find-replace-modal",
+            children=[
+                dmc.Select(
+                    label="Select Column",
+                    id="find-replace-column-select",
+                    data=[],
+                    clearable=False,
+                    style={"width": 200},
+                ),
+                dmc.Space(h=10),
+                dmc.TextInput(
+                    label="Find",
+                    id="find-replace-find-input",
+                    placeholder="Value to find",
+                ),
+                dmc.Space(h=10),
+                dmc.TextInput(
+                    label="Replace",
+                    id="find-replace-replace-input",
+                    placeholder="Value to replace with",
+                ),
+                dmc.Space(h=10),
+                dmc.Checkbox(
+                    label="Use Regular Expression (for string columns)",
+                    id="find-replace-regex-checkbox",
+                ),
+                dmc.Space(h=20),
+                dmc.Group(
+                    [
+                        dmc.Button("Apply", id="find-replace-apply-btn"),
+                    ],
+                    justify="flex-end",
+                ),
+            ],
+        )
+
     def register_callbacks(self, app):
+
+        @app.callback(
+            Output("rename-column-modal", "opened"),
+            Output("rename-column-select", "data"),
+            Input("rename-column-btn", "n_clicks"),
+            State("aggrid-table", "columnDefs"),
+            prevent_initial_call=True,
+        )
+        def open_rename_column_modal(n_clicks, columnDefs):
+            columns = [col["field"] for col in columnDefs if col["field"] != "waiver"]
+            return True, columns
+
+        @app.callback(
+            Output("notifications", "children", allow_duplicate=True),
+            Output("rename-column-modal", "opened", allow_duplicate=True),
+            Output("aggrid-table", "columnDefs", allow_duplicate=True),
+            Input("rename-column-submit-btn", "n_clicks"),
+            State("rename-column-select", "value"),
+            State("new-column-name-input", "value"),
+            State("aggrid-table", "columnDefs"),
+            prevent_initial_call=True,
+        )
+        def rename_column(n_clicks, old_name, new_name, columnDefs):
+            if new_name in [col["field"] for col in columnDefs]:
+                return create_notification(message="Column name already exists", position="center"), True, no_update
+            try:
+                DATAFRAME["df"] = DATAFRAME["df"].rename({old_name: new_name})
+                patched_columnDefs = Patch()
+                for i, columnDef in enumerate(columnDefs):
+                    if columnDef["field"] == old_name:
+                        patched_columnDefs[i] = generate_column_definition(new_name, DATAFRAME["df"][new_name])
+                return None, False, patched_columnDefs
+            except Exception as e:
+                return create_notification(str(e)), no_update, no_update
+
+        @app.callback(
+            Output("find-replace-modal", "opened"),
+            Output("find-replace-column-select", "data"),
+            Input("find-replace-btn", "n_clicks"),
+            State("aggrid-table", "columnDefs"),
+            prevent_initial_call=True,
+        )
+        def open_find_replace_modal(n_clicks, columnDefs):
+            columns = [{"label": col["field"], "value": col["field"]} for col in columnDefs if col["field"] != "waiver"]
+            return True, columns
+
+        @app.callback(
+            Output("find-replace-regex-checkbox", "disabled"),
+            Input("find-replace-column-select", "value"),
+        )
+        def toggle_regex_checkbox(selected_column):
+            if selected_column is None:
+                raise exceptions.PreventUpdate
+            column_dtype = DATAFRAME["df"][selected_column].dtype
+            return not isinstance(column_dtype, pl.Utf8)
+
+        @app.callback(
+            Output("notifications", "children", allow_duplicate=True),
+            Output("find-replace-modal", "opened", allow_duplicate=True),
+            Output("aggrid-table", "columnDefs", allow_duplicate=True),
+            Input("find-replace-apply-btn", "n_clicks"),
+            State("find-replace-column-select", "value"),
+            State("find-replace-find-input", "value"),
+            State("find-replace-replace-input", "value"),
+            State("find-replace-regex-checkbox", "checked"),
+            prevent_initial_call=True,
+        )
+        def apply_find_replace(n_clicks, column, find_value, replace_value, use_regex):
+            if n_clicks is None or not column or find_value is None or replace_value is None:
+                raise exceptions.PreventUpdate
+            try:
+                if isinstance(DATAFRAME["df"][column].dtype, pl.Utf8):
+                    DATAFRAME["df"] = (
+                        DATAFRAME["df"].with_columns(pl.col(column).str.replace_all(find_value, replace_value).alias(column))
+                        if use_regex
+                        else DATAFRAME["df"].with_columns(pl.col(column).str.replace(find_value, replace_value).alias(column))
+                    )
+                else:
+                    DATAFRAME["df"] = DATAFRAME["df"].with_columns(
+                        pl.when(pl.col(column) == pl.lit(find_value).cast(DATAFRAME["df"][column].dtype))
+                        .then(pl.lit(replace_value).cast(DATAFRAME["df"][column].dtype))
+                        .otherwise(pl.col(column))
+                        .alias(column)
+                    )
+                updated_columnDefs = generate_column_definitions(DATAFRAME["df"])
+                return None, False, updated_columnDefs
+            except Exception as e:
+                return create_notification(str(e)), no_update, no_update
 
         @app.callback(
             Output("notifications", "children", allow_duplicate=True),
@@ -302,10 +457,7 @@ class Columns:
 
             # 'col1' 컬럼을 filtered_df의 값으로 업데이트
             updated_df = updated_df.with_columns(
-                pl.when(pl.col(f"{selected_column}_filtered").is_not_null())
-                .then(pl.col(f"{selected_column}_filtered"))
-                .otherwise(pl.col(selected_column))
-                .alias(selected_column)
+                pl.when(pl.col(f"{selected_column}_filtered").is_not_null()).then(pl.col(f"{selected_column}_filtered")).otherwise(pl.col(selected_column)).alias(selected_column)
             )
             # '_filtered' 접미사가 있는 모든 컬럼 삭제
             columns_to_drop = [col for col in updated_df.columns if col.endswith("_filtered")]
@@ -437,9 +589,7 @@ class Columns:
                 return noti, no_update, no_update
             header_name = "-".join(selected_columns)
 
-            DATAFRAME["df"] = DATAFRAME["df"].with_columns(
-                pl.concat_str([pl.col(col) for col in selected_columns], separator="-").alias(header_name)
-            )
+            DATAFRAME["df"] = DATAFRAME["df"].with_columns(pl.concat_str([pl.col(col) for col in selected_columns], separator="-").alias(header_name))
             updated_columnDefs = generate_column_definitions(DATAFRAME["df"])
             return None, False, updated_columnDefs
 

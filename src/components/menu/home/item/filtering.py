@@ -6,7 +6,7 @@ from dash import Input, Output, State, html, exceptions, ctx, no_update, ALL, dc
 from typing import Dict, Any, List
 from utils.db_management import CACHE, USER_RV_DIR
 from utils.logging_utils import logger
-from utils.noti_helpers import get_icon, create_notification
+from utils.component_template import get_icon, create_notification
 from utils.dataframe_operations import displaying_df
 
 # Constants
@@ -16,6 +16,7 @@ CLEAR_FILTERS = "clear-filters-btn"
 CLOSE_FILTER_STORAGE = "close-filter-storage-btn"
 FILTER_PREVIEW = "filter-preview-btn"
 APPLY_FILTER = "apply-filter-btn"
+
 
 class Filter:
     def __init__(self) -> None:
@@ -48,9 +49,7 @@ class Filter:
                 return f"({join_type.join(expressions)})"
             else:
                 operator = operator_map.get(condition["type"], condition["type"])
-                filter_value = (
-                    f'"{condition["filter"]}"' if isinstance(condition["filter"], str) else condition["filter"]
-                )
+                filter_value = f'"{condition["filter"]}"' if isinstance(condition["filter"], str) else condition["filter"]
                 return f"[{condition['colId']}] {operator} {filter_value}"
 
         return build_expression(filter_model)
@@ -133,7 +132,7 @@ class Filter:
                     ],
                 ),
                 dmc.Space(h=20),
-                dmc.Text("Filter History:", weight=500),
+                # dmc.Text("Filter History:", weight=500),
                 dmc.List([], id="filter-history", size="sm"),
             ],
         )
@@ -234,12 +233,12 @@ class Filter:
 
     def load_filters(self) -> Dict[str, Any]:
         if os.path.exists(self.filter_yaml):
-            with open(self.filter_yaml, 'r') as file:
+            with open(self.filter_yaml, "r") as file:
                 return yaml.safe_load(file) or {}
         return {}
 
     def save_filters(self, filters: Dict[str, Any]):
-        with open(self.filter_yaml, 'w') as file:
+        with open(self.filter_yaml, "w") as file:
             yaml.dump(filters, file)
 
     def generate_filter_list(self, filters: Dict[str, Any]) -> List[dmc.ListItem]:

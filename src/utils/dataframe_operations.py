@@ -1,48 +1,47 @@
 import os
+import datetime
 import polars as pl
 from collections import Counter
+from filelock import SoftFileLock
 from utils.logging_utils import logger
-from utils.file_operations import get_lock_status, acquire_file_lock
-from utils.db_management import DATAFRAME, CACHE
+from utils.db_management import DATAFRAME, CACHE, get_cache, WORKSPACE
 from components.dag.server_side_operations import apply_filters
+from utils.file_operations import get_lock_status, get_file_owner, backup_file, create_directory
 
+def detect_separator(file_path, sample_lines=10):
+    possible_separators = [",", ";", "\t", " ", "|"]
+    separator_counts = Counter()
+
+    with open(file_path, "r") as file:
+        for _ in range(sample_lines):
+            line = file.readline().strip()
+            if not line:
+                break
+            for sep in possible_separators:
+                separator_counts[sep] += line.count(sep)
+
+    return separator_counts.most_common(1)[0][0]
+
+def process_dataframe(df):
+    df = df.rename({col: col.strip() for col in df.columns})
+
+    for col in df.columns:
+        try:
+            if df[col].dtype == pl.Utf8:
+                df = df.with_columns(pl.col(col).str.strip_chars().alias(col))
+
+            df = df.with_columns(pl.col(col).cast(pl.Float64()).alias(col))
+
+            if df[col].dtype == pl.Float64 and (df[col] == df[col].cast(pl.Int64())).all():
+                df = df.with_columns(pl.col(col).cast(pl.Int64()).alias(col))
+
+            df = df.with_columns(pl.col(col).fill_null(0).fill_nan(0))
+        except Exception:
+            df = df.with_columns(pl.col(col).fill_null(""))
+
+    return df.with_row_index("uniqid")
 
 def read_csv_file(csv_file):
-
-    def detect_separator(file_path, sample_lines=10):
-        possible_separators = [",", ";", "\t", " ", "|"]
-        separator_counts = Counter()
-
-        with open(file_path, "r") as file:
-            for _ in range(sample_lines):
-                line = file.readline()
-                if not line:
-                    break
-                line = line.strip()
-                for sep in possible_separators:
-                    separator_counts[sep] += line.count(sep)
-
-        return separator_counts.most_common(1)[0][0]
-
-    def process_dataframe(df):
-        df = df.rename({col: col.strip() for col in df.columns})
-        for col in df.columns:
-            try:
-                if df[col].dtype == pl.Utf8:
-                    df = df.with_columns(pl.col(col).str.strip_chars().alias(col))
-                
-                df = df.with_columns(pl.col(col).cast(pl.Float64()).alias(col))
-                
-                if df[col].dtype == pl.Float64:
-                    if (df[col] == df[col].cast(pl.Int64())).sum() == len(df[col]):
-                        df = df.with_columns(pl.col(col).cast(pl.Int64()).alias(col))
-                
-                df = df.with_columns(pl.col(col).fill_null(0).fill_nan(0))
-            except Exception:
-                df = df.with_columns(pl.col(col).fill_null(""))
-
-        return df.with_row_index("uniqid")
-
     try:
         df = pl.read_csv(
             csv_file,
@@ -64,10 +63,7 @@ def read_csv_file(csv_file):
     return process_dataframe(df)
 
 def validate_df(csv_file):
-    df = pl.read_parquet(csv_file) if csv_file.endswith(".parquet") else read_csv_file(csv_file)
-    return df
-
-
+    return pl.read_parquet(csv_file) if csv_file.endswith(".parquet") else read_csv_file(csv_file)
 
 def file2df(csv_file_path, workspace=True):
     try:
@@ -76,7 +72,6 @@ def file2df(csv_file_path, workspace=True):
         logger.error(f"Error validating DataFrame: {e}")
         raise
 
-    global DATAFRAME
     DATAFRAME["df"] = df
 
     if DATAFRAME.get("lock") is not None:
@@ -84,42 +79,59 @@ def file2df(csv_file_path, workspace=True):
 
     if workspace:
         lock, owner = get_lock_status(csv_file_path)
-        if lock:
-            DATAFRAME["readonly"] = True
-        else:
-            if os.access(os.path.dirname(csv_file_path), os.W_OK):
-                DATAFRAME["readonly"] = False
-                DATAFRAME["lock"] = acquire_file_lock(csv_file_path)
+        DATAFRAME["readonly"] = lock
+        if not lock and os.access(os.path.dirname(csv_file_path), os.W_OK):
+            DATAFRAME["lock"] = acquire_file_lock(csv_file_path)
 
     return df
 
-
 def displaying_df(filtred_apply=False):
-    
-    dff = DATAFRAME.get("df", None)
+    dff = DATAFRAME.get("df")
     hide_waiver = CACHE.get("hide_waiver")
-
 
     if dff is None:
         return None
-    
+
     try:
         if hide_waiver and "waiver" in dff.columns:
             conditions_expr = (dff["waiver"] == "Waiver.") | (dff["waiver"] == "Fixed.")
-            update_waiver_column = (
-                pl.when(conditions_expr)
-                .then(pl.col("waiver").str.strip_chars("."))
-                .otherwise(pl.col("waiver"))
-                .alias("waiver")
-            )
+            update_waiver_column = pl.when(conditions_expr).then(pl.col("waiver").str.strip_chars(".")).otherwise(pl.col("waiver")).alias("waiver")
             dff = dff.with_columns(update_waiver_column)
 
         if filtred_apply:
-            dff = apply_filters(dff, CACHE.get("REQUEST"))
+            dff = apply_filters(dff, get_cache("REQUEST"))
     except Exception as e:
         logger.error(f"displaying_df Error : {e}")
 
-    if "childCount" in dff.columns:
-        dff = dff.drop("childCount")
+    return dff.drop(["uniqid", "childCount"] if "childCount" in dff.columns else ["uniqid"])
 
-    return dff.drop(["uniqid"])
+def acquire_file_lock(file_path):
+    lock_path = f"{file_path}.lock"
+    lock = SoftFileLock(lock_path, thread_local=False)
+    try:
+        lock.acquire(timeout=1, poll_interval=0.05)
+        return lock
+    except:
+        return None
+
+def enter_edit_mode(file_path):
+    lock, _ = get_lock_status(file_path)
+    if lock:
+        return False
+    lock = acquire_file_lock(file_path)
+    if lock:
+        if DATAFRAME.get("lock") is not None:
+            DATAFRAME["lock"].release()
+        DATAFRAME["lock"] = lock
+        return True
+    return False
+
+def exit_edit_mode(file_path):
+    if DATAFRAME.get("lock"):
+        DATAFRAME["lock"].release()
+        DATAFRAME["lock"] = None
+
+def save_changes(file_path):
+    df = displaying_df()
+    if df is not None:
+        df.write_parquet(file_path)

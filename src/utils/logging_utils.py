@@ -8,8 +8,9 @@ from logging.handlers import RotatingFileHandler
 from typing import Optional
 from utils.db_management import USER_RV_DIR, DEBUG
 
+
 class ResultViewerLogger:
-    _instance: Optional['ResultViewerLogger'] = None
+    _instance: Optional["ResultViewerLogger"] = None
 
     def __init__(self, debug_mode: bool = DEBUG):
         self.logger = logging.getLogger("ResultViewer")
@@ -27,7 +28,7 @@ class ResultViewerLogger:
         logging.getLogger("dash").setLevel(logging.ERROR)
 
     @classmethod
-    def get_instance(cls) -> 'ResultViewerLogger':
+    def get_instance(cls) -> "ResultViewerLogger":
         if cls._instance is None:
             cls._instance = cls()
         return cls._instance
@@ -41,7 +42,7 @@ class ResultViewerLogger:
 
     def _setup_file_handler(self):
         log_file = os.path.join(USER_RV_DIR, "resultviewer.log")
-        file_handler = RotatingFileHandler(log_file, maxBytes=10*1024*1024, backupCount=5)
+        file_handler = RotatingFileHandler(log_file, maxBytes=10 * 1024 * 1024, backupCount=5)
         file_handler.setLevel(logging.DEBUG)  # Set file handler to DEBUG to capture all levels
         file_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s")
         file_handler.setFormatter(file_formatter)
@@ -62,6 +63,7 @@ class ResultViewerLogger:
     def critical(self, msg: str):
         self.logger.critical(msg, exc_info=True)
 
+
 # Global logger instance
 logger = ResultViewerLogger.get_instance()
 
@@ -78,5 +80,6 @@ def debugging_decorator(func):
         except Exception as e:
             logger.debug(f"Exception occurred in {func.__name__}: {str(e)}")
             logger.debug(f"{traceback.format_exc()}")
-            raise 
+            raise
+
     return wrapper

@@ -8,18 +8,18 @@ from typing import Dict, List, Tuple, Any
 import dash_mantine_components as dmc
 import dash_bootstrap_components as dbc
 from dash import html, Output, Input, State, no_update, ctx, ALL, Patch, dcc, exceptions
-from utils.noti_helpers import get_icon, create_notification
-from utils.file_operations import get_file_owner, get_lock_status
-from utils.dataframe_operations import file2df
+from utils.component_template import get_icon, create_notification
+from utils.dataframe_operations import file2df, get_file_owner, get_lock_status
 from utils.logging_utils import logger
 from utils.db_management import WORKSPACE, USERNAME, CACHE
 from components.dag.column_definitions import generate_column_definitions
+
 
 class FileExplorer:
     def __init__(self, id_prefix=""):
         self.id_prefix = id_prefix
         self.datetime_format = "%b %d, %Y %H:%M"
-        self.files=[]
+        self.files = []
 
     def layout(self) -> html.Div:
         return html.Div(
@@ -54,7 +54,7 @@ class FileExplorer:
                 ),
             ]
         )
-    
+
     def file_info(self, path: Path) -> Dict[str, Any]:
         owner = get_file_owner(path)
         is_locked, locked_by = get_lock_status(path)
@@ -71,21 +71,17 @@ class FileExplorer:
             "created": self._format_timestamp(file_stat.st_ctime),
         }
 
-
     def _format_timestamp(self, timestamp: float) -> str:
         return datetime.datetime.fromtimestamp(timestamp).strftime(self.datetime_format)
 
-
     def _format_size(self, size: int) -> str:
-        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+        for unit in ["B", "KB", "MB", "GB", "TB"]:
             if size < 1024:
                 return f"{size:.2f} {unit}"
             size /= 1024
         return f"{size:.2f} PB"
-    
 
     def register_callbacks(self, app):
-
 
         @app.callback(
             Output(f"{self.id_prefix}cwd", "children", allow_duplicate=True),
@@ -106,8 +102,6 @@ class FileExplorer:
             parent = Path(currentdir).parent.as_posix()
             return parent.replace(WORKSPACE, "WORKSPACE")
 
-
-
         @app.callback(
             Output(f"{self.id_prefix}cwd_files", "children"),
             Input(f"{self.id_prefix}cwd", "children"),
@@ -115,12 +109,7 @@ class FileExplorer:
             prevent_initial_call=True,
         )
         def list_cwd_files(cwd, refresh_ns):
-            if (
-                ctx.triggered_id
-                and isinstance(ctx.triggered_id, dict)
-                and ctx.triggered_id.get("type") == f"{self.id_prefix}refresh-flag"
-                and sum(refresh_ns) == 0
-            ):
+            if ctx.triggered_id and isinstance(ctx.triggered_id, dict) and ctx.triggered_id.get("type") == f"{self.id_prefix}refresh-flag" and sum(refresh_ns) == 0:
                 return no_update
 
             if cwd and cwd.startswith("WORKSPACE"):
@@ -132,19 +121,18 @@ class FileExplorer:
             if path.is_dir():
 
                 files = sorted(os.listdir(path), key=str.lower)
-                self.files=[]
+                self.files = []
                 for i, file in enumerate(files):
-                    
+
                     filepath = Path(file)
                     full_path = os.path.join(cwd, filepath.as_posix())
-                    
+
                     self.files.append(full_path.replace(WORKSPACE, "WORKSPACE"))
-                    if file.endswith(".lock"):    
+                    if file.endswith(".lock"):
                         continue
 
                     is_dir = Path(full_path).is_dir()
                     details = self.file_info(Path(full_path))
-                    
 
                     if is_dir:
                         details["filename"] = html.A(
@@ -156,7 +144,7 @@ class FileExplorer:
                         )
                         details["icon"] = get_icon("bx-folder")
                     else:
-                        
+
                         details["filename"] = html.A(
                             file,
                             href="#",
@@ -262,7 +250,6 @@ class FileExplorer:
                 color="secondary",
             )
 
-
         @app.callback(
             Output(f"{self.id_prefix}stored_cwd", "data"),
             Input({"type": f"{self.id_prefix}listed_file", "index": ALL}, "n_clicks"),
@@ -272,7 +259,7 @@ class FileExplorer:
             if not n_clicks or set(n_clicks) == {None}:
                 raise exceptions.PreventUpdate
             index = ctx.triggered_id["index"]
-            
+
             return self.files[index]
 
         if not self.id_prefix:
@@ -286,7 +273,8 @@ class FileExplorer:
                 Output("csv-file-path", "children", allow_duplicate=True),
                 Output("csv-mod-time", "data", allow_duplicate=True),
                 Output("notifications", "children", allow_duplicate=True),
-                Output("file-mode", "children", allow_duplicate=True),
+                #Output("file-mode-control", "value", allow_duplicate=True),
+                #Output("file-mode-control", "disabled", allow_duplicate=True),
                 Input({"type": "open-workspace-file", "index": ALL}, "n_clicks"),
                 Input({"type": "copy-workspace-file", "index": ALL}, "n_clicks"),
                 Input(
@@ -315,7 +303,8 @@ class FileExplorer:
                 ret_display_file_path = no_update
                 ret_csv_mod_time = no_update
                 ret_noti = None
-                ret_mode = no_update
+                #ret_mode_value = "read"
+                #ret_mode_disable = False
 
                 try:
                     if triggered_btn == "open-workspace-file":
@@ -334,9 +323,7 @@ class FileExplorer:
                                 position="center",
                                 icon_name="bx-info-circle",
                             )
-                            ret_mode = dmc.Badge("Read Only", radius="sm", size="xs", color="orange")
-                        else:
-                            ret_mode = ""
+
                         ret_drawer_open = False
                         ret_columnDefs = generate_column_definitions(df)
                         ret_dashGridOptions = patched_dashGridOptions
@@ -406,6 +393,7 @@ class FileExplorer:
                         position="center",
                         icon_name="bx-info-circle",
                     )
+                
 
                 return (
                     ret_refresh_flags,
@@ -416,5 +404,6 @@ class FileExplorer:
                     ret_display_file_path,
                     ret_csv_mod_time,
                     ret_noti,
-                    ret_mode,
+                    #ret_mode_value,
+                    #ret_mode_disable,
                 )

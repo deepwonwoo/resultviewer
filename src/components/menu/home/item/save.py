@@ -3,14 +3,12 @@ import subprocess
 import dash_mantine_components as dmc
 from utils.db_management import USERNAME, WORKSPACE, SCRIPT, DATAFRAME
 from dash import Output, Input, State, no_update, html
-from utils.noti_helpers import get_icon, create_notification
-from utils.dataframe_operations import displaying_df
-from utils.file_operations import backup_file
+from utils.component_template import get_icon, create_notification
+from utils.dataframe_operations import displaying_df, backup_file
 from utils.logging_utils import logger
 
 
 class Saver:
-    
 
     def layout(self) -> dmc.Menu:
         return dmc.Menu(
@@ -81,7 +79,6 @@ class Saver:
     def register_callbacks(self, app):
         self._register_workspace_save_callback(app)
         self._register_local_save_callback(app)
-
 
     def _register_workspace_save_callback(self, app):
 
@@ -243,14 +240,14 @@ class Saver:
         def open_local_saver(save_n, save_path, filtered_save_as):
             if not save_n:
                 return no_update, no_update
-            
+
             df_to_save = displaying_df(filtred_apply=filtered_save_as)
             if not save_path:
                 return (
                     create_notification(message="No save path given", position="center"),
                     False,
                 )
-            
+
             try:
                 if save_path.endswith(".parquet"):
                     df_to_save.write_parquet(save_path)

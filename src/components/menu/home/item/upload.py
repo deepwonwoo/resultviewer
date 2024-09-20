@@ -5,11 +5,9 @@ from typing import Dict, Any, Optional
 import dash_mantine_components as dmc
 from dash import html, Output, Input, State, Patch, no_update, exceptions
 from components.dag.column_definitions import generate_column_definitions
-from utils.db_management import WORKSPACE, USERNAME, SCRIPT, CACHE
-from utils.noti_helpers import create_notification, get_icon
-from utils.file_operations import create_directory
-from utils.dataframe_operations import displaying_df, validate_df
-from utils.dataframe_operations import file2df
+from utils.db_management import WORKSPACE, USERNAME, SCRIPT, get_cache, set_cache
+from utils.component_template import create_notification, get_icon
+from utils.dataframe_operations import file2df, validate_df, create_directory
 from utils.logging_utils import logger, debugging_decorator
 from components.menu.home.item.workspace_explore import FileExplorer
 
@@ -17,8 +15,8 @@ from components.menu.home.item.workspace_explore import FileExplorer
 class Uploader:
     def __init__(self) -> None:
         self.explorer = FileExplorer()
-        self.cp_info = CACHE.get("CP")
-        self.init_csv = CACHE.get("init_csv", "")
+        self.cp_info = get_cache("CP")
+        self.init_csv = get_cache("init_csv", "")
 
     def layout(self):
         return html.Div(
@@ -201,7 +199,7 @@ class Uploader:
         self.explorer.register_callbacks(app)
 
     def _register_workspace_save_callback(self, app):
-        
+
         app.clientside_callback(
             """
             function updateLoadingState(n_clicks) {
@@ -248,9 +246,7 @@ class Uploader:
                 noti = create_notification(message=f"Error loading {csv_file_path}: {e}", position="center")
                 return no_update, noti
 
-            dir_path = (
-                os.path.join(WORKSPACE, library_name, cell_name) if library_name else os.path.join(WORKSPACE, USERNAME)
-            )
+            dir_path = os.path.join(WORKSPACE, library_name, cell_name) if library_name else os.path.join(WORKSPACE, USERNAME)
             create_directory(dir_path)
 
             if so_app is None:
@@ -275,8 +271,6 @@ class Uploader:
                 position="top-center",
             )
             return cwd, noti
-
-
 
     def _register_local_save_callback(self, app):
 
@@ -333,14 +327,13 @@ class Uploader:
 
             if file_path:
                 try:
-
                     df = file2df(file_path, workspace=False)
                     patched_dashGridOptions = Patch()
-                    CACHE.set("TreeMode", False)
-                    CACHE.set("TreeCol", None)
-                    CACHE.set("viewmode", None)
-                    CACHE.set("PropaRule", None)
-                    CACHE.set("waiver_def", None)
+                    set_cache("TreeMode", False)
+                    set_cache("TreeCol", None)
+                    set_cache("viewmode", None)
+                    set_cache("PropaRule", None)
+                    set_cache("waiver_def", None)
                     patched_dashGridOptions["treeData"] = False
 
                 except Exception as e:

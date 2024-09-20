@@ -1,7 +1,7 @@
 import dash_mantine_components as dmc
 from dash import Input, Output, State, html, exceptions, ctx, no_update, ALL, Patch
 from components.dag.column_definitions import generate_column_definitions
-from utils.noti_helpers import get_icon, create_notification
+from utils.component_template import get_icon, create_notification
 from utils.db_management import WORKSPACE, USERNAME, SCRIPT, CACHE, DATAFRAME
 from utils.dataframe_operations import displaying_df, validate_df
 from utils.logging_utils import logger
