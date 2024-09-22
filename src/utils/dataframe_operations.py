@@ -4,7 +4,7 @@ import polars as pl
 from collections import Counter
 from filelock import SoftFileLock
 from utils.logging_utils import logger
-from utils.db_management import DATAFRAME, CACHE, get_cache, WORKSPACE
+from utils.db_management import get_dataframe, CACHE, get_cache, set_dataframe
 from components.dag.server_side_operations import apply_filters
 from utils.file_operations import get_lock_status, get_file_owner, backup_file, create_directory
 
@@ -72,21 +72,21 @@ def file2df(csv_file_path, workspace=True):
         logger.error(f"Error validating DataFrame: {e}")
         raise
 
-    DATAFRAME["df"] = df
+    set_dataframe("df", df)
 
-    if DATAFRAME.get("lock") is not None:
-        DATAFRAME["lock"].release()
+    if get_dataframe("lock"):
+        get_dataframe("lock").release()
 
     if workspace:
         lock, owner = get_lock_status(csv_file_path)
-        DATAFRAME["readonly"] = lock
+        set_dataframe("readonly", lock)
         if not lock and os.access(os.path.dirname(csv_file_path), os.W_OK):
-            DATAFRAME["lock"] = acquire_file_lock(csv_file_path)
+            set_dataframe("lock", acquire_file_lock(csv_file_path))
 
     return df
 
 def displaying_df(filtred_apply=False):
-    dff = DATAFRAME.get("df")
+    dff = get_dataframe("df")
     hide_waiver = CACHE.get("hide_waiver")
 
     if dff is None:
@@ -120,16 +120,16 @@ def enter_edit_mode(file_path):
         return False
     lock = acquire_file_lock(file_path)
     if lock:
-        if DATAFRAME.get("lock") is not None:
-            DATAFRAME["lock"].release()
-        DATAFRAME["lock"] = lock
+        if get_dataframe("lock"):
+            get_dataframe("lock").release()
+        set_dataframe("lock", lock)
         return True
     return False
 
 def exit_edit_mode(file_path):
-    if DATAFRAME.get("lock"):
-        DATAFRAME["lock"].release()
-        DATAFRAME["lock"] = None
+    if get_dataframe("lock"):
+        get_dataframe["lock"].release()
+        set_dataframe("lock", None)
 
 def save_changes(file_path):
     df = displaying_df()
