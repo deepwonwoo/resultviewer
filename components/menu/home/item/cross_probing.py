@@ -4,14 +4,15 @@ import polars as pl
 import dash_mantine_components as dmc
 from dash import Input, Output, State
 from utils.component_template import get_icon, create_notification
-from utils.db_management import get_cache, set_cache, DATAFRAME, CACHE
+from utils.db_management import SSDF
+from utils.config import CONFIG
 from utils.logging_utils import logger
 
 
 class CrossProber:
 
     def __init__(self):
-        self.CP = get_cache("CP")
+        self.CP = SSDF.cp
         self.CP_socket = self.create_connection() if all(self.CP.values()) else False
         self.CP_layout = self.cp_layout()
         self.current_view = ""
@@ -29,7 +30,11 @@ class CrossProber:
             return False
 
     def cp_layout(self):
-        return self.cp_connected_layout() if self.CP_socket else self.cp_disconnected_layout()
+        return (
+            self.cp_connected_layout()
+            if self.CP_socket
+            else self.cp_disconnected_layout()
+        )
 
     def cp_connected_layout(self):
         return dmc.Group(
@@ -115,11 +120,19 @@ class CrossProber:
         """
         try:
             self.CP_socket.sendall(message.encode())
-            return create_notification(message=f"CP command: {message}", title="CrossProbing")
+            return create_notification(
+                message=f"CP command: {message}", title="CrossProbing"
+            )
         except socket.timeout:
-            return create_notification(message="Timed out while sending message", title="CrossProbing", color="red")
+            return create_notification(
+                message="Timed out while sending message",
+                title="CrossProbing",
+                color="red",
+            )
         except Exception as e:
-            return create_notification(message=f"Error: {e}", title="CrossProbing", color="red")
+            return create_notification(
+                message=f"Error: {e}", title="CrossProbing", color="red"
+            )
 
     def close_connection(self):
         if self.CP_socket:
@@ -145,7 +158,9 @@ class CrossProber:
             paths = [remove_initial_x(path) for path in paths]
             s = delimiter.join(paths)
         try:
-            hier_path, name = s.rsplit(delimiter, 1)  # 오른쪽에서부터 문자열을 '.'으로 분리
+            hier_path, name = s.rsplit(
+                delimiter, 1
+            )  # 오른쪽에서부터 문자열을 '.'으로 분리
         except ValueError:  # '.'이 없어서 분리할 수 없는 경우
             hier_path = ""  # hier_path를 빈 문자열로 설정
             name = s  # name에 입력받은 문자열을 그대로 반환
@@ -161,12 +176,14 @@ class CrossProber:
     def cross_probing(self, selected_rows, obj, cp_col):
         logger.info(f"cross_probing! (obj:{obj}, tool:{cp_col})")
         if not obj or not cp_col:
-            noti = create_notification(message="select 'net/instance' or 'column' to crossprobe")
+            noti = create_notification(
+                message="select 'net/instance' or 'column' to crossprobe"
+            )
             return noti, []
 
         selected_row = selected_rows[0]
         value = selected_row[cp_col]
-        request = get_cache("REQUEST")
+        request = SSDF.request
         groupBy = [col["id"] for col in request.get("rowGroupCols", [])]
 
         selected_hier_path, selected_name = self.hier_name(value)
@@ -174,7 +191,7 @@ class CrossProber:
 
         # Group CrossProbing
         if groupBy:
-            dff = DATAFRAME["df"]
+            dff = SSDF.dataframe
             for gc in groupBy:
                 dff = dff.filter(pl.col(gc) == selected_row[gc])
 
@@ -187,7 +204,9 @@ class CrossProber:
                 elif group_hier_path.startswith(selected_hier_path):
                     group_hier_path = group_hier_path.replace(selected_hier_path, "")
                     if len(group_hier_path) and group_hier_path[0] == ".":
-                        names.add(self.remove_init_r_m(obj, group_hier_path.split(".")[1]))
+                        names.add(
+                            self.remove_init_r_m(obj, group_hier_path.split(".")[1])
+                        )
 
             if self.current_view == selected_hier_path:
                 # Single Instance CrossProbing
@@ -201,7 +220,11 @@ class CrossProber:
                 msg = f"selectCurObject -obj {obj} -name {selected_name}\n"
             else:  # Single Instance CrossProbing
 
-                msg = f"select -obj {obj} -hier {selected_hier_path} -name {selected_name}\n" if selected_hier_path else f"select -obj {obj} -name {selected_name}\n"
+                msg = (
+                    f"select -obj {obj} -hier {selected_hier_path} -name {selected_name}\n"
+                    if selected_hier_path
+                    else f"select -obj {obj} -name {selected_name}\n"
+                )
                 self.current_view = selected_hier_path
 
         noti = self.send_message(msg)

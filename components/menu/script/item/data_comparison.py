@@ -1,9 +1,8 @@
 import dash_mantine_components as dmc
 from dash import Input, Output, State, html, exceptions, ctx, no_update, ALL, Patch
-from components.dag.column_definitions import generate_column_definitions
 from utils.component_template import get_icon, create_notification
-from utils.db_management import WORKSPACE, USERNAME, SCRIPT, CACHE, DATAFRAME
-from utils.dataframe_operations import displaying_df, validate_df
+from utils.db_management import SSDF
+from utils.data_processing import displaying_df, validate_df
 from utils.logging_utils import logger
 from components.menu.home.item.workspace_explore import FileExplorer
 import subprocess
@@ -100,7 +99,9 @@ class Compare:
         )
         def compare_modal_open(nc):
             if displaying_df() is None:
-                return no_update, create_notification(message="No Dataframe loaded", position="center")
+                return no_update, create_notification(
+                    message="No Dataframe loaded", position="center"
+                )
             return True, None
 
         @app.callback(
@@ -133,7 +134,7 @@ class Compare:
                 )
                 return no_update, True, noti
 
-            df_columns = DATAFRAME["df"].columns
+            df_columns = SSDF.dataframe.columns
             df_columns.remove("uniqid")
             target_df_columns = target_df.columns
             common_columns = [col for col in df_columns if col in target_df_columns]
@@ -155,7 +156,7 @@ class Compare:
         def select_value(selected_list):
             rows = []
             for i, selected in enumerate(selected_list):
-                if DATAFRAME["df"][selected].dtype.is_numeric():
+                if SSDF.dataframe[selected].dtype.is_numeric():
                     element = dmc.TableTr(
                         [
                             dmc.TableTd(""),
@@ -179,7 +180,11 @@ class Compare:
                 else:
                     element = dmc.TableTr(
                         [
-                            dmc.TableTd(dmc.Text(selected, id={"type": "key", "index": i}, size="sm")),
+                            dmc.TableTd(
+                                dmc.Text(
+                                    selected, id={"type": "key", "index": i}, size="sm"
+                                )
+                            ),
                             dmc.TableTd(""),
                             dmc.TableTd(""),
                         ]

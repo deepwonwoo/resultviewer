@@ -1,10 +1,9 @@
 import dash_chart_editor as dce
 import dash_mantine_components as dmc
 from dash import Input, Output, State, html, exceptions, ctx, no_update, ALL, Patch
-from components.dag.column_definitions import generate_column_definitions
-from utils.db_management import WORKSPACE, USERNAME, SCRIPT, CACHE, DATAFRAME
+from components.grid.dag.column_definitions import generate_column_definitions
 from utils.component_template import get_icon, create_notification
-from utils.dataframe_operations import displaying_df
+from utils.data_processing import displaying_df
 from utils.logging_utils import logger
 from components.menu.home.item.workspace_explore import FileExplorer
 
@@ -62,7 +61,14 @@ class ChartEditor:
             try:
                 dff = displaying_df(filtred_apply=True)
                 if dff is None:
-                    return False, None, False, create_notification(message="No Dataframe loaded", position="center")
+                    return (
+                        False,
+                        None,
+                        False,
+                        create_notification(
+                            message="No Dataframe loaded", position="center"
+                        ),
+                    )
 
                 df_size = dff.estimated_size()
 
@@ -71,10 +77,15 @@ class ChartEditor:
                         False,
                         None,
                         False,
-                        create_notification(message="Data is too big (should be less than 100 MB)", position="center"),
+                        create_notification(
+                            message="Data is too big (should be less than 100 MB)",
+                            position="center",
+                        ),
                     )
 
-                dce_output = dce.DashChartEditor(dataSources=dff.to_dict(as_series=False))
+                dce_output = dce.DashChartEditor(
+                    dataSources=dff.to_dict(as_series=False)
+                )
                 return True, dce_output, False, None
 
             except Exception as e:

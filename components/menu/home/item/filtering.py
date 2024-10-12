@@ -2,12 +2,23 @@ import os
 import datetime
 import yaml
 import dash_mantine_components as dmc
-from dash import Input, Output, State, html, exceptions, ctx, no_update, ALL, dcc, callback
+from dash import (
+    Input,
+    Output,
+    State,
+    html,
+    exceptions,
+    ctx,
+    no_update,
+    ALL,
+    dcc,
+    callback,
+)
 from typing import Dict, Any, List
-from utils.db_management import CACHE, USER_RV_DIR
+from utils.config import CONFIG
 from utils.logging_utils import logger
 from utils.component_template import get_icon, create_notification
-from utils.dataframe_operations import displaying_df
+from utils.data_processing import displaying_df
 
 # Constants
 OPEN_FILTER_STORAGE = "open-filter-storage-btn"
@@ -21,7 +32,7 @@ APPLY_FILTER = "apply-filter-btn"
 class Filter:
     def __init__(self) -> None:
         self.max_filters = 10  # 최대 필터 수 설정 가능
-        self.filter_yaml = os.path.join(USER_RV_DIR, "filters.yaml")
+        self.filter_yaml = os.path.join(CONFIG.USER_RV_DIR, "filters.yaml")
 
     def filter_model_to_expression(self, filter_model):
         """Convert filter model to expression string."""
@@ -49,7 +60,11 @@ class Filter:
                 return f"({join_type.join(expressions)})"
             else:
                 operator = operator_map.get(condition["type"], condition["type"])
-                filter_value = f'"{condition["filter"]}"' if isinstance(condition["filter"], str) else condition["filter"]
+                filter_value = (
+                    f'"{condition["filter"]}"'
+                    if isinstance(condition["filter"], str)
+                    else condition["filter"]
+                )
                 return f"[{condition['colId']}] {operator} {filter_value}"
 
         return build_expression(filter_model)
@@ -152,7 +167,9 @@ class Filter:
                 return True, None
             except Exception as e:
                 logger.error(f"Error opening filter storage: {str(e)}")
-                return False, create_notification(f"Error: {str(e)}", "Filter Storage Error", "red")
+                return False, create_notification(
+                    f"Error: {str(e)}", "Filter Storage Error", "red"
+                )
 
         @app.callback(
             Output("saved-filter-models", "children"),
@@ -169,10 +186,14 @@ class Filter:
                 filters = self.load_filters()
                 filters[filter_name] = filter_model
                 self.save_filters(filters)
-                return self.generate_filter_list(filters), create_notification("Filter saved successfully", "Filter Saved", "green")
+                return self.generate_filter_list(filters), create_notification(
+                    "Filter saved successfully", "Filter Saved", "green"
+                )
             except Exception as e:
                 logger.error(f"Error storing filter condition: {str(e)}")
-                return no_update, create_notification(f"Error: {str(e)}", "Filter Storage Error", "red")
+                return no_update, create_notification(
+                    f"Error: {str(e)}", "Filter Storage Error", "red"
+                )
 
         @app.callback(
             Output("advancedFilterModel-store", "data", allow_duplicate=True),
@@ -184,10 +205,14 @@ class Filter:
             if n_clicks is None or n_clicks == 0:
                 raise exceptions.PreventUpdate
             try:
-                return None, create_notification("Filters cleared", "Filters Cleared", "blue")
+                return None, create_notification(
+                    "Filters cleared", "Filters Cleared", "blue"
+                )
             except Exception as e:
                 logger.error(f"Error clearing filters: {str(e)}")
-                return no_update, create_notification(f"Error: {str(e)}", "Clear Filters Error", "red")
+                return no_update, create_notification(
+                    f"Error: {str(e)}", "Clear Filters Error", "red"
+                )
 
         @app.callback(
             Output("notifications", "children", allow_duplicate=True),
@@ -204,7 +229,11 @@ class Filter:
                     return create_notification("No data loaded", "Preview Error", "red")
                 filter_expr = self.filter_model_to_expression(filter_model)
                 filtered_df = df.filter(filter_expr)
-                return create_notification(f"Filter would return {len(filtered_df)} rows", "Filter Preview", "blue")
+                return create_notification(
+                    f"Filter would return {len(filtered_df)} rows",
+                    "Filter Preview",
+                    "blue",
+                )
             except Exception as e:
                 logger.error(f"Error previewing filter: {str(e)}")
                 return create_notification(f"Error: {str(e)}", "Preview Error", "red")
@@ -226,10 +255,22 @@ class Filter:
                 new_history = current_history + [dmc.ListItem(filter_expr)]
                 if len(new_history) > 5:  # Keep only last 5 filters in history
                     new_history = new_history[-5:]
-                return filter_model, new_history, create_notification("Filter applied successfully", "Filter Applied", "green")
+                return (
+                    filter_model,
+                    new_history,
+                    create_notification(
+                        "Filter applied successfully", "Filter Applied", "green"
+                    ),
+                )
             except Exception as e:
                 logger.error(f"Error applying filter: {str(e)}")
-                return no_update, no_update, create_notification(f"Error: {str(e)}", "Apply Filter Error", "red")
+                return (
+                    no_update,
+                    no_update,
+                    create_notification(
+                        f"Error: {str(e)}", "Apply Filter Error", "red"
+                    ),
+                )
 
     def load_filters(self) -> Dict[str, Any]:
         if os.path.exists(self.filter_yaml):

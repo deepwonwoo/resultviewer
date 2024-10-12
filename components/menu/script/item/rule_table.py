@@ -7,10 +7,22 @@ import dash_mantine_components as dmc
 
 import dash_ag_grid as dag
 
-from components.dag.column_definitions import generate_column_definitions
-from utils.db_management import get_cache, set_cache, DATAFRAME, CACHE, USER_RV_DIR, SCRIPT
+from components.grid.dag.column_definitions import generate_column_definitions
+from utils.config import CONFIG
 from utils.component_template import create_notification, get_icon
-from dash import html, Input, Output, State, ALL, MATCH, no_update, exceptions, ctx, dcc, Patch
+from dash import (
+    html,
+    Input,
+    Output,
+    State,
+    ALL,
+    MATCH,
+    no_update,
+    exceptions,
+    ctx,
+    dcc,
+    Patch,
+)
 
 
 class RuleTable:
@@ -114,8 +126,18 @@ class RuleTable:
                     id="rule-table-ag-grid",
                     enableEnterpriseModules=True,
                 ),
-                dmc.Button("Download Rule Table", id="download-ruletable-btn", variant="outline", size="sm"),
-                dmc.Button("Upload Rule Table", id="upload-ruletable-btn", variant="outline", size="sm"),
+                dmc.Button(
+                    "Download Rule Table",
+                    id="download-ruletable-btn",
+                    variant="outline",
+                    size="sm",
+                ),
+                dmc.Button(
+                    "Upload Rule Table",
+                    id="upload-ruletable-btn",
+                    variant="outline",
+                    size="sm",
+                ),
                 dcc.Download(id="download-ruletable-csv"),
                 dcc.Store("upload-ruletable-path"),
             ],
@@ -177,7 +199,9 @@ class RuleTable:
             try:
                 self.top_cell_names = extract_subckt_names(ckt_file_path)
             except Exception as e:
-                noti = create_notification(message=f"Error loading {ckt_file_path}: {e}", position="center")
+                noti = create_notification(
+                    message=f"Error loading {ckt_file_path}: {e}", position="center"
+                )
                 return no_update, True, noti
             return self.top_cell_names[0], False, None
 
@@ -195,8 +219,14 @@ class RuleTable:
             Input("ruletable-ckt-top-subckt-textinput", "value"),
             prevent_initial_call=True,
         )
-        def activate_run_perc_btn(type, delimiter, column, ckt_file_path, top_cell_name):
-            return False if type and delimiter and column and ckt_file_path and top_cell_name else True
+        def activate_run_perc_btn(
+            type, delimiter, column, ckt_file_path, top_cell_name
+        ):
+            return (
+                False
+                if type and delimiter and column and ckt_file_path and top_cell_name
+                else True
+            )
 
         @app.callback(
             Output("rule-table-ag-grid", "rowData", allow_duplicate=True),
@@ -211,18 +241,28 @@ class RuleTable:
             if not n_clicks or not ckt_file_path or not top_cell_name:
                 raise exceptions.PreventUpdate
 
-            PERC_WORKSPACE = os.path.join(USER_RV_DIR, "PERC")
+            PERC_WORKSPACE = os.path.join(CONFIG.USER_RV_DIR, "PERC")
             if not os.path.exists(PERC_WORKSPACE):
                 os.makedirs(PERC_WORKSPACE)
 
             for perc_file in ["run_extract_full_master", "master.rules"]:
-                shutil.copy(f"{SCRIPT}/perc/{perc_file}", PERC_WORKSPACE)
+                shutil.copy(f"{CONFIG.SCRIPT}/perc/{perc_file}", PERC_WORKSPACE)
             perc_script = os.path.join(PERC_WORKSPACE, "run_extract_full_master")
             os.chmod(perc_script, 0o755)
             try:
-                result = subprocess.run([f"./run_extract_full_master {ckt_file_path} {top_cell_name}"], shell=True, cwd=PERC_WORKSPACE)
-                row_data = self.parse_hierarchy(f"{PERC_WORKSPACE}/results/full_master.csv")
-                noti = create_notification(title="FullMasterNames Extracted", message="PERC script executed successfully", icon_name="bx-smile")
+                result = subprocess.run(
+                    [f"./run_extract_full_master {ckt_file_path} {top_cell_name}"],
+                    shell=True,
+                    cwd=PERC_WORKSPACE,
+                )
+                row_data = self.parse_hierarchy(
+                    f"{PERC_WORKSPACE}/results/full_master.csv"
+                )
+                noti = create_notification(
+                    title="FullMasterNames Extracted",
+                    message="PERC script executed successfully",
+                    icon_name="bx-smile",
+                )
             except Exception as e:
                 row_data = []
                 noti = create_notification(f"PERC script execution failed: {e}")
@@ -244,7 +284,10 @@ class RuleTable:
                 changed_hierarchy = changed_row["masterHierarchy"]
                 patched_rows = Patch()
                 for i, row in enumerate(rows):
-                    if row["masterHierarchy"][: len(changed_hierarchy)] == changed_hierarchy:
+                    if (
+                        row["masterHierarchy"][: len(changed_hierarchy)]
+                        == changed_hierarchy
+                    ):
                         patched_rows[i].Part = new_value
                 return patched_rows
             return no_update
@@ -271,7 +314,7 @@ class RuleTable:
         def func(n_clicks):
             if n_clicks is None:
                 return no_update
-            cmd = f"{SCRIPT}/QFileDialog/file_dialog"
+            cmd = f"{CONFIG.SCRIPT}/QFileDialog/file_dialog"
             result = subprocess.run([cmd], capture_output=True, text=True)
             file_path = result.stdout.strip()
             return file_path

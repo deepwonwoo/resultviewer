@@ -9,10 +9,13 @@ import dash_mantine_components as dmc
 import dash_bootstrap_components as dbc
 from dash import html, Output, Input, State, no_update, ctx, ALL, Patch, dcc, exceptions
 from utils.component_template import get_icon, create_notification
-from utils.dataframe_operations import file2df, get_file_owner, get_lock_status
+from utils.data_processing import file2df
+from utils.file_operations import get_file_owner, get_lock_status
 from utils.logging_utils import logger
-from utils.db_management import WORKSPACE, USERNAME, CACHE
-from components.dag.column_definitions import generate_column_definitions
+from utils.config import CONFIG
+from utils.db_management import SSDF
+from components.grid.dag.column_definitions import generate_column_definitions
+
 
 
 class FileExplorer:
@@ -24,7 +27,7 @@ class FileExplorer:
     def layout(self) -> html.Div:
         return html.Div(
             [
-                dcc.Store(id=f"{self.id_prefix}stored_cwd", data=WORKSPACE),
+                dcc.Store(id=f"{self.id_prefix}stored_cwd", data=CONFIG.WORKSPACE),
                 dmc.Group(
                     [
                         dmc.Button(
@@ -35,7 +38,7 @@ class FileExplorer:
                             variant="gradient",
                         ),
                         dmc.Text(
-                            WORKSPACE.replace(WORKSPACE, "WORKSPACE"),
+                            CONFIG.WORKSPACE.replace(CONFIG.WORKSPACE, "WORKSPACE"),
                             c="blue",
                             id=f"{self.id_prefix}cwd",
                             size="xs",
@@ -94,13 +97,13 @@ class FileExplorer:
             triggered_id = ctx.triggered_id
             if triggered_id == f"{self.id_prefix}stored_cwd" and stored_cwd:
 
-                return stored_cwd.replace(WORKSPACE, "WORKSPACE")
+                return stored_cwd.replace(CONFIG.WORKSPACE, "WORKSPACE")
             if currentdir == "WORKSPACE":
                 return "WORKSPACE"
             if currentdir.startswith("WORKSPACE"):
-                currentdir = currentdir.replace("WORKSPACE", WORKSPACE)
+                currentdir = currentdir.replace("WORKSPACE", CONFIG.WORKSPACE)
             parent = Path(currentdir).parent.as_posix()
-            return parent.replace(WORKSPACE, "WORKSPACE")
+            return parent.replace(CONFIG.WORKSPACE, "WORKSPACE")
 
         @app.callback(
             Output(f"{self.id_prefix}cwd_files", "children"),
@@ -109,11 +112,16 @@ class FileExplorer:
             prevent_initial_call=True,
         )
         def list_cwd_files(cwd, refresh_ns):
-            if ctx.triggered_id and isinstance(ctx.triggered_id, dict) and ctx.triggered_id.get("type") == f"{self.id_prefix}refresh-flag" and sum(refresh_ns) == 0:
+            if (
+                ctx.triggered_id
+                and isinstance(ctx.triggered_id, dict)
+                and ctx.triggered_id.get("type") == f"{self.id_prefix}refresh-flag"
+                and sum(refresh_ns) == 0
+            ):
                 return no_update
 
             if cwd and cwd.startswith("WORKSPACE"):
-                cwd = cwd.replace("WORKSPACE", WORKSPACE)
+                cwd = cwd.replace("WORKSPACE", CONFIG.WORKSPACE)
             else:
                 cwd = ""
             path = Path(cwd)
@@ -127,7 +135,7 @@ class FileExplorer:
                     filepath = Path(file)
                     full_path = os.path.join(cwd, filepath.as_posix())
 
-                    self.files.append(full_path.replace(WORKSPACE, "WORKSPACE"))
+                    self.files.append(full_path.replace(CONFIG.WORKSPACE, "WORKSPACE"))
                     if file.endswith(".lock"):
                         continue
 
@@ -139,7 +147,7 @@ class FileExplorer:
                             file,
                             href="#",
                             id={"type": f"{self.id_prefix}listed_file", "index": i},
-                            title=full_path.replace(WORKSPACE, "WORKSPACE"),
+                            title=full_path.replace(CONFIG.WORKSPACE, "WORKSPACE"),
                             style={"fontWeight": "bold", "fontSize": 15},
                         )
                         details["icon"] = get_icon("bx-folder")
@@ -152,7 +160,7 @@ class FileExplorer:
                                 "type": f"{self.id_prefix}open-workspace-file",
                                 "index": full_path,
                             },
-                            title=full_path.replace(WORKSPACE, "WORKSPACE"),
+                            title=full_path.replace(CONFIG.WORKSPACE, "WORKSPACE"),
                             n_clicks=0,
                         )
 
@@ -242,7 +250,9 @@ class FileExplorer:
             df = pd.DataFrame(all_file_details)
             df = df.rename(columns={"icon": "", "option": ""})
 
-            table = dbc.Table.from_dataframe(df, striped=False, bordered=False, hover=True, size="sm")
+            table = dbc.Table.from_dataframe(
+                df, striped=False, bordered=False, hover=True, size="sm"
+            )
             return dbc.Spinner(
                 html.Div(table),
                 type="grow",
@@ -270,11 +280,11 @@ class FileExplorer:
                 Output("aggrid-table", "columnDefs", allow_duplicate=True),
                 Output("aggrid-table", "dashGridOptions", allow_duplicate=True),
                 Output("total-row-count", "children", allow_duplicate=True),
-                Output("csv-file-path", "children", allow_duplicate=True),
+                #Output("csv-file-path", "children", allow_duplicate=True),
+                Output("flex-layout", "model", allow_duplicate=True),
                 Output("csv-mod-time", "data", allow_duplicate=True),
                 Output("notifications", "children", allow_duplicate=True),
-                #Output("file-mode-control", "value", allow_duplicate=True),
-                #Output("file-mode-control", "disabled", allow_duplicate=True),
+                
                 Input({"type": "open-workspace-file", "index": ALL}, "n_clicks"),
                 Input({"type": "copy-workspace-file", "index": ALL}, "n_clicks"),
                 Input(
@@ -282,11 +292,18 @@ class FileExplorer:
                     "n_clicks",
                 ),
                 Input({"type": "remove-workspace-file", "index": ALL}, "n_clicks"),
-                State({"type": "rename-workspace-file-newfilename", "index": ALL}, "value"),
+                State(
+                    {"type": "rename-workspace-file-newfilename", "index": ALL}, "value"
+                ),
                 prevent_initial_call=True,
             )
-            def handel_file_operations(open_ns, copy_ns, rename_ns, remove_ns, new_filenames):
-                if not ctx.triggered_id or sum(open_ns + copy_ns + rename_ns + remove_ns) == 0:
+            def handel_file_operations(
+                open_ns, copy_ns, rename_ns, remove_ns, new_filenames
+            ):
+                if (
+                    not ctx.triggered_id
+                    or sum(open_ns + copy_ns + rename_ns + remove_ns) == 0
+                ):
                     raise exceptions.PreventUpdate
 
                 triggered_btn = ctx.triggered_id["type"]
@@ -303,18 +320,15 @@ class FileExplorer:
                 ret_display_file_path = no_update
                 ret_csv_mod_time = no_update
                 ret_noti = None
-                #ret_mode_value = "read"
-                #ret_mode_disable = False
 
                 try:
                     if triggered_btn == "open-workspace-file":
-                        df = file2df(file_path, workspace=not lock)
+                        df = file2df(file_path)
                         patched_dashGridOptions = Patch()
-                        CACHE.set("TreeMode", False)
-                        CACHE.set("TreeCol", None)
-                        CACHE.set("viewmode", None)
-                        CACHE.set("PropaRule", None)
-                        CACHE.set("waiver_def", None)
+                        SSDF.tree_mode=False
+                        SSDF.tree_col=None
+                        SSDF.viewmode=None
+                        SSDF.propa_rule=None
                         patched_dashGridOptions["treeData"] = False
                         if lock:
                             ret_noti = create_notification(
@@ -328,15 +342,19 @@ class FileExplorer:
                         ret_columnDefs = generate_column_definitions(df)
                         ret_dashGridOptions = patched_dashGridOptions
                         ret_total_row_count = f"Total Rows: {len(df)}"
-                        ret_display_file_path = file_path.replace(WORKSPACE, "WORKSPACE")
+                        ret_display_file_path = Patch()
+                        ret_display_file_path['layout']['children'][0]['children'][0]['name']= file_path.replace(CONFIG.WORKSPACE, "WORKSPACE")
+
                         ret_csv_mod_time = os.path.getmtime(file_path)
 
                     elif triggered_btn == "copy-workspace-file":
                         index = copy_ns.index(1)
                         ret_refresh_flags[index] = True
-                        current_time = datetime.datetime.now().time().strftime("%m%d_%H:%M")
+                        current_time = (
+                            datetime.datetime.now().time().strftime("%m%d_%H:%M")
+                        )
                         name, ext = os.path.splitext(file_path)
-                        new_file_path = f"{name}_{USERNAME}_{current_time}{ext}"
+                        new_file_path = f"{name}_{CONFIG.USERNAME}_{current_time}{ext}"
                         shutil.copy(file_path, new_file_path)
                         os.chmod(new_file_path, 0o777)
 
@@ -348,11 +366,11 @@ class FileExplorer:
 
                         if os.path.exists(new_path):
                             ret_noti = ret_noti = create_notification(
-                                message=f"file '{file_path.replace(WORKSPACE, 'WORKSPACE')}' already exists",
+                                message=f"file '{file_path.replace(CONFIG.WORKSPACE, 'WORKSPACE')}' already exists",
                                 position="center",
                                 icon_name="bx-info-circle",
                             )
-                        elif not file_owner == USERNAME:
+                        elif not file_owner == CONFIG.USERNAME:
                             ret_noti = ret_noti = create_notification(
                                 message=f"No permission to rename: file is owned by {file_owner}, ",
                                 position="center",
@@ -375,7 +393,7 @@ class FileExplorer:
                                 position="center",
                                 icon_name="bx-info-circle",
                             )
-                        elif not file_owner == USERNAME:
+                        elif not file_owner == CONFIG.USERNAME:
                             ret_noti = ret_noti = create_notification(
                                 message=f"No permission to remove: file is owned by {file_owner}, ",
                                 position="center",
@@ -393,7 +411,6 @@ class FileExplorer:
                         position="center",
                         icon_name="bx-info-circle",
                     )
-                
 
                 return (
                     ret_refresh_flags,
@@ -404,6 +421,6 @@ class FileExplorer:
                     ret_display_file_path,
                     ret_csv_mod_time,
                     ret_noti,
-                    #ret_mode_value,
-                    #ret_mode_disable,
+                    # ret_mode_value,
+                    # ret_mode_disable,
                 )

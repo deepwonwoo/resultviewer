@@ -4,10 +4,12 @@ from typing import Dict, Any, Optional
 
 import dash_mantine_components as dmc
 from dash import html, Output, Input, State, Patch, no_update, exceptions
-from components.dag.column_definitions import generate_column_definitions
-from utils.db_management import WORKSPACE, USERNAME, SCRIPT, get_cache, set_cache
+from components.grid.dag.column_definitions import generate_column_definitions
+from utils.config import CONFIG
+from utils.db_management import SSDF
 from utils.component_template import create_notification, get_icon
-from utils.dataframe_operations import file2df, validate_df, create_directory
+from utils.data_processing import file2df, validate_df
+from utils.file_operations import make_dirs_with_permissions
 from utils.logging_utils import logger, debugging_decorator
 from components.menu.home.item.workspace_explore import FileExplorer
 
@@ -15,8 +17,8 @@ from components.menu.home.item.workspace_explore import FileExplorer
 class Uploader:
     def __init__(self) -> None:
         self.explorer = FileExplorer()
-        self.cp_info = get_cache("CP")
-        self.init_csv = get_cache("init_csv", "")
+        self.cp_info = SSDF.cp
+        self.init_csv = SSDF.init_csv
 
     def layout(self):
         return html.Div(
@@ -235,7 +237,9 @@ class Uploader:
             State("cwd", "children"),
             prevent_initial_call=True,
         )
-        def upload_data_to_workspace(n, csv_file_path, library_name, cell_name, so_app, cwd):
+        def upload_data_to_workspace(
+            n, csv_file_path, library_name, cell_name, so_app, cwd
+        ):
             if not n or not csv_file_path:
                 raise exceptions.PreventUpdate
             try:
@@ -243,17 +247,23 @@ class Uploader:
                 if "childCount" in dff.columns:
                     dff = dff.drop("childCount")
             except Exception as e:
-                noti = create_notification(message=f"Error loading {csv_file_path}: {e}", position="center")
+                noti = create_notification(
+                    message=f"Error loading {csv_file_path}: {e}", position="center"
+                )
                 return no_update, noti
 
-            dir_path = os.path.join(WORKSPACE, library_name, cell_name) if library_name else os.path.join(WORKSPACE, USERNAME)
-            create_directory(dir_path)
+            dir_path = (
+                os.path.join(CONFIG.WORKSPACE, library_name, cell_name)
+                if library_name
+                else os.path.join(CONFIG.WORKSPACE, CONFIG.USERNAME)
+            )
+            make_dirs_with_permissions(dir_path)
 
             if so_app is None:
                 so_app = ""
 
             upload_dir = os.path.join(dir_path, so_app)
-            create_directory(upload_dir)
+            make_dirs_with_permissions(upload_dir)
 
             filename = os.path.basename(csv_file_path)
             if filename.endswith(".csv"):
@@ -280,7 +290,7 @@ class Uploader:
             prevent_initial_call=True,
         )
         def get_open_file_path(n):
-            cmd = f"{SCRIPT}/QFileDialog/file_dialog"
+            cmd = f"{CONFIG.SCRIPT}/QFileDialog/file_dialog"
             result = subprocess.run([cmd], capture_output=True, text=True)
             file_path = result.stdout.strip()
             return file_path if file_path else no_update
@@ -308,7 +318,8 @@ class Uploader:
             Output("aggrid-table", "columnDefs", allow_duplicate=True),
             Output("aggrid-table", "dashGridOptions", allow_duplicate=True),
             Output("total-row-count", "children", allow_duplicate=True),
-            Output("csv-file-path", "children", allow_duplicate=True),
+            #Output("csv-file-path", "children", allow_duplicate=True),
+            Output("flex-layout", "model", allow_duplicate=True),
             Output("csv-mod-time", "data", allow_duplicate=True),
             Output("notifications", "children", allow_duplicate=True),
             Output("local-file-open-modal", "opened", allow_duplicate=True),
@@ -329,15 +340,16 @@ class Uploader:
                 try:
                     df = file2df(file_path, workspace=False)
                     patched_dashGridOptions = Patch()
-                    set_cache("TreeMode", False)
-                    set_cache("TreeCol", None)
-                    set_cache("viewmode", None)
-                    set_cache("PropaRule", None)
-                    set_cache("waiver_def", None)
+                    SSDF.tree_mode=False
+                    SSDF.tree_col=None
+                    SSDF.viewmode = None
+                    SSDF.propa_rule=None
                     patched_dashGridOptions["treeData"] = False
 
                 except Exception as e:
-                    noti = create_notification(message=f"Read Data Error: {e}", position="center")
+                    noti = create_notification(
+                        message=f"Read Data Error: {e}", position="center"
+                    )
                     return (
                         no_update,
                         no_update,
@@ -349,12 +361,14 @@ class Uploader:
                         False,
                     )
                 mod_time = os.path.getmtime(file_path)
+                patched_layout_model = Patch()
+                patched_layout_model['layout']['children'][0]['children'][0]['name']=file_path
 
                 return (
                     generate_column_definitions(df),
                     patched_dashGridOptions,
                     f"Total Rows: {len(df)}",
-                    file_path,
+                    patched_layout_model,
                     mod_time,
                     None,
                     False,

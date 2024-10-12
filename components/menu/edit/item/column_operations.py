@@ -14,14 +14,15 @@ from dash import (
     ctx,
 )
 from utils.component_template import create_notification, get_icon
-from utils.dataframe_operations import displaying_df
-from utils.db_management import DATAFRAME, CACHE, USERNAME
-from components.dag.column_definitions import (
+from utils.data_processing import displaying_df
+from utils.db_management import SSDF
+from utils.config import CONFIG
+from components.grid.dag.column_definitions import (
     generate_column_definitions,
     generate_column_definition,
 )
 from utils.logging_utils import logger
-from components.dag.server_side_operations import apply_filters
+from components.grid.dag.server_side_operations import apply_filters
 
 
 class Columns:
@@ -256,7 +257,11 @@ class Columns:
                             data=[],
                             w=200,
                         ),
-                        dmc.TextInput(label="New Column Name", id="new-column-name-input", style={"width": 200}),
+                        dmc.TextInput(
+                            label="New Column Name",
+                            id="new-column-name-input",
+                            style={"width": 200},
+                        ),
                     ],
                     gap="sm",
                 ),
@@ -334,13 +339,21 @@ class Columns:
         )
         def rename_column(n_clicks, old_name, new_name, columnDefs):
             if new_name in [col["field"] for col in columnDefs]:
-                return create_notification(message="Column name already exists", position="center"), True, no_update
+                return (
+                    create_notification(
+                        message="Column name already exists", position="center"
+                    ),
+                    True,
+                    no_update,
+                )
             try:
-                DATAFRAME["df"] = DATAFRAME["df"].rename({old_name: new_name})
+                SSDF.dataframe = SSDF.dataframe.rename({old_name: new_name})
                 patched_columnDefs = Patch()
                 for i, columnDef in enumerate(columnDefs):
                     if columnDef["field"] == old_name:
-                        patched_columnDefs[i] = generate_column_definition(new_name, DATAFRAME["df"][new_name])
+                        patched_columnDefs[i] = generate_column_definition(
+                            new_name, SSDF.dataframe[new_name]
+                        )
                 return None, False, patched_columnDefs
             except Exception as e:
                 return create_notification(str(e)), no_update, no_update
@@ -353,7 +366,11 @@ class Columns:
             prevent_initial_call=True,
         )
         def open_find_replace_modal(n_clicks, columnDefs):
-            columns = [{"label": col["field"], "value": col["field"]} for col in columnDefs if col["field"] != "waiver"]
+            columns = [
+                {"label": col["field"], "value": col["field"]}
+                for col in columnDefs
+                if col["field"] != "waiver"
+            ]
             return True, columns
 
         @app.callback(
@@ -363,7 +380,7 @@ class Columns:
         def toggle_regex_checkbox(selected_column):
             if selected_column is None:
                 raise exceptions.PreventUpdate
-            column_dtype = DATAFRAME["df"][selected_column].dtype
+            column_dtype = SSDF.dataframe[selected_column].dtype
             return not isinstance(column_dtype, pl.Utf8)
 
         @app.callback(
@@ -378,23 +395,39 @@ class Columns:
             prevent_initial_call=True,
         )
         def apply_find_replace(n_clicks, column, find_value, replace_value, use_regex):
-            if n_clicks is None or not column or find_value is None or replace_value is None:
+            if (
+                n_clicks is None
+                or not column
+                or find_value is None
+                or replace_value is None
+            ):
                 raise exceptions.PreventUpdate
             try:
-                if isinstance(DATAFRAME["df"][column].dtype, pl.Utf8):
-                    DATAFRAME["df"] = (
-                        DATAFRAME["df"].with_columns(pl.col(column).str.replace_all(find_value, replace_value).alias(column))
+                if isinstance(SSDF.dataframe[column].dtype, pl.Utf8):
+                    SSDF.dataframe = (
+                        SSDF.dataframe.with_columns(
+                            pl.col(column)
+                            .str.replace_all(find_value, replace_value)
+                            .alias(column)
+                        )
                         if use_regex
-                        else DATAFRAME["df"].with_columns(pl.col(column).str.replace(find_value, replace_value).alias(column))
+                        else SSDF.dataframe.with_columns(
+                            pl.col(column)
+                            .str.replace(find_value, replace_value)
+                            .alias(column)
+                        )
                     )
                 else:
-                    DATAFRAME["df"] = DATAFRAME["df"].with_columns(
-                        pl.when(pl.col(column) == pl.lit(find_value).cast(DATAFRAME["df"][column].dtype))
-                        .then(pl.lit(replace_value).cast(DATAFRAME["df"][column].dtype))
+                    SSDF.dataframe = SSDF.dataframe.with_columns(
+                        pl.when(
+                            pl.col(column)
+                            == pl.lit(find_value).cast(SSDF.dataframe[column].dtype)
+                        )
+                        .then(pl.lit(replace_value).cast(SSDF.dataframe[column].dtype))
                         .otherwise(pl.col(column))
                         .alias(column)
                     )
-                updated_columnDefs = generate_column_definitions(DATAFRAME["df"])
+                updated_columnDefs = generate_column_definitions(SSDF.dataframe)
                 return None, False, updated_columnDefs
             except Exception as e:
                 return create_notification(str(e)), no_update, no_update
@@ -413,7 +446,9 @@ class Columns:
             dff = displaying_df()
             if dff is None:
                 return (
-                    create_notification(message="No Dataframe loaded", position="center"),
+                    create_notification(
+                        message="No Dataframe loaded", position="center"
+                    ),
                     False,
                     [],
                     None,
@@ -435,14 +470,16 @@ class Columns:
                 raise exceptions.PreventUpdate
             if not selected_column:
                 return (
-                    create_notification(message="No columns selected", position="center"),
+                    create_notification(
+                        message="No columns selected", position="center"
+                    ),
                     no_update,
                     no_update,
                 )
 
-            dff = DATAFRAME.get("df", None)
+            dff = SSDF.dataframe
             if filtered_only:
-                dff = apply_filters(dff, CACHE.get("REQUEST"))
+                dff = apply_filters(dff, SSDF.request)
 
             # 기존 'col1' 컬럼의 데이터 타입 저장
             original_dtype = dff.schema[selected_column]
@@ -453,17 +490,24 @@ class Columns:
             dff = dff.with_columns(pl.col(selected_column).cast(original_dtype))
 
             # 'id' 컬럼을 기준으로 filtered_df와 df를 결합
-            updated_df = DATAFRAME["df"].join(dff, on="uniqid", how="left", suffix="_filtered")
+            updated_df = SSDF.dataframe.join(
+                dff, on="uniqid", how="left", suffix="_filtered"
+            )
 
             # 'col1' 컬럼을 filtered_df의 값으로 업데이트
             updated_df = updated_df.with_columns(
-                pl.when(pl.col(f"{selected_column}_filtered").is_not_null()).then(pl.col(f"{selected_column}_filtered")).otherwise(pl.col(selected_column)).alias(selected_column)
+                pl.when(pl.col(f"{selected_column}_filtered").is_not_null())
+                .then(pl.col(f"{selected_column}_filtered"))
+                .otherwise(pl.col(selected_column))
+                .alias(selected_column)
             )
             # '_filtered' 접미사가 있는 모든 컬럼 삭제
-            columns_to_drop = [col for col in updated_df.columns if col.endswith("_filtered")]
-            DATAFRAME["df"] = updated_df.drop(columns_to_drop)
+            columns_to_drop = [
+                col for col in updated_df.columns if col.endswith("_filtered")
+            ]
+            SSDF.dataframe = updated_df.drop(columns_to_drop)
 
-            updated_columnDefs = generate_column_definitions(DATAFRAME["df"])
+            updated_columnDefs = generate_column_definitions(SSDF.dataframe)
 
             return None, False, updated_columnDefs
 
@@ -481,7 +525,9 @@ class Columns:
             dff = displaying_df()
             if dff is None:
                 return (
-                    create_notification(message="No Dataframe loaded", position="center"),
+                    create_notification(
+                        message="No Dataframe loaded", position="center"
+                    ),
                     False,
                     [],
                     [],
@@ -501,13 +547,15 @@ class Columns:
                 raise exceptions.PreventUpdate
             if not selected_columns:
                 return (
-                    create_notification(message="No columns selected", position="center"),
+                    create_notification(
+                        message="No columns selected", position="center"
+                    ),
                     no_update,
                     no_update,
                 )
 
-            DATAFRAME["df"] = DATAFRAME["df"].drop(selected_columns)
-            updated_columnDefs = generate_column_definitions(DATAFRAME["df"])
+            SSDF.dataframe = SSDF.dataframe.drop(selected_columns)
+            updated_columnDefs = generate_column_definitions(SSDF.dataframe)
 
             return None, False, updated_columnDefs
 
@@ -523,7 +571,9 @@ class Columns:
             dff = displaying_df()
             if dff is None:
                 return (
-                    create_notification(message="No Dataframe loaded", position="center"),
+                    create_notification(
+                        message="No Dataframe loaded", position="center"
+                    ),
                     False,
                 )
             return None, True
@@ -541,17 +591,25 @@ class Columns:
             if n is None:
                 raise exceptions.PreventUpdate
             if not add_column_header:
-                noti = create_notification(message="No header name given", position="center")
+                noti = create_notification(
+                    message="No header name given", position="center"
+                )
                 return noti, no_update, no_update
             if not add_column_header:
-                noti = create_notification(message="No column value given", position="center")
+                noti = create_notification(
+                    message="No column value given", position="center"
+                )
                 return noti, no_update, no_update
 
-            if add_column_header in DATAFRAME["df"].columns:
-                noti = create_notification(message="Header name exsists in data", position="center")
+            if add_column_header in SSDF.dataframe.columns:
+                noti = create_notification(
+                    message="Header name exsists in data", position="center"
+                )
                 return noti, no_update, no_update
-            DATAFRAME["df"] = DATAFRAME["df"].with_columns(pl.lit(add_column_value).alias(add_column_header))
-            updated_columnDefs = generate_column_definitions(DATAFRAME["df"])
+            SSDF.dataframe = SSDF.dataframe.with_columns(
+                pl.lit(add_column_value).alias(add_column_header)
+            )
+            updated_columnDefs = generate_column_definitions(SSDF.dataframe)
             return None, False, updated_columnDefs
 
         @app.callback(
@@ -567,7 +625,9 @@ class Columns:
             dff = displaying_df()
             if dff is None:
                 return (
-                    create_notification(message="No Dataframe loaded", position="center"),
+                    create_notification(
+                        message="No Dataframe loaded", position="center"
+                    ),
                     False,
                     [],
                 )
@@ -585,12 +645,18 @@ class Columns:
             if n is None:
                 raise exceptions.PreventUpdate
             if not selected_columns or len(selected_columns) < 2:
-                noti = create_notification(message="Select more than 2 columns", position="center")
+                noti = create_notification(
+                    message="Select more than 2 columns", position="center"
+                )
                 return noti, no_update, no_update
             header_name = "-".join(selected_columns)
 
-            DATAFRAME["df"] = DATAFRAME["df"].with_columns(pl.concat_str([pl.col(col) for col in selected_columns], separator="-").alias(header_name))
-            updated_columnDefs = generate_column_definitions(DATAFRAME["df"])
+            SSDF.dataframe = SSDF.dataframe.with_columns(
+                pl.concat_str(
+                    [pl.col(col) for col in selected_columns], separator="-"
+                ).alias(header_name)
+            )
+            updated_columnDefs = generate_column_definitions(SSDF.dataframe)
             return None, False, updated_columnDefs
 
         @app.callback(
@@ -608,7 +674,9 @@ class Columns:
             dff = displaying_df()
             if dff is None:
                 return (
-                    create_notification(message="No Dataframe loaded", position="center"),
+                    create_notification(
+                        message="No Dataframe loaded", position="center"
+                    ),
                     False,
                     [],
                     [],
@@ -617,7 +685,11 @@ class Columns:
                 None,
                 True,
                 [col for col in dff.columns if col != "waiver"],
-                [col_def["field"] for col_def in current_columnDefs if col_def["editable"]],
+                [
+                    col_def["field"]
+                    for col_def in current_columnDefs
+                    if col_def["editable"]
+                ],
             )
 
         @app.callback(
@@ -634,7 +706,9 @@ class Columns:
                 raise exceptions.PreventUpdate
             if not selected_columns:
                 return (
-                    create_notification(message="No columns selected", position="center"),
+                    create_notification(
+                        message="No columns selected", position="center"
+                    ),
                     no_update,
                     no_update,
                 )
@@ -647,8 +721,12 @@ class Columns:
                 if col == "waiver":
                     continue
                 elif col in selected_columns:
-                    patched_columnDefs[i] = generate_column_definition(col, DATAFRAME["df"][col], is_editable=True)
+                    patched_columnDefs[i] = generate_column_definition(
+                        col, SSDF.dataframe[col], is_editable=True
+                    )
                 else:
-                    patched_columnDefs[i] = generate_column_definition(col, DATAFRAME["df"][col], is_editable=False)
+                    patched_columnDefs[i] = generate_column_definition(
+                        col, SSDF.dataframe[col], is_editable=False
+                    )
 
             return None, False, patched_columnDefs

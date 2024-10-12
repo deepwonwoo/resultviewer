@@ -2,6 +2,7 @@ from dash import html
 from components.menu.edit.item.column_operations import Columns
 from components.menu.edit.item.column_order import ColumnOrder
 
+
 class EditMenu:
     def __init__(self) -> None:
         self.cols = Columns()

@@ -1,13 +1,13 @@
 import os
 import subprocess
 import dash_mantine_components as dmc
-from utils.db_management import USERNAME, WORKSPACE, SCRIPT, DATAFRAME
 from dash import Output, Input, State, no_update, html
 from utils.component_template import get_icon, create_notification
-from utils.dataframe_operations import displaying_df, backup_file
+from utils.data_processing import displaying_df
 from utils.logging_utils import logger
-
-
+from utils.config import CONFIG
+from utils.db_management import SSDF
+from utils.file_operations import backup_file
 class Saver:
 
     def layout(self) -> dmc.Menu:
@@ -85,22 +85,30 @@ class Saver:
         @app.callback(
             Output("saver-notification", "children", allow_duplicate=True),
             Input("save-workspace-btn", "n_clicks"),
-            State("csv-file-path", "children"),
+            #State("csv-file-path", "children"),
+            State("flex-layout", "model"),
             prevent_initial_call=True,
         )
-        def save_csv_workspace_noti(n, csv_file_path):
+        def save_csv_workspace_noti(n, layout_model):
             if not n:
                 return no_update
+            csv_file_path = layout_model['layout']['children'][0]['children'][0]['name']
 
             if displaying_df() is None:
                 print("save_csv_workspace_noti2")
-                return create_notification(message="No Dataframe loaded", position="center")
+                return create_notification(
+                    message="No Dataframe loaded", position="center"
+                )
             elif not csv_file_path.startswith("WORKSPACE"):
                 print("save_csv_workspace_noti3")
-                return create_notification(message="data is not from WORKSPACE", position="center")
-            elif DATAFRAME.get("readonly"):
+                return create_notification(
+                    message="data is not from WORKSPACE", position="center"
+                )
+            elif SSDF.is_readonly:
                 print("save_csv_workspace_noti4")
-                return create_notification(message="file is READ ONLY mode", position="center")
+                return create_notification(
+                    message="file is READ ONLY mode", position="center"
+                )
             print("save_csv_workspace_noti5")
             return dmc.Notification(
                 id="save-workspace-noti",
@@ -142,7 +150,7 @@ class Saver:
                 return no_update
 
             if save_target_path.startswith("WORKSPACE"):
-                save_target_path = save_target_path.replace("WORKSPACE", WORKSPACE)
+                save_target_path = save_target_path.replace("WORKSPACE", CONFIG.WORKSPACE)
             else:
                 return dmc.Notification(
                     id="save-workspace-noti",
@@ -200,8 +208,10 @@ class Saver:
             prevent_initial_call=True,
         )
         def get_save_file_path(n, csv_file_path):
-            cmd = f"{SCRIPT}/QFileDialog/save_dialog"
-            result = subprocess.run([cmd, csv_file_path], capture_output=True, text=True)
+            cmd = f"{CONFIG.SCRIPT}/QFileDialog/save_dialog"
+            result = subprocess.run(
+                [cmd, csv_file_path], capture_output=True, text=True
+            )
             save_path = result.stdout.strip()
             return save_path if save_path else no_update
 
@@ -217,7 +227,9 @@ class Saver:
             df_to_save = displaying_df()
             if df_to_save is None:
                 return (
-                    create_notification(message="No Dataframe loaded", position="center"),
+                    create_notification(
+                        message="No Dataframe loaded", position="center"
+                    ),
                     False,
                     no_update,
                 )
@@ -244,7 +256,9 @@ class Saver:
             df_to_save = displaying_df(filtred_apply=filtered_save_as)
             if not save_path:
                 return (
-                    create_notification(message="No save path given", position="center"),
+                    create_notification(
+                        message="No save path given", position="center"
+                    ),
                     False,
                 )
 
@@ -255,7 +269,9 @@ class Saver:
                     df_to_save.write_csv(save_path)
             except Exception as e:
                 return (
-                    create_notification(message=f"File Save Error: {e}", position="center"),
+                    create_notification(
+                        message=f"File Save Error: {e}", position="center"
+                    ),
                     False,
                 )
             return (

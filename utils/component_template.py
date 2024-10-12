@@ -2,6 +2,7 @@ import dash_mantine_components as dmc
 from dash import html
 from typing import Optional, Dict, Any
 
+
 def create_notification(
     message: str,
     title: str = "오류가 발생했습니다!",
@@ -43,6 +44,7 @@ def create_notification(
         autoClose=autoClose,
         loading=loading,
     )
+
 
 def get_icon(icon, width=20, height=20):
     return html.Img(src=f"assets/icons/{icon}.png", width=width, height=height)
