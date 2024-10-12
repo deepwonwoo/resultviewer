@@ -3,8 +3,8 @@ import logging
 import time
 import traceback
 from functools import wraps
-from logging.handlers import RotatingFileHandler
 from typing import Optional
+from logging.handlers import RotatingFileHandler
 from utils.config import CONFIG
 
 

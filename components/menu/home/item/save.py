@@ -4,10 +4,10 @@ import dash_mantine_components as dmc
 from dash import Output, Input, State, no_update, html
 from utils.component_template import get_icon, create_notification
 from utils.data_processing import displaying_df
-from utils.logging_utils import logger
+from utils.file_operations import backup_file
 from utils.config import CONFIG
 from utils.db_management import SSDF
-from utils.file_operations import backup_file
+
 class Saver:
 
     def layout(self) -> dmc.Menu:

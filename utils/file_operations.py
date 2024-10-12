@@ -17,7 +17,6 @@ def get_file_owner(file_path):
         return str(e)
 
 
-
 def get_lock_status(file_path):
     lock_path = f"{file_path}.lock"
     if not os.path.exists(lock_path):

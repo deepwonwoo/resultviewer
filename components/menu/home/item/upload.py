@@ -1,17 +1,16 @@
 import os
 import subprocess
-from typing import Dict, Any, Optional
-
 import dash_mantine_components as dmc
 from dash import html, Output, Input, State, Patch, no_update, exceptions
 from components.grid.dag.column_definitions import generate_column_definitions
+from components.menu.home.item.workspace_explore import FileExplorer
 from utils.config import CONFIG
 from utils.db_management import SSDF
 from utils.component_template import create_notification, get_icon
 from utils.data_processing import file2df, validate_df
 from utils.file_operations import make_dirs_with_permissions
-from utils.logging_utils import logger, debugging_decorator
-from components.menu.home.item.workspace_explore import FileExplorer
+from utils.logging_utils import debugging_decorator
+
 
 
 class Uploader:

@@ -5,8 +5,7 @@ from components.grid.dag.column_definitions import *
 from utils.db_management import SSDF
 from utils.config import CONFIG
 from utils.data_processing import *
-from utils.file_operations import get_lock_status, add_viewer_to_lock_file
-from utils.component_template import create_notification
+from utils.file_operations import get_lock_status
 
 
 def enter_edit_mode(file_path):

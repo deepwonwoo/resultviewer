@@ -1,5 +1,4 @@
 import polars as pl
-
 from utils.logging_utils import logger, debugging_decorator
 from utils.db_management import SSDF
 

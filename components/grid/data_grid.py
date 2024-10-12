@@ -1,17 +1,16 @@
 import flask
 import dash_ag_grid as dag
+import dash_mantine_components as dmc
 from dash import Input, Output, html, dcc
-from typing import Dict, Any
 from components.grid.dag.column_definitions import DEFAULT_COL_DEF
 from components.grid.dag.server_side_operations import extract_rows_from_data
 from dash_extensions import EventListener
-import dash_mantine_components as dmc
 from utils.component_template import get_icon
 from utils.db_management import SSDF
 
 
 class DataGrid:
-    DASH_GRID_OPTIONS: Dict[str, Any] = {
+    DASH_GRID_OPTIONS = {
         "rowHeight": 24,
         "headerHeight": 30,
         "cacheBlockSize": 1000,

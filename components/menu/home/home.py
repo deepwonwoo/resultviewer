@@ -1,6 +1,4 @@
-from dash import html
 import dash_mantine_components as dmc
-
 from components.menu.home.item.save import Saver
 from components.menu.home.item.upload import Uploader
 from components.menu.home.item.column_sizing import ColumnSizer

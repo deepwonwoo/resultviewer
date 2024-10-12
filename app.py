@@ -1,6 +1,5 @@
 import dash
 import argparse
-import screeninfo
 from flask import Flask
 from flaskwebgui import FlaskUI
 from dash import DiskcacheManager

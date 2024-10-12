@@ -3,18 +3,13 @@ import datetime
 import tempfile
 import diskcache as dc
 
-
 class Config:
     def __init__(self):
         # self.WORKSPACE = "/user/ecolake/DATA/VERIFY/SIGNOFF/ResultViewer"
         # self.SCRIPT = "/user/signoff.dev/deepwonwoo/scripts"
-        self.USERNAME = os.getenv(
-            "USER", "user"
-        )  # Use environment variable with fallback
-        self.WORKSPACE = os.getenv("WORKSPACE", "C:/Users/deepw/OneDrive/문서/Python")
-        self.SCRIPT = os.getenv(
-            "SCRIPT_PATH", "/user/verifier14/deepwonwoo/Release/scripts"
-        )
+        self.USERNAME = "user"
+        self.WORKSPACE = "C:/Users/deepw/OneDrive/문서/Python"
+        self.SCRIPT = os.getenv("SCRIPT_PATH", "/user/verifier14/deepwonwoo/Release/scripts")
         self.USER_RV_DIR, self.APPCACHE = self.get_user_rv_dir(self.USERNAME)
 
     def get_user_rv_dir(self, username=os.getenv("USER")) -> str:

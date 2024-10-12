@@ -1,24 +1,11 @@
 import os
-import datetime
 import yaml
 import dash_mantine_components as dmc
-from dash import (
-    Input,
-    Output,
-    State,
-    html,
-    exceptions,
-    ctx,
-    no_update,
-    ALL,
-    dcc,
-    callback,
-)
-from typing import Dict, Any, List
-from utils.config import CONFIG
-from utils.logging_utils import logger
+from dash import Input,Output,State,exceptions,no_update,dcc
 from utils.component_template import get_icon, create_notification
 from utils.data_processing import displaying_df
+from utils.logging_utils import logger
+from utils.config import CONFIG
 
 # Constants
 OPEN_FILTER_STORAGE = "open-filter-storage-btn"
@@ -272,15 +259,15 @@ class Filter:
                     ),
                 )
 
-    def load_filters(self) -> Dict[str, Any]:
+    def load_filters(self):
         if os.path.exists(self.filter_yaml):
             with open(self.filter_yaml, "r") as file:
                 return yaml.safe_load(file) or {}
         return {}
 
-    def save_filters(self, filters: Dict[str, Any]):
+    def save_filters(self, filters):
         with open(self.filter_yaml, "w") as file:
             yaml.dump(filters, file)
 
-    def generate_filter_list(self, filters: Dict[str, Any]) -> List[dmc.ListItem]:
+    def generate_filter_list(self, filters):
         return [dmc.ListItem(name) for name in filters.keys()]

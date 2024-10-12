@@ -5,7 +5,6 @@ import dash_mantine_components as dmc
 from dash import Input, Output, State
 from utils.component_template import get_icon, create_notification
 from utils.db_management import SSDF
-from utils.config import CONFIG
 from utils.logging_utils import logger
 
 

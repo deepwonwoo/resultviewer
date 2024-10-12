@@ -2,19 +2,18 @@ import os
 import shutil
 import datetime
 import pandas as pd
-from pathlib import Path
-from typing import Dict, List, Tuple, Any
-
 import dash_mantine_components as dmc
 import dash_bootstrap_components as dbc
+from pathlib import Path
 from dash import html, Output, Input, State, no_update, ctx, ALL, Patch, dcc, exceptions
-from utils.component_template import get_icon, create_notification
-from utils.data_processing import file2df
-from utils.file_operations import get_file_owner, get_lock_status
-from utils.logging_utils import logger
-from utils.config import CONFIG
-from utils.db_management import SSDF
 from components.grid.dag.column_definitions import generate_column_definitions
+from utils.component_template import get_icon, create_notification
+from utils.file_operations import get_file_owner, get_lock_status
+from utils.data_processing import file2df
+from utils.logging_utils import logger
+from utils.db_management import SSDF
+from utils.config import CONFIG
+
 
 
 
@@ -58,7 +57,7 @@ class FileExplorer:
             ]
         )
 
-    def file_info(self, path: Path) -> Dict[str, Any]:
+    def file_info(self, path):
         owner = get_file_owner(path)
         is_locked, locked_by = get_lock_status(path)
         file_stat = path.stat()
