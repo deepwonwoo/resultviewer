@@ -1,10 +1,13 @@
 import polars as pl
 import dash_mantine_components as dmc
-from dash import Input,Output,State,Patch,no_update,exceptions
+from dash import Input, Output, State, Patch, no_update, exceptions
 from utils.component_template import create_notification, get_icon
 from utils.data_processing import displaying_df
 from utils.db_management import SSDF
-from components.grid.dag.column_definitions import generate_column_definitions,generate_column_definition
+from components.grid.dag.column_definitions import (
+    generate_column_definitions,
+    generate_column_definition,
+)
 from components.grid.dag.server_side_operations import apply_filters
 
 

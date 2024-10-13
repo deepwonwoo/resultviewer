@@ -6,7 +6,6 @@ from typing import Dict, Any, List, Optional
 from utils.file_operations import get_viewers_from_lock_file
 
 class DataFrameManager:
-
     def __init__(self):
         self._data: Dict[str, Any] = {
             "df": pl.DataFrame(),

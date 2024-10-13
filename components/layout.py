@@ -4,6 +4,7 @@ import dash_mantine_components as dmc
 from dash import Input, Output, html, dcc
 from components.grid.data_grid import DataGrid
 from components.menu.home.home import HomeMenu
+
 # from components.menu.view.view import ViewMenu
 from components.menu.edit.edit import EditMenu
 from components.menu.script.script import ScriptMenu
@@ -80,7 +81,7 @@ class ResultViewer:
         }
         nodes = [
             dfl.Tab(id="home-item", children=[self.home_menu.layout()]),
-            #dfl.Tab(id="view-item", children=[self.view_menu.layout()]),
+            # dfl.Tab(id="view-item", children=[self.view_menu.layout()]),
             dfl.Tab(id="edit-item", children=[self.edit_menu.layout()]),
             dfl.Tab(id="script-item", children=[self.script_menu.layout()]),
             dfl.Tab(id="grid-tab", children=[self.data_grid.layout()]),

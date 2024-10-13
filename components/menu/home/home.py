@@ -11,7 +11,7 @@ from components.menu.home.item.cross_probing import CrossProber
 class HomeMenu:
 
     def __init__(self):
-        self.filemode=FileMode()
+        self.filemode = FileMode()
         self.saver = Saver()
         self.uploader = Uploader()
         self.column_sizer = ColumnSizer()

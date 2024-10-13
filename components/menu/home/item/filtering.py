@@ -1,7 +1,7 @@
 import os
 import yaml
 import dash_mantine_components as dmc
-from dash import Input,Output,State,exceptions,no_update,dcc
+from dash import Input, Output, State, exceptions, no_update, dcc
 from utils.component_template import get_icon, create_notification
 from utils.data_processing import displaying_df
 from utils.logging_utils import logger

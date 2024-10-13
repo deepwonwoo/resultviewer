@@ -8,6 +8,7 @@ from utils.file_operations import backup_file
 from utils.config import CONFIG
 from utils.db_management import SSDF
 
+
 class Saver:
 
     def layout(self) -> dmc.Menu:
@@ -85,14 +86,14 @@ class Saver:
         @app.callback(
             Output("saver-notification", "children", allow_duplicate=True),
             Input("save-workspace-btn", "n_clicks"),
-            #State("csv-file-path", "children"),
+            # State("csv-file-path", "children"),
             State("flex-layout", "model"),
             prevent_initial_call=True,
         )
         def save_csv_workspace_noti(n, layout_model):
             if not n:
                 return no_update
-            csv_file_path = layout_model['layout']['children'][0]['children'][0]['name']
+            csv_file_path = layout_model["layout"]["children"][0]["children"][0]["name"]
 
             if displaying_df() is None:
                 print("save_csv_workspace_noti2")
@@ -150,7 +151,9 @@ class Saver:
                 return no_update
 
             if save_target_path.startswith("WORKSPACE"):
-                save_target_path = save_target_path.replace("WORKSPACE", CONFIG.WORKSPACE)
+                save_target_path = save_target_path.replace(
+                    "WORKSPACE", CONFIG.WORKSPACE
+                )
             else:
                 return dmc.Notification(
                     id="save-workspace-noti",

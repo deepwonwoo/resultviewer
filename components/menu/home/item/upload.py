@@ -12,7 +12,6 @@ from utils.file_operations import make_dirs_with_permissions
 from utils.logging_utils import debugging_decorator
 
 
-
 class Uploader:
     def __init__(self) -> None:
         self.explorer = FileExplorer()
@@ -317,7 +316,7 @@ class Uploader:
             Output("aggrid-table", "columnDefs", allow_duplicate=True),
             Output("aggrid-table", "dashGridOptions", allow_duplicate=True),
             Output("total-row-count", "children", allow_duplicate=True),
-            #Output("csv-file-path", "children", allow_duplicate=True),
+            # Output("csv-file-path", "children", allow_duplicate=True),
             Output("flex-layout", "model", allow_duplicate=True),
             Output("csv-mod-time", "data", allow_duplicate=True),
             Output("notifications", "children", allow_duplicate=True),
@@ -339,10 +338,10 @@ class Uploader:
                 try:
                     df = file2df(file_path, workspace=False)
                     patched_dashGridOptions = Patch()
-                    SSDF.tree_mode=False
-                    SSDF.tree_col=None
+                    SSDF.tree_mode = False
+                    SSDF.tree_col = None
                     SSDF.viewmode = None
-                    SSDF.propa_rule=None
+                    SSDF.propa_rule = None
                     patched_dashGridOptions["treeData"] = False
 
                 except Exception as e:
@@ -361,7 +360,9 @@ class Uploader:
                     )
                 mod_time = os.path.getmtime(file_path)
                 patched_layout_model = Patch()
-                patched_layout_model['layout']['children'][0]['children'][0]['name']=file_path
+                patched_layout_model["layout"]["children"][0]["children"][0][
+                    "name"
+                ] = file_path
 
                 return (
                     generate_column_definitions(df),
