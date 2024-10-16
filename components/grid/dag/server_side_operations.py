@@ -247,6 +247,7 @@ def apply_sort(df, request):
 
 @debugging_decorator
 def extract_rows_from_data(request):
+    print(f"request:{request}")
     try:
         dff = SSDF.dataframe
         SSDF.request = request

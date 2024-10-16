@@ -1,9 +1,7 @@
 import os
 import shutil
 import datetime
-import pandas as pd
 import dash_mantine_components as dmc
-import dash_bootstrap_components as dbc
 from pathlib import Path
 from dash import html, Output, Input, State, no_update, ctx, ALL, Patch, dcc, exceptions
 from components.grid.dag.column_definitions import generate_column_definitions
@@ -24,6 +22,7 @@ class FileExplorer:
     def layout(self) -> html.Div:
         return html.Div(
             [
+                
                 dcc.Store(id=f"{self.id_prefix}stored_cwd", data=CONFIG.WORKSPACE),
                 dmc.Group(
                     [
@@ -44,7 +43,17 @@ class FileExplorer:
                     justify="flex-start",
                     gap="sm",
                 ),
-                html.Br(),
+                # dmc.TextInput(placeholder="Search files...", leftSection=get_icon("bx-file-find"), id=f"{self.id_prefix}search_input", mt=10, mb=10),
+                
+                dmc.Group([
+                    dmc.TextInput(
+                        placeholder="Search files...",
+                        leftSection=get_icon("bx-file-find"),
+                        id=f"{self.id_prefix}search_input",
+                        style={"width": "80%"}
+                    ),
+                    dmc.Button("Search", id=f"{self.id_prefix}search_button")
+                ], mt=10, mb=10),
                 html.Div(
                     id=f"{self.id_prefix}cwd_files",
                     style={
@@ -52,7 +61,125 @@ class FileExplorer:
                         "overflow": "scroll",
                     },
                 ),
+                dmc.Pagination(id=f"{self.id_prefix}pagination", total=1, value=1, siblings=1, boundaries=1),
             ]
+        )
+
+    def search_files(self, root_dir, pattern):
+        matched_files = []
+        for root, dirs, files in os.walk(root_dir):
+            for file in files:
+                if pattern.lower() in file.lower():
+                    full_path = os.path.join(root, file)
+                    matched_files.append(self.get_file_details(full_path))
+        return matched_files
+
+    def get_file_details(self, file_path):
+        path = Path(file_path)
+        details = self.file_info(path)
+        details["filename"] = html.A(
+            path.name,
+            href="#",
+            id={
+                "type": f"{self.id_prefix}open-workspace-file",
+                "index": file_path,
+            },
+            title=file_path.replace(CONFIG.WORKSPACE, "WORKSPACE"),
+            n_clicks=0,
+        )
+
+        details["icon"] = get_icon("bx-file")
+
+        if not self.id_prefix:
+            details["option"] = self.create_file_options(file_path, path.name)
+
+        return details
+
+    def create_file_options(self, file_path, file_name):
+        file_owner = get_file_owner(file_path)
+        lock, locked_by = get_lock_status(file_path)
+        has_permission = (file_owner == CONFIG.USERNAME) and not lock
+
+        return dmc.ButtonGroup(
+            [
+                dcc.Store(
+                    id={
+                        "type": f"{self.id_prefix}refresh-flag",
+                        "index": file_path,
+                    },
+                    data=False,
+                ),
+                dmc.Tooltip(
+                    dmc.ActionIcon(
+                        get_icon("copy"),
+                        variant="transparent",
+                        id={
+                            "type": f"{self.id_prefix}copy-workspace-file",
+                            "index": file_path,
+                        },
+                        n_clicks=0,
+                    ),
+                    label="Copy",
+                    openDelay=500,
+                ),
+                dmc.Menu(
+                    [
+                        dmc.MenuTarget(
+                            dmc.Tooltip(
+                                dmc.ActionIcon(
+                                    get_icon("rename"),
+                                    variant="subtle",
+                                    id={
+                                        "type": f"{self.id_prefix}rename-workspace-file",
+                                        "index": file_path,
+                                    },
+                                    n_clicks=0,
+                                    disabled=not has_permission,
+                                ),
+                                label="Rename" if has_permission else "No permission to rename",
+                                openDelay=500,
+                            ),
+                        ),
+                        dmc.MenuDropdown(
+                            [
+                                dmc.MenuLabel(
+                                    dmc.TextInput(
+                                        value=file_name,
+                                        id={
+                                            "type": f"{self.id_prefix}rename-workspace-file-newfilename",
+                                            "index": file_path,
+                                        },
+                                    )
+                                ),
+                                dmc.MenuItem(
+                                    "Confirm",
+                                    n_clicks=0,
+                                    id={
+                                        "type": f"{self.id_prefix}rename-workspace-file-confirm-btn",
+                                        "index": file_path,
+                                    },
+                                ),
+                            ]
+                        ),
+                    ],
+                    disabled=not has_permission,
+
+                ),
+                dmc.Tooltip(
+                    dmc.ActionIcon(
+                        get_icon("remove"),
+                        variant="subtle",
+                        id={
+                            "type": f"{self.id_prefix}remove-workspace-file",
+                            "index": file_path,
+                        },
+                        n_clicks=0,
+                        disabled=not has_permission,
+                    ),
+                    label="Remove" if has_permission else "No permission to remove",
+                    openDelay=500,
+                ),
+            ],
         )
 
     def file_info(self, path):
@@ -104,158 +231,193 @@ class FileExplorer:
 
         @app.callback(
             Output(f"{self.id_prefix}cwd_files", "children"),
+            Output(f"{self.id_prefix}pagination", "total"),
+
             Input(f"{self.id_prefix}cwd", "children"),
+            Input(f"{self.id_prefix}search_button", "n_clicks"),
+
+            Input(f"{self.id_prefix}pagination", "value"),
+
             Input({"type": f"{self.id_prefix}refresh-flag", "index": ALL}, "data"),
+            State(f"{self.id_prefix}search_input", "value"),
             prevent_initial_call=True,
         )
-        def list_cwd_files(cwd, refresh_ns):
-            if (
-                ctx.triggered_id
-                and isinstance(ctx.triggered_id, dict)
-                and ctx.triggered_id.get("type") == f"{self.id_prefix}refresh-flag"
-                and sum(refresh_ns) == 0
-            ):
+        def list_cwd_files(cwd, n_clicks, page, refresh_ns, search_pattern):
+            if ctx.triggered_id and isinstance(ctx.triggered_id, dict) and ctx.triggered_id.get("type") == f"{self.id_prefix}refresh-flag" and sum(refresh_ns) == 0:
                 return no_update
 
             if cwd and cwd.startswith("WORKSPACE"):
                 cwd = cwd.replace("WORKSPACE", CONFIG.WORKSPACE)
             else:
                 cwd = ""
-            path = Path(cwd)
-            all_file_details = []
-            if path.is_dir():
+            
+            if ctx.triggered_id == f"{self.id_prefix}search_button" and search_pattern:
+                all_file_details = self.search_files(cwd, search_pattern)
+            else:
+                path = Path(cwd)
+                all_file_details = []
+                if path.is_dir():
+                    files = sorted(os.listdir(path), key=str.lower)
+                    self.files = []
+                    for i, file in enumerate(files):
 
-                files = sorted(os.listdir(path), key=str.lower)
-                self.files = []
-                for i, file in enumerate(files):
+                        filepath = Path(file)
+                        full_path = os.path.join(cwd, filepath.as_posix())
 
-                    filepath = Path(file)
-                    full_path = os.path.join(cwd, filepath.as_posix())
+                        self.files.append(full_path.replace(CONFIG.WORKSPACE, "WORKSPACE"))
+                        if file.endswith(".lock"):
+                            continue
 
-                    self.files.append(full_path.replace(CONFIG.WORKSPACE, "WORKSPACE"))
-                    if file.endswith(".lock"):
-                        continue
+                        is_dir = Path(full_path).is_dir()
+                        details = self.file_info(Path(full_path))
 
-                    is_dir = Path(full_path).is_dir()
-                    details = self.file_info(Path(full_path))
+                        if is_dir:
+                            details["filename"] = html.A(
+                                file,
+                                href="#",
+                                id={"type": f"{self.id_prefix}listed_file", "index": i},
+                                title=full_path.replace(CONFIG.WORKSPACE, "WORKSPACE"),
+                                style={"fontWeight": "bold", "fontSize": 15},
+                            )
+                            details["icon"] = get_icon("bx-folder")
+                        else:
 
-                    if is_dir:
-                        details["filename"] = html.A(
-                            file,
-                            href="#",
-                            id={"type": f"{self.id_prefix}listed_file", "index": i},
-                            title=full_path.replace(CONFIG.WORKSPACE, "WORKSPACE"),
-                            style={"fontWeight": "bold", "fontSize": 15},
-                        )
-                        details["icon"] = get_icon("bx-folder")
-                    else:
-
-                        details["filename"] = html.A(
-                            file,
-                            href="#",
-                            id={
-                                "type": f"{self.id_prefix}open-workspace-file",
-                                "index": full_path,
-                            },
-                            title=full_path.replace(CONFIG.WORKSPACE, "WORKSPACE"),
-                            n_clicks=0,
-                        )
-
-                        if not self.id_prefix:
-                            details["option"] = dmc.ButtonGroup(
-                                [
-                                    dcc.Store(
-                                        id={
-                                            "type": f"{self.id_prefix}refresh-flag",
-                                            "index": full_path,
-                                        },
-                                        data=False,
-                                    ),
-                                    dmc.Tooltip(
-                                        dmc.ActionIcon(
-                                            get_icon("copy"),
-                                            variant="transparent",
-                                            id={
-                                                "type": f"{self.id_prefix}copy-workspace-file",
-                                                "index": full_path,
-                                            },
-                                            n_clicks=0,
-                                        ),
-                                        label="Copy",
-                                        openDelay=500,
-                                    ),
-                                    dmc.Menu(
-                                        [
-                                            dmc.MenuTarget(
-                                                dmc.Tooltip(
-                                                    dmc.ActionIcon(
-                                                        get_icon("rename"),
-                                                        variant="subtle",
-                                                        id={
-                                                            "type": f"{self.id_prefix}rename-workspace-file",
-                                                            "index": full_path,
-                                                        },
-                                                        n_clicks=0,
-                                                    ),
-                                                    label="Rename",
-                                                    openDelay=500,
-                                                ),
-                                            ),
-                                            dmc.MenuDropdown(
-                                                [
-                                                    dmc.MenuLabel(
-                                                        dmc.TextInput(
-                                                            value=file,
-                                                            id={
-                                                                "type": f"{self.id_prefix}rename-workspace-file-newfilename",
-                                                                "index": full_path,
-                                                            },
-                                                        )
-                                                    ),
-                                                    dmc.MenuItem(
-                                                        "Confirm",
-                                                        n_clicks=0,
-                                                        id={
-                                                            "type": f"{self.id_prefix}rename-workspace-file-confirm-btn",
-                                                            "index": full_path,
-                                                        },
-                                                    ),
-                                                ]
-                                            ),
-                                        ]
-                                    ),
-                                    dmc.Tooltip(
-                                        dmc.ActionIcon(
-                                            get_icon("remove"),
-                                            variant="subtle",
-                                            id={
-                                                "type": f"{self.id_prefix}remove-workspace-file",
-                                                "index": full_path,
-                                            },
-                                            n_clicks=0,
-                                        ),
-                                        label="Remove",
-                                        openDelay=500,
-                                    ),
-                                ],
+                            details["filename"] = html.A(
+                                file,
+                                href="#",
+                                id={
+                                    "type": f"{self.id_prefix}open-workspace-file",
+                                    "index": full_path,
+                                },
+                                title=full_path.replace(CONFIG.WORKSPACE, "WORKSPACE"),
+                                n_clicks=0,
                             )
 
-                        details["icon"] = get_icon("bx-file")
+                            if not self.id_prefix:
+                                details["option"] = dmc.ButtonGroup(
+                                    [
+                                        dcc.Store(
+                                            id={
+                                                "type": f"{self.id_prefix}refresh-flag",
+                                                "index": full_path,
+                                            },
+                                            data=False,
+                                        ),
+                                        dmc.Tooltip(
+                                            dmc.ActionIcon(
+                                                get_icon("copy"),
+                                                variant="transparent",
+                                                id={
+                                                    "type": f"{self.id_prefix}copy-workspace-file",
+                                                    "index": full_path,
+                                                },
+                                                n_clicks=0,
+                                            ),
+                                            label="Copy",
+                                            openDelay=500,
+                                        ),
+                                        dmc.Menu(
+                                            [
+                                                dmc.MenuTarget(
+                                                    dmc.Tooltip(
+                                                        dmc.ActionIcon(
+                                                            get_icon("rename"),
+                                                            variant="subtle",
+                                                            id={
+                                                                "type": f"{self.id_prefix}rename-workspace-file",
+                                                                "index": full_path,
+                                                            },
+                                                            n_clicks=0,
+                                                        ),
+                                                        label="Rename",
+                                                        openDelay=500,
+                                                    ),
+                                                ),
+                                                dmc.MenuDropdown(
+                                                    [
+                                                        dmc.MenuLabel(
+                                                            dmc.TextInput(
+                                                                value=file,
+                                                                id={
+                                                                    "type": f"{self.id_prefix}rename-workspace-file-newfilename",
+                                                                    "index": full_path,
+                                                                },
+                                                            )
+                                                        ),
+                                                        dmc.MenuItem(
+                                                            "Confirm",
+                                                            n_clicks=0,
+                                                            id={
+                                                                "type": f"{self.id_prefix}rename-workspace-file-confirm-btn",
+                                                                "index": full_path,
+                                                            },
+                                                        ),
+                                                    ]
+                                                ),
+                                            ]
+                                        ),
+                                        dmc.Tooltip(
+                                            dmc.ActionIcon(
+                                                get_icon("remove"),
+                                                variant="subtle",
+                                                id={
+                                                    "type": f"{self.id_prefix}remove-workspace-file",
+                                                    "index": full_path,
+                                                },
+                                                n_clicks=0,
+                                            ),
+                                            label="Remove",
+                                            openDelay=500,
+                                        ),
+                                    ],
+                                )
 
-                    all_file_details.append(details)
+                            details["icon"] = get_icon("bx-file")
 
-            df = pd.DataFrame(all_file_details)
-            df = df.rename(columns={"icon": "", "option": ""})
+                        all_file_details.append(details)
 
-            table = dbc.Table.from_dataframe(
-                df, striped=False, bordered=False, hover=True, size="sm"
-            )
-            return dbc.Spinner(
-                html.Div(table),
-                type="grow",
-                spinner_style={"width": "3rem", "height": "3rem"},
-                color="secondary",
-            )
+
+           
+            table_header = [
+                dmc.TableThead(
+                    dmc.TableTr(
+                        [
+                            dmc.TableTh("", style={"width": "30px"}),
+                            dmc.TableTh("Filename"),
+                            dmc.TableTh("Locked"),
+                            dmc.TableTh("Size"),
+                            dmc.TableTh("Owner"),
+                            dmc.TableTh("Created"),
+                            dmc.TableTh("Actions", style={"width": "100px"}),
+                        ]
+                    )
+                )
+            ]
+            # 페이지네이션 로직
+            items_per_page = 20
+            start = (page - 1) * items_per_page
+            end = start + items_per_page
+            paginated_files = all_file_details[start:end]
+            
+            table_body = [
+                dmc.TableTr(
+                    [
+                        dmc.TableTd(details["icon"]),
+                        dmc.TableTd(details["filename"]),
+                        dmc.TableTd(details["locked"]),
+                        dmc.TableTd(details["size"]),
+                        dmc.TableTd(details["owner"]),
+                        dmc.TableTd(details["created"]),
+                        dmc.TableTd(details.get("option", "")),
+                    ]
+                )
+                for details in paginated_files
+            ]
+
+            table = dmc.Table(table_header + table_body, striped=True, highlightOnHover=True)
+            total_pages = -(-len(all_file_details) // items_per_page)  # 올림 나눗셈
+
+            return table, total_pages
 
         @app.callback(
             Output(f"{self.id_prefix}stored_cwd", "data"),
@@ -288,18 +450,11 @@ class FileExplorer:
                     "n_clicks",
                 ),
                 Input({"type": "remove-workspace-file", "index": ALL}, "n_clicks"),
-                State(
-                    {"type": "rename-workspace-file-newfilename", "index": ALL}, "value"
-                ),
+                State({"type": "rename-workspace-file-newfilename", "index": ALL}, "value"),
                 prevent_initial_call=True,
             )
-            def handel_file_operations(
-                open_ns, copy_ns, rename_ns, remove_ns, new_filenames
-            ):
-                if (
-                    not ctx.triggered_id
-                    or sum(open_ns + copy_ns + rename_ns + remove_ns) == 0
-                ):
+            def handel_file_operations(open_ns, copy_ns, rename_ns, remove_ns, new_filenames):
+                if not ctx.triggered_id or sum(open_ns + copy_ns + rename_ns + remove_ns) == 0:
                     raise exceptions.PreventUpdate
 
                 triggered_btn = ctx.triggered_id["type"]
@@ -339,18 +494,14 @@ class FileExplorer:
                         ret_dashGridOptions = patched_dashGridOptions
                         ret_total_row_count = f"Total Rows: {len(df)}"
                         ret_display_file_path = Patch()
-                        ret_display_file_path["layout"]["children"][0]["children"][0][
-                            "name"
-                        ] = file_path.replace(CONFIG.WORKSPACE, "WORKSPACE")
+                        ret_display_file_path["layout"]["children"][0]["children"][0]["name"] = file_path.replace(CONFIG.WORKSPACE, "WORKSPACE")
 
                         ret_csv_mod_time = os.path.getmtime(file_path)
 
                     elif triggered_btn == "copy-workspace-file":
                         index = copy_ns.index(1)
                         ret_refresh_flags[index] = True
-                        current_time = (
-                            datetime.datetime.now().time().strftime("%m%d_%H:%M")
-                        )
+                        current_time = datetime.datetime.now().time().strftime("%m%d_%H:%M")
                         name, ext = os.path.splitext(file_path)
                         new_file_path = f"{name}_{CONFIG.USERNAME}_{current_time}{ext}"
                         shutil.copy(file_path, new_file_path)

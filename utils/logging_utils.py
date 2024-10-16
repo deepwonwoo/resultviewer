@@ -80,7 +80,7 @@ def debugging_decorator(func):
             start = time.time()
             result = func(*args, **kwargs)
             end = time.time()
-            logger.info(f"{func.__name__} took {end - start:.2f}s to execute.")
+            logger.debug (f"{func.__name__} took {end - start:.2f}s to execute.")
             return result
         except Exception as e:
             logger.debug(f"Exception occurred in {func.__name__}: {str(e)}")

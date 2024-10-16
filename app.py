@@ -1,11 +1,11 @@
 import dash
 import argparse
-from flask import Flask
+from flask import Flask, request
 from flaskwebgui import FlaskUI
 from dash import DiskcacheManager
 from dash_extensions.enrich import DashProxy
 from components.layout import ResultViewer
-from utils.db_management import SSDF
+from utils.db_management import SSDF, get_ssdf
 from utils.config import CONFIG
 
 dash._dash_renderer._set_react_version("18.2.0")
@@ -41,6 +41,16 @@ def create_dash_app():
 
 
 app, application = create_dash_app()
+
+
+@app.server.before_request
+def initialize_ssdf():
+    global SSDF
+    # 새로운 앱 인스턴스에 대해 SSDF 초기화
+    if request.endpoint == 'dash.index':
+        SSDF = get_ssdf()
+
+
 RV = ResultViewer(app)
 app.layout = RV.layout()
 app.run(debug=True)

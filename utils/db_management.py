@@ -185,6 +185,9 @@ class DataFrameManager:
     def js(self, value: Dict) -> None:
         self._cache["js"] = value
 
+# 전역 SSDF 객체를 함수로 대체
+def get_ssdf():
+    return DataFrameManager()
 
-# Global instances
-SSDF = DataFrameManager()
+
+SSDF = get_ssdf()
