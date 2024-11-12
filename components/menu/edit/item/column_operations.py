@@ -1,6 +1,7 @@
+import pprint
 import polars as pl
 import dash_mantine_components as dmc
-from dash import Input, Output, State, Patch, no_update, exceptions
+from dash import Input, Output, State, Patch, no_update, exceptions, html
 from utils.component_template import create_notification, get_icon
 from utils.data_processing import displaying_df
 from utils.db_management import SSDF
@@ -41,7 +42,7 @@ class Columns:
                 ),
                 dmc.Button("Edit Column", id="edit-column-btn", variant="outline", color="indigo", size="xs"),
                 dmc.Button("Modify Column", id="modify-column-btn", variant="outline", color="indigo", size="xs"),
-                self.add_modal(),
+                #self.add_modal(),
                 self.remove_modal(),
                 self.concat_modal(),
                 self.edit_column_modal(),
@@ -74,6 +75,30 @@ class Columns:
                 dmc.Space(h=20),
                 dmc.Group([dmc.Button("Submit", id="add-column-submit-btn")], justify="flex-end"),
             ],
+        )
+    
+    def add_tab_content(self):
+        return dmc.Group(
+            [
+                dmc.TextInput(
+                    id="add-column-header-input",
+                    value="",
+                    size="sm",
+                    placeholder="header",
+                    label="Header",
+                    style={"width": "200px"}
+                ),
+                dmc.TextInput(
+                    id="add-column-value-input",
+                    size="sm",
+                    value="",
+                    label="Value",
+                    placeholder="value",
+                    style={"width": "200px"}
+                )
+            ],
+            gap="lg",
+            mt=20
         )
 
     def remove_modal(self):
@@ -212,6 +237,106 @@ class Columns:
         )
 
     def register_callbacks(self, app):
+
+        @app.callback(
+            Output("flex-layout", "model", allow_duplicate=True), 
+            Input("add-column-btn", "n_clicks"),
+            State("flex-layout", "model"),
+            prevent_initial_call=True
+        )
+        def open_add_column_tab(n_clicks, current_model):
+            if n_clicks is None:
+                raise exceptions.PreventUpdate
+            print("open_add_column_tab")
+            
+            # bottom border 찾기
+            bottom_border_index = next((i for i, b in enumerate(current_model["borders"]) if b["location"] == "left"), None)
+            # 이미 add-column 탭이 있는지 확인
+            if bottom_border_index is not None:
+                existing_tabs = current_model["borders"][bottom_border_index].get("children", [])
+                tab_exists = any(tab.get("id") == "add-column" for tab in existing_tabs)
+                
+                if tab_exists:
+                    # 이미 탭이 있다면 해당 탭을 선택하도록 함
+                    patched_model = Patch()
+                    tab_index = next(i for i, tab in enumerate(existing_tabs) 
+                                if tab.get("id") == "add-column")
+                    patched_model["borders"][bottom_border_index]["selected"] = tab_index
+                    return patched_model
+
+
+            # 새로운 탭 정의    
+            new_tab = {
+                "type": "tab",
+                "name": "Add Column",
+                "component": "button",
+                "enableClose": True,
+                "id": "add-column"  # unique ID
+            }
+            
+            patched_model = Patch()
+
+            if bottom_border_index is not None:
+                # 기존 bottom border 수정
+                patched_model["borders"][bottom_border_index]["children"].append(new_tab)
+                patched_model["borders"][bottom_border_index]["selected"] = len(current_model["borders"][bottom_border_index]["children"])
+            else:
+                # bottom border가 없으면 새로 추가
+                patched_model["borders"].append({
+                    "type": "border",
+                    "location": "left",
+                    "size": 300,
+                    "selected": 0,
+                    "children": [new_tab]
+                })
+
+            return patched_model
+
+
+
+        # @app.callback(
+        #     Output("notifications", "children", allow_duplicate=True),
+        #     Output("add-column-modal", "opened", allow_duplicate=True),
+        #     Input("add-column-btn", "n_clicks"),
+        #     prevent_initial_call=True,
+        # )
+        # def add_column_modal_open(n):
+            # if n is None:
+            #     raise exceptions.PreventUpdate
+            # dff = displaying_df()
+            # if dff is None:
+            #     return (create_notification(message="No Dataframe loaded", position="center"), False)
+            # return None, True
+
+        @app.callback(
+            Output("notifications", "children", allow_duplicate=True),
+            Output("add-column-modal", "opened", allow_duplicate=True),
+            Output("aggrid-table", "columnDefs", allow_duplicate=True),
+            Input("add-column-submit-btn", "n_clicks"),
+            State("add-column-header-input", "value"),
+            State("add-column-value-input", "value"),
+            prevent_initial_call=True,
+        )
+        def add_column(n, add_column_header, add_column_value):
+            if n is None:
+                raise exceptions.PreventUpdate
+            if not add_column_header:
+                noti = create_notification(message="No header name given", position="center")
+                return noti, no_update, no_update
+            if not add_column_header:
+                noti = create_notification(message="No column value given", position="center")
+                return noti, no_update, no_update
+
+            if add_column_header in SSDF.dataframe.columns:
+                noti = create_notification(message="Header name exsists in data", position="center")
+                return noti, no_update, no_update
+            SSDF.dataframe = SSDF.dataframe.with_columns(pl.lit(add_column_value).alias(add_column_header))
+            updated_columnDefs = generate_column_definitions(SSDF.dataframe)
+            return None, False, updated_columnDefs
+
+
+
+
 
         @app.callback(
             Output("rename-column-modal", "opened"),
@@ -397,46 +522,6 @@ class Columns:
             SSDF.dataframe = SSDF.dataframe.drop(selected_columns)
             updated_columnDefs = generate_column_definitions(SSDF.dataframe)
 
-            return None, False, updated_columnDefs
-
-        @app.callback(
-            Output("notifications", "children", allow_duplicate=True),
-            Output("add-column-modal", "opened", allow_duplicate=True),
-            Input("add-column-btn", "n_clicks"),
-            prevent_initial_call=True,
-        )
-        def add_column_modal_open(n):
-            if n is None:
-                raise exceptions.PreventUpdate
-            dff = displaying_df()
-            if dff is None:
-                return (create_notification(message="No Dataframe loaded", position="center"), False)
-            return None, True
-
-        @app.callback(
-            Output("notifications", "children", allow_duplicate=True),
-            Output("add-column-modal", "opened", allow_duplicate=True),
-            Output("aggrid-table", "columnDefs", allow_duplicate=True),
-            Input("add-column-submit-btn", "n_clicks"),
-            State("add-column-header-input", "value"),
-            State("add-column-value-input", "value"),
-            prevent_initial_call=True,
-        )
-        def add_column(n, add_column_header, add_column_value):
-            if n is None:
-                raise exceptions.PreventUpdate
-            if not add_column_header:
-                noti = create_notification(message="No header name given", position="center")
-                return noti, no_update, no_update
-            if not add_column_header:
-                noti = create_notification(message="No column value given", position="center")
-                return noti, no_update, no_update
-
-            if add_column_header in SSDF.dataframe.columns:
-                noti = create_notification(message="Header name exsists in data", position="center")
-                return noti, no_update, no_update
-            SSDF.dataframe = SSDF.dataframe.with_columns(pl.lit(add_column_value).alias(add_column_header))
-            updated_columnDefs = generate_column_definitions(SSDF.dataframe)
             return None, False, updated_columnDefs
 
         @app.callback(

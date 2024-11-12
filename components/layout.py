@@ -41,6 +41,14 @@ class ResultViewer:
                         {"type": "tab", "name": "Script", "component": "text", "id": "script-item"},
                     ],
                 },
+                # # bottom border 추가
+                # {
+                #     "type": "border", 
+                #     "location": "left",
+                #     "selected": -1,  # -1은 선택된 탭이 없음을 의미
+                #     "size": 300,     # bottom 영역의 높이
+                #     "children": []    # 동적으로 탭이 추가될 것임
+                # }
             ],
             "layout": {
                 "type": "row",
@@ -60,13 +68,20 @@ class ResultViewer:
             dfl.Tab(id="script-item", children=[self.script_menu.layout()]),
             dfl.Tab(id="grid-tab", children=[self.data_grid.layout()]),
             dfl.Tab(id="sub-info", children=[self.subInfo()]),
+            dfl.Tab(id="add-column", children=[self.edit_menu.cols.add_tab_content()])
+
         ]
         return dmc.MantineProvider(
             [
                 dmc.NotificationProvider(),
                 html.Div(id="notifications"),
                 dcc.Interval(id="check-update-interval", interval=5000),
-                dfl.FlexLayout(id="flex-layout", model=layout_config, children=nodes, useStateForModel=False),
+                dfl.FlexLayout(
+                    id="flex-layout",
+                    model=layout_config,
+                    children=nodes,
+                    useStateForModel=False,  # model 상태 변경 추적을 위해 True로 설정
+                )
             ]
         )
 
