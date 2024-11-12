@@ -23,13 +23,7 @@ class ChartEditor:
                     color="indigo",
                     size="xs",
                 ),
-                dmc.Modal(
-                    html.Div(id="chart-body"),
-                    id="chart-modal",
-                    size="85%",
-                    zIndex=1000,
-                    opened=False,
-                ),
+                dmc.Modal(html.Div(id="chart-body"), id="chart-modal", size="85%", zIndex=1000, opened=False),
             ]
         )
 
@@ -61,14 +55,7 @@ class ChartEditor:
             try:
                 dff = displaying_df(filtred_apply=True)
                 if dff is None:
-                    return (
-                        False,
-                        None,
-                        False,
-                        create_notification(
-                            message="No Dataframe loaded", position="center"
-                        ),
-                    )
+                    return (False, None, False, create_notification(message="No Dataframe loaded", position="center"))
 
                 df_size = dff.estimated_size()
 
@@ -77,15 +64,10 @@ class ChartEditor:
                         False,
                         None,
                         False,
-                        create_notification(
-                            message="Data is too big (should be less than 100 MB)",
-                            position="center",
-                        ),
+                        create_notification(message="Data is too big (should be less than 100 MB)", position="center"),
                     )
 
-                dce_output = dce.DashChartEditor(
-                    dataSources=dff.to_dict(as_series=False)
-                )
+                dce_output = dce.DashChartEditor(dataSources=dff.to_dict(as_series=False))
                 return True, dce_output, False, None
 
             except Exception as e:

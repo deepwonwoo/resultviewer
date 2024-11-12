@@ -4,25 +4,12 @@ import re
 import shutil
 import subprocess
 import dash_mantine_components as dmc
-
 import dash_ag_grid as dag
 
 from components.grid.dag.column_definitions import generate_column_definitions
 from utils.config import CONFIG
 from utils.component_template import create_notification, get_icon
-from dash import (
-    html,
-    Input,
-    Output,
-    State,
-    ALL,
-    MATCH,
-    no_update,
-    exceptions,
-    ctx,
-    dcc,
-    Patch,
-)
+from dash import html, Input, Output, State, no_update, exceptions, dcc, Patch
 
 
 class RuleTable:
@@ -34,11 +21,7 @@ class RuleTable:
         return html.Div(
             [
                 dmc.Button(
-                    "Create Rule Table",
-                    id="create-ruletable-btn",
-                    variant="outline",
-                    color="indigo",
-                    size="xs",
+                    "Create Rule Table", id="create-ruletable-btn", variant="outline", color="indigo", size="xs"
                 ),
                 self.modal(),
             ]
@@ -66,10 +49,7 @@ class RuleTable:
                                         n_clicks=0,
                                     ),
                                     rightSection=dmc.Button(
-                                        "Upload",
-                                        id="ruletable-upload-ckt-file-btn",
-                                        style={"width": 100},
-                                        n_clicks=0,
+                                        "Upload", id="ruletable-upload-ckt-file-btn", style={"width": 100}, n_clicks=0
                                     ),
                                     rightSectionWidth=100,
                                     required=True,
@@ -85,8 +65,8 @@ class RuleTable:
                                             disabled=True,
                                             required=True,
                                             error=False,
-                                        ),
-                                    ],
+                                        )
+                                    ]
                                 ),
                             ],
                             shadow="sm",
@@ -98,9 +78,7 @@ class RuleTable:
                 ),
                 html.Div(id="ruletable-perc-log"),
                 dag.AgGrid(
-                    columnDefs=[
-                        {"field": "Part", "editable": True},
-                    ],
+                    columnDefs=[{"field": "Part", "editable": True}],
                     defaultColDef={
                         "flex": 1,
                         "resizable": True,
@@ -114,9 +92,7 @@ class RuleTable:
                         "autoGroupColumnDef": {
                             "minWidth": 300,
                             "headerName": "FullMasterName Hierarchy",
-                            "cellRendererParams": {
-                                "suppressCount": True,
-                            },
+                            "cellRendererParams": {"suppressCount": True},
                         },
                         "groupDefaultExpanded": 0,
                         "getDataPath": {"function": "getDataPath(params)"},
@@ -126,18 +102,8 @@ class RuleTable:
                     id="rule-table-ag-grid",
                     enableEnterpriseModules=True,
                 ),
-                dmc.Button(
-                    "Download Rule Table",
-                    id="download-ruletable-btn",
-                    variant="outline",
-                    size="sm",
-                ),
-                dmc.Button(
-                    "Upload Rule Table",
-                    id="upload-ruletable-btn",
-                    variant="outline",
-                    size="sm",
-                ),
+                dmc.Button("Download Rule Table", id="download-ruletable-btn", variant="outline", size="sm"),
+                dmc.Button("Upload Rule Table", id="upload-ruletable-btn", variant="outline", size="sm"),
                 dcc.Download(id="download-ruletable-csv"),
                 dcc.Store("upload-ruletable-path"),
             ],
@@ -199,9 +165,7 @@ class RuleTable:
             try:
                 self.top_cell_names = extract_subckt_names(ckt_file_path)
             except Exception as e:
-                noti = create_notification(
-                    message=f"Error loading {ckt_file_path}: {e}", position="center"
-                )
+                noti = create_notification(message=f"Error loading {ckt_file_path}: {e}", position="center")
                 return no_update, True, noti
             return self.top_cell_names[0], False, None
 
@@ -219,14 +183,8 @@ class RuleTable:
             Input("ruletable-ckt-top-subckt-textinput", "value"),
             prevent_initial_call=True,
         )
-        def activate_run_perc_btn(
-            type, delimiter, column, ckt_file_path, top_cell_name
-        ):
-            return (
-                False
-                if type and delimiter and column and ckt_file_path and top_cell_name
-                else True
-            )
+        def activate_run_perc_btn(type, delimiter, column, ckt_file_path, top_cell_name):
+            return False if type and delimiter and column and ckt_file_path and top_cell_name else True
 
         @app.callback(
             Output("rule-table-ag-grid", "rowData", allow_duplicate=True),
@@ -251,17 +209,11 @@ class RuleTable:
             os.chmod(perc_script, 0o755)
             try:
                 result = subprocess.run(
-                    [f"./run_extract_full_master {ckt_file_path} {top_cell_name}"],
-                    shell=True,
-                    cwd=PERC_WORKSPACE,
+                    [f"./run_extract_full_master {ckt_file_path} {top_cell_name}"], shell=True, cwd=PERC_WORKSPACE
                 )
-                row_data = self.parse_hierarchy(
-                    f"{PERC_WORKSPACE}/results/full_master.csv"
-                )
+                row_data = self.parse_hierarchy(f"{PERC_WORKSPACE}/results/full_master.csv")
                 noti = create_notification(
-                    title="FullMasterNames Extracted",
-                    message="PERC script executed successfully",
-                    icon_name="bx-smile",
+                    title="FullMasterNames Extracted", message="PERC script executed successfully", icon_name="bx-smile"
                 )
             except Exception as e:
                 row_data = []
@@ -284,10 +236,7 @@ class RuleTable:
                 changed_hierarchy = changed_row["masterHierarchy"]
                 patched_rows = Patch()
                 for i, row in enumerate(rows):
-                    if (
-                        row["masterHierarchy"][: len(changed_hierarchy)]
-                        == changed_hierarchy
-                    ):
+                    if row["masterHierarchy"][: len(changed_hierarchy)] == changed_hierarchy:
                         patched_rows[i].Part = new_value
                 return patched_rows
             return no_update

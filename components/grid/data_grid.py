@@ -81,11 +81,7 @@ class DataGrid:
                         enableEnterpriseModules=True,
                         rowModelType="serverSide",
                         dashGridOptions=self.DASH_GRID_OPTIONS,
-                        style={
-                            "height": "calc(100vh - 180px - 25px)",
-                            "width": "100%",
-                            "overflow": "auto",
-                        },
+                        style={"height": "calc(100vh - 180px - 25px)", "width": "100%", "overflow": "auto"},
                     ),
                     events=events,
                     logging=False,
@@ -112,10 +108,7 @@ class DataGrid:
                     justify="flex-end",
                     py=0,
                     my=0,
-                    style={
-                        "backgroundColor": "#fcfcfc",
-                        "borderBottom": "3px solid #aaaaaa",
-                    },
+                    style={"backgroundColor": "#fcfcfc", "borderBottom": "3px solid #aaaaaa"},
                 ),
             ]
         )

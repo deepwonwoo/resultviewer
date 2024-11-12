@@ -15,11 +15,7 @@ def create_notification(
     loading: bool = False,
     style: Optional[Dict[str, Any]] = None,
 ):
-    default_style = {
-        "position": "fixed",
-        "zIndex": 9999,
-        "width": "auto" if position == "center" else 400,
-    }
+    default_style = {"position": "fixed", "zIndex": 9999, "width": "auto" if position == "center" else 400}
 
     position_styles = {
         "center": {"top": "50%", "left": "50%", "transform": "translate(-50%, -50%)"},

@@ -33,199 +33,176 @@ class CategorizePart:
             ]
         )
 
-        def modal(self):
-            return dmc.Modal(
-                title=dmc.Title(f"Categorize Part", order=3),
-                id="categorizePart-modal",
-                size="xl",
-                opened=False,
-                closeOnClickOutside=False,
-                children=[
-                    dmc.Card(
-                        children=[
-                            dmc.LoadingOverlay(
-                                visible=False,
-                                id="categorizePart-loading-overlay",
-                                zIndex=1000,
-                                overlayProps={"radius": "sm", "blur": 2},
-                            ),
-                            dmc.Grid(
-                                [
-                                    dmc.GridCol(
-                                        dmc.Select(
-                                            label="Select categorizing column",
-                                            id="categorizePart-df-column-select",
-                                            data=[],
-                                            required=True,
-                                            size="xs",
-                                            error="",
-                                        ),
-                                        span=8,
+    def modal(self):
+        return dmc.Modal(
+            title=dmc.Title(f"Categorize Part", order=3),
+            id="categorizePart-modal",
+            size="xl",
+            opened=False,
+            closeOnClickOutside=False,
+            children=[
+                dmc.Card(
+                    children=[
+                        dmc.LoadingOverlay(
+                            visible=False,
+                            id="categorizePart-loading-overlay",
+                            zIndex=1000,
+                            overlayProps={"radius": "sm", "blur": 2},
+                        ),
+                        dmc.Grid(
+                            [
+                                dmc.GridCol(
+                                    dmc.Select(
+                                        label="Select categorizing column",
+                                        id="categorizePart-df-column-select",
+                                        data=[],
+                                        required=True,
+                                        size="xs",
+                                        error="",
                                     ),
-                                    dmc.GridCol(
-                                        dmc.RadioGroup(
-                                            children=dmc.Group(
-                                                [
-                                                    dmc.Radio(i, value=i)
-                                                    for i in [".", "/"]
-                                                ],
-                                            ),
-                                            id="categorizePart-delimiter-radioGroup",
-                                            label="Select delimiter",
-                                            size="xs",
-                                            value=".",
-                                            required=True,
-                                        ),
-                                        span=4,
+                                    span=8,
+                                ),
+                                dmc.GridCol(
+                                    dmc.RadioGroup(
+                                        children=dmc.Group([dmc.Radio(i, value=i) for i in [".", "/"]]),
+                                        id="categorizePart-delimiter-radioGroup",
+                                        label="Select delimiter",
+                                        size="xs",
+                                        value=".",
+                                        required=True,
                                     ),
-                                ]
-                            ),
-                            dmc.Space(h=10),
-                            dmc.Group(
-                                [
-                                    dmc.Text("Rule Table: ", mr=2, fw=500, size="sm"),
-                                    dmc.Group(
+                                    span=4,
+                                ),
+                            ]
+                        ),
+                        dmc.Space(h=10),
+                        dmc.Group(
+                            [
+                                dmc.Text("Rule Table: ", mr=2, fw=500, size="sm"),
+                                dmc.Group(
+                                    [
+                                        dmc.Button(
+                                            "Download", id="categorizePart-download-btn", size="xs", variant="outline"
+                                        ),
+                                        dmc.Button(
+                                            "Upload", id="categorizePart-upload-btn", size="xs", variant="outline"
+                                        ),
+                                    ],
+                                    gap="xs",
+                                    mb=1,
+                                ),
+                            ]
+                        ),
+                        dag.AgGrid(
+                            id="categorizePart-rule-grid",
+                            columnDefs=[{"field": col} for col in self.rule_df.columns],
+                            rowData=self.rule_df.to_dicts(),
+                            defaultColDef={"resizable": True, "sortable": True, "editable": True},
+                        ),
+                        dmc.Group(
+                            [
+                                dmc.Text("Configs", size="sm", fw=500),
+                                dmc.Switch(
+                                    checked=True,
+                                    labelPosition="left",
+                                    label="Matching Method: ",
+                                    id="categorizePart-matching-switch",
+                                    onLabel="Pattern",
+                                    offLabel="Equal",
+                                    size="md",
+                                ),
+                            ],
+                            mt="sm",
+                            justify="flex-start",
+                        ),
+                        dmc.Grid(
+                            [
+                                dmc.GridCol(
+                                    dmc.Stack(
                                         [
-                                            dmc.Button(
-                                                "Download",
-                                                id="categorizePart-download-btn",
-                                                size="xs",
-                                                variant="outline",
-                                            ),
-                                            dmc.Button(
-                                                "Upload",
-                                                id="categorizePart-upload-btn",
-                                                size="xs",
-                                                variant="outline",
+                                            dmc.Text("Regular Expression", size="xs", fw=500),
+                                            dmc.Switch(
+                                                labelPosition="left",
+                                                checked=True,
+                                                id="categorizePart-regex-switch",
+                                                onLabel="On",
+                                                offLabel="OFF",
                                             ),
                                         ],
-                                        gap="xs",
-                                        mb=1,
+                                        gap=5,
+                                        mt=5,
                                     ),
-                                ]
-                            ),
-                            dag.AgGrid(
-                                id="categorizePart-rule-grid",
-                                columnDefs=[
-                                    {"field": col} for col in self.rule_df.columns
-                                ],
-                                rowData=self.rule_df.to_dicts(),
-                                defaultColDef={
-                                    "resizable": True,
-                                    "sortable": True,
-                                    "editable": True,
-                                },
-                            ),
-                            dmc.Group(
-                                [
-                                    dmc.Text("Configs", size="sm", fw=500),
-                                    dmc.Switch(
-                                        checked=True,
-                                        labelPosition="left",
-                                        label="Matching Method: ",
-                                        id="categorizePart-matching-switch",
-                                        onLabel="Pattern",
-                                        offLabel="Equal",
-                                        size="md",
+                                    span=3,
+                                ),
+                                dmc.GridCol(
+                                    dmc.Stack(
+                                        [
+                                            dmc.Text("Case Sensitive", size="xs", fw=500),
+                                            dmc.Switch(
+                                                labelPosition="left",
+                                                onLabel="On",
+                                                offLabel="OFF",
+                                                checked=False,
+                                                id="categorizePart-caseSensitive-switch",
+                                            ),
+                                        ],
+                                        gap=6,
+                                        mt=6,
                                     ),
-                                ],
-                                mt="sm",
-                                justify="flex-start",
-                            ),
-                            dmc.Grid(
-                                [
-                                    dmc.GridCol(
-                                        dmc.Stack(
-                                            [
-                                                dmc.Text(
-                                                    "Regular Expression",
-                                                    size="xs",
-                                                    fw=500,
-                                                ),
-                                                dmc.Switch(
-                                                    labelPosition="left",
-                                                    checked=True,
-                                                    id="categorizePart-regex-switch",
-                                                    onLabel="On",
-                                                    offLabel="OFF",
-                                                ),
-                                            ],
-                                            gap=5,
-                                            mt=5,
-                                        ),
-                                        span=3,
+                                    span=3,
+                                ),
+                                dmc.GridCol(
+                                    dmc.Select(
+                                        label="Search Direction",
+                                        data=["Bottom-Top", "Top-Bottom"],
+                                        required=True,
+                                        size="xs",
+                                        value="Top-Bottom",
+                                        id="categorizePart-searchDirection-select",
                                     ),
-                                    dmc.GridCol(
-                                        dmc.Stack(
-                                            [
-                                                dmc.Text(
-                                                    "Case Sensitive", size="xs", fw=500
-                                                ),
-                                                dmc.Switch(
-                                                    labelPosition="left",
-                                                    onLabel="On",
-                                                    offLabel="OFF",
-                                                    checked=False,
-                                                    id="categorizePart-caseSensitive-switch",
-                                                ),
-                                            ],
-                                            gap=6,
-                                            mt=6,
-                                        ),
-                                        span=3,
+                                    span=3,
+                                ),
+                                dmc.GridCol(
+                                    dmc.TextInput(
+                                        label="Skip Master:",
+                                        placeholder="Ex) Master1,Master2,Master3",
+                                        size="xs",
+                                        id="categorizePart-skipMaster-text",
                                     ),
-                                    dmc.GridCol(
-                                        dmc.Select(
-                                            label="Search Direction",
-                                            data=["Bottom-Top", "Top-Bottom"],
-                                            required=True,
-                                            size="xs",
-                                            value="Top-Bottom",
-                                            id="categorizePart-searchDirection-select",
-                                        ),
-                                        span=3,
+                                    span=3,
+                                ),
+                            ]
+                        ),
+                        dmc.Grid(
+                            [
+                                dmc.GridCol(
+                                    dmc.Select(
+                                        label="Select Column to make BaseName column",
+                                        id="categorizePart-df-basename-column-select",
+                                        data=[],
+                                        size="xs",
+                                        error="",
                                     ),
-                                    dmc.GridCol(
-                                        dmc.TextInput(
-                                            label="Skip Master:",
-                                            placeholder="Ex) Master1,Master2,Master3",
-                                            size="xs",
-                                            id="categorizePart-skipMaster-text",
-                                        ),
-                                        span=3,
-                                    ),
-                                ]
-                            ),
-                            dmc.Grid(
-                                [
-                                    dmc.GridCol(
-                                        dmc.Select(
-                                            label="Select Column to make BaseName column",
-                                            id="categorizePart-df-basename-column-select",
-                                            data=[],
-                                            size="xs",
-                                            error="",
-                                        ),
-                                        span=8,
-                                    ),
-                                ]
-                            ),
-                            dmc.Button(
-                                "Categorize",
-                                id="apply-categorizePart-btn",
-                                variant="outline",
-                                fullWidth=True,
-                                mt=15,
-                                disabled=True,
-                            ),
-                            html.Div(id="categorizePart-output"),
-                        ],
-                        withBorder=True,
-                        shadow="sm",
-                        radius="md",
-                    )
-                ],
-            )
+                                    span=8,
+                                )
+                            ]
+                        ),
+                        dmc.Button(
+                            "Categorize",
+                            id="apply-categorizePart-btn",
+                            variant="outline",
+                            fullWidth=True,
+                            mt=15,
+                            disabled=True,
+                        ),
+                        html.Div(id="categorizePart-output"),
+                    ],
+                    withBorder=True,
+                    shadow="sm",
+                    radius="md",
+                )
+            ],
+        )
 
     def register_callbacks(self, app):
         @app.callback(
@@ -359,18 +336,12 @@ class CategorizePart:
                     if use_regex:
                         if case_sensitive:
                             compiled_rules = [
-                                (
-                                    re.compile(regex),
-                                    {col: rules[col][i] for col in column_names},
-                                )
+                                (re.compile(regex), {col: rules[col][i] for col in column_names})
                                 for i, regex in enumerate(rules[pattern_col])
                             ]
                         else:
                             compiled_rules = [
-                                (
-                                    re.compile(regex, re.IGNORECASE),
-                                    {col: rules[col][i] for col in column_names},
-                                )
+                                (re.compile(regex, re.IGNORECASE), {col: rules[col][i] for col in column_names})
                                 for i, regex in enumerate(rules[pattern_col])
                             ]
                     else:
@@ -381,16 +352,11 @@ class CategorizePart:
                             ]
                         else:
                             compiled_rules = [
-                                (
-                                    regex.lower(),
-                                    {col: rules[col][i] for col in column_names},
-                                )
+                                (regex.lower(), {col: rules[col][i] for col in column_names})
                                 for i, regex in enumerate(rules[pattern_col])
                             ]
 
-                    skip_masters = [
-                        s.strip() for s in skip_masters_str.split(",") if s.strip()
-                    ]
+                    skip_masters = [s.strip() for s in skip_masters_str.split(",") if s.strip()]
 
                     # Categorize and add new columns to the dataframe
                     dff = SSDF.dataframe
@@ -399,22 +365,16 @@ class CategorizePart:
                         if c in dff.columns:
                             dff = dff.drop(c)
 
-                    new_columns = dff[selected_col].map_elements(
-                        lambda x: categorize_part(x), return_dtype=pl.Object
-                    )
+                    new_columns = dff[selected_col].map_elements(lambda x: categorize_part(x), return_dtype=pl.Object)
 
                     for col in column_names + ["Unit Name"]:
-                        dff = dff.with_columns(
-                            pl.Series(col, [nc[col] for nc in new_columns]).alias(col)
-                        )
+                        dff = dff.with_columns(pl.Series(col, [nc[col] for nc in new_columns]).alias(col))
 
                     if basename_col:
                         dff = dff.with_columns(
                             pl.struct([selected_col, basename_col, "Unit Name"])
                             .map_elements(
-                                lambda x: create_basename(
-                                    x[selected_col], x[basename_col], x["Unit Name"]
-                                ),
+                                lambda x: create_basename(x[selected_col], x[basename_col], x["Unit Name"]),
                                 return_dtype=pl.Utf8,
                             )
                             .alias("Base Name")
@@ -429,11 +389,7 @@ class CategorizePart:
                     pattern_col = rule_df.columns[0]
 
                     SSDF.dataframe = dff.join(
-                        rule_df,
-                        left_on=selected_col,
-                        right_on=pattern_col,
-                        how="left",
-                        suffix="_cate",
+                        rule_df, left_on=selected_col, right_on=pattern_col, how="left", suffix="_cate"
                     )
 
                     updated_columnDefs = generate_column_definitions(SSDF.dataframe)
@@ -442,9 +398,4 @@ class CategorizePart:
 
             except Exception as e:
                 logger.error(f"{e}")
-                return (
-                    no_update,
-                    no_update,
-                    False,
-                    create_notification(message=f"{e}", position="center"),
-                )
+                return (no_update, no_update, False, create_notification(message=f"{e}", position="center"))

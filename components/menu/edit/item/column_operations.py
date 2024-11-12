@@ -39,21 +39,8 @@ class Columns:
                     color="indigo",
                     size="xs",
                 ),
-                dmc.Button(
-                    "Edit Column",
-                    id="edit-column-btn",
-                    variant="outline",
-                    color="indigo",
-                    size="xs",
-                ),
-                dmc.Button(
-                    "Modify Column",
-                    id="modify-column-btn",
-                    # leftSection=get_icon("table-merge"),
-                    variant="outline",
-                    color="indigo",
-                    size="xs",
-                ),
+                dmc.Button("Edit Column", id="edit-column-btn", variant="outline", color="indigo", size="xs"),
+                dmc.Button("Modify Column", id="modify-column-btn", variant="outline", color="indigo", size="xs"),
                 self.add_modal(),
                 self.remove_modal(),
                 self.concat_modal(),
@@ -79,22 +66,13 @@ class Columns:
                             style={"width": 100},
                         ),
                         dmc.TextInput(
-                            id="add-column-value-input",
-                            size="xs",
-                            value="",
-                            label="Value:",
-                            placeholder="value",
+                            id="add-column-value-input", size="xs", value="", label="Value:", placeholder="value"
                         ),
                     ],
                     gap="sm",
                 ),
                 dmc.Space(h=20),
-                dmc.Group(
-                    [
-                        dmc.Button("Submit", id="add-column-submit-btn"),
-                    ],
-                    justify="flex-end",
-                ),
+                dmc.Group([dmc.Button("Submit", id="add-column-submit-btn")], justify="flex-end"),
             ],
         )
 
@@ -113,17 +91,12 @@ class Columns:
                             value=[],
                             data=[],
                             w=400,
-                        ),
+                        )
                     ],
                     gap="sm",
                 ),
                 dmc.Space(h=20),
-                dmc.Group(
-                    [
-                        dmc.Button("Submit", id="remove-column-submit-btn"),
-                    ],
-                    justify="flex-end",
-                ),
+                dmc.Group([dmc.Button("Submit", id="remove-column-submit-btn")], justify="flex-end"),
             ],
         )
 
@@ -142,17 +115,12 @@ class Columns:
                             value=[],
                             data=[],
                             w=400,
-                        ),
+                        )
                     ],
                     gap="sm",
                 ),
                 dmc.Space(h=20),
-                dmc.Group(
-                    [
-                        dmc.Button("Submit", id="concat-column-submit-btn"),
-                    ],
-                    justify="flex-end",
-                ),
+                dmc.Group([dmc.Button("Submit", id="concat-column-submit-btn")], justify="flex-end"),
             ],
         )
 
@@ -170,17 +138,12 @@ class Columns:
                             value=[],
                             data=[],
                             w=400,
-                        ),
+                        )
                     ],
                     gap="sm",
                 ),
                 dmc.Space(h=20),
-                dmc.Group(
-                    [
-                        dmc.Button("Submit", id="edit-column-submit-btn"),
-                    ],
-                    justify="flex-end",
-                ),
+                dmc.Group([dmc.Button("Submit", id="edit-column-submit-btn")], justify="flex-end"),
             ],
         )
 
@@ -190,42 +153,19 @@ class Columns:
             id="modify-column-modal",
             children=[
                 dmc.Group(
-                    [
-                        dmc.Select(
-                            label="Select Column to Modify",
-                            id="modify-column-select",
-                            value=[],
-                            data=[],
-                            w=400,
-                        ),
-                    ],
+                    [dmc.Select(label="Select Column to Modify", id="modify-column-select", value=[], data=[], w=400)],
                     gap="sm",
                 ),
                 dmc.Space(h=10),
                 dmc.Group(
                     [
-                        dmc.Checkbox(
-                            id="modify-filtered-only",
-                            label="filtered data only",
-                            checked=True,
-                            size="xs",
-                        ),
-                        dmc.TextInput(
-                            id="modify-column-value-input",
-                            size="xs",
-                            value="",
-                            label="modify to",
-                        ),
+                        dmc.Checkbox(id="modify-filtered-only", label="filtered data only", checked=True, size="xs"),
+                        dmc.TextInput(id="modify-column-value-input", size="xs", value="", label="modify to"),
                     ],
                     gap="sm",
                 ),
                 dmc.Space(h=20),
-                dmc.Group(
-                    [
-                        dmc.Button("Submit", id="modify-column-submit-btn"),
-                    ],
-                    justify="flex-end",
-                ),
+                dmc.Group([dmc.Button("Submit", id="modify-column-submit-btn")], justify="flex-end"),
             ],
         )
 
@@ -237,27 +177,14 @@ class Columns:
                 dmc.Group(
                     [
                         dmc.Select(
-                            label="Select Columns to Rename",
-                            id="rename-column-select",
-                            clearable=False,
-                            data=[],
-                            w=200,
+                            label="Select Columns to Rename", id="rename-column-select", clearable=False, data=[], w=200
                         ),
-                        dmc.TextInput(
-                            label="New Column Name",
-                            id="new-column-name-input",
-                            style={"width": 200},
-                        ),
+                        dmc.TextInput(label="New Column Name", id="new-column-name-input", style={"width": 200}),
                     ],
                     gap="sm",
                 ),
                 dmc.Space(h=20),
-                dmc.Group(
-                    [
-                        dmc.Button("Submit", id="rename-column-submit-btn"),
-                    ],
-                    justify="flex-end",
-                ),
+                dmc.Group([dmc.Button("Submit", id="rename-column-submit-btn")], justify="flex-end"),
             ],
         )
 
@@ -274,29 +201,13 @@ class Columns:
                     style={"width": 200},
                 ),
                 dmc.Space(h=10),
-                dmc.TextInput(
-                    label="Find",
-                    id="find-replace-find-input",
-                    placeholder="Value to find",
-                ),
+                dmc.TextInput(label="Find", id="find-replace-find-input", placeholder="Value to find"),
                 dmc.Space(h=10),
-                dmc.TextInput(
-                    label="Replace",
-                    id="find-replace-replace-input",
-                    placeholder="Value to replace with",
-                ),
+                dmc.TextInput(label="Replace", id="find-replace-replace-input", placeholder="Value to replace with"),
                 dmc.Space(h=10),
-                dmc.Checkbox(
-                    label="Use Regular Expression (for string columns)",
-                    id="find-replace-regex-checkbox",
-                ),
+                dmc.Checkbox(label="Use Regular Expression (for string columns)", id="find-replace-regex-checkbox"),
                 dmc.Space(h=20),
-                dmc.Group(
-                    [
-                        dmc.Button("Apply", id="find-replace-apply-btn"),
-                    ],
-                    justify="flex-end",
-                ),
+                dmc.Group([dmc.Button("Apply", id="find-replace-apply-btn")], justify="flex-end"),
             ],
         )
 
@@ -325,21 +236,13 @@ class Columns:
         )
         def rename_column(n_clicks, old_name, new_name, columnDefs):
             if new_name in [col["field"] for col in columnDefs]:
-                return (
-                    create_notification(
-                        message="Column name already exists", position="center"
-                    ),
-                    True,
-                    no_update,
-                )
+                return (create_notification(message="Column name already exists", position="center"), True, no_update)
             try:
                 SSDF.dataframe = SSDF.dataframe.rename({old_name: new_name})
                 patched_columnDefs = Patch()
                 for i, columnDef in enumerate(columnDefs):
                     if columnDef["field"] == old_name:
-                        patched_columnDefs[i] = generate_column_definition(
-                            new_name, SSDF.dataframe[new_name]
-                        )
+                        patched_columnDefs[i] = generate_column_definition(new_name, SSDF.dataframe[new_name])
                 return None, False, patched_columnDefs
             except Exception as e:
                 return create_notification(str(e)), no_update, no_update
@@ -352,17 +255,10 @@ class Columns:
             prevent_initial_call=True,
         )
         def open_find_replace_modal(n_clicks, columnDefs):
-            columns = [
-                {"label": col["field"], "value": col["field"]}
-                for col in columnDefs
-                if col["field"] != "waiver"
-            ]
+            columns = [{"label": col["field"], "value": col["field"]} for col in columnDefs if col["field"] != "waiver"]
             return True, columns
 
-        @app.callback(
-            Output("find-replace-regex-checkbox", "disabled"),
-            Input("find-replace-column-select", "value"),
-        )
+        @app.callback(Output("find-replace-regex-checkbox", "disabled"), Input("find-replace-column-select", "value"))
         def toggle_regex_checkbox(selected_column):
             if selected_column is None:
                 raise exceptions.PreventUpdate
@@ -381,34 +277,22 @@ class Columns:
             prevent_initial_call=True,
         )
         def apply_find_replace(n_clicks, column, find_value, replace_value, use_regex):
-            if (
-                n_clicks is None
-                or not column
-                or find_value is None
-                or replace_value is None
-            ):
+            if n_clicks is None or not column or find_value is None or replace_value is None:
                 raise exceptions.PreventUpdate
             try:
                 if isinstance(SSDF.dataframe[column].dtype, pl.Utf8):
                     SSDF.dataframe = (
                         SSDF.dataframe.with_columns(
-                            pl.col(column)
-                            .str.replace_all(find_value, replace_value)
-                            .alias(column)
+                            pl.col(column).str.replace_all(find_value, replace_value).alias(column)
                         )
                         if use_regex
                         else SSDF.dataframe.with_columns(
-                            pl.col(column)
-                            .str.replace(find_value, replace_value)
-                            .alias(column)
+                            pl.col(column).str.replace(find_value, replace_value).alias(column)
                         )
                     )
                 else:
                     SSDF.dataframe = SSDF.dataframe.with_columns(
-                        pl.when(
-                            pl.col(column)
-                            == pl.lit(find_value).cast(SSDF.dataframe[column].dtype)
-                        )
+                        pl.when(pl.col(column) == pl.lit(find_value).cast(SSDF.dataframe[column].dtype))
                         .then(pl.lit(replace_value).cast(SSDF.dataframe[column].dtype))
                         .otherwise(pl.col(column))
                         .alias(column)
@@ -431,14 +315,7 @@ class Columns:
                 raise exceptions.PreventUpdate
             dff = displaying_df()
             if dff is None:
-                return (
-                    create_notification(
-                        message="No Dataframe loaded", position="center"
-                    ),
-                    False,
-                    [],
-                    None,
-                )
+                return (create_notification(message="No Dataframe loaded", position="center"), False, [], None)
             return None, True, dff.columns, None
 
         @app.callback(
@@ -455,13 +332,7 @@ class Columns:
             if n is None:
                 raise exceptions.PreventUpdate
             if not selected_column:
-                return (
-                    create_notification(
-                        message="No columns selected", position="center"
-                    ),
-                    no_update,
-                    no_update,
-                )
+                return (create_notification(message="No columns selected", position="center"), no_update, no_update)
 
             dff = SSDF.dataframe
             if filtered_only:
@@ -476,9 +347,7 @@ class Columns:
             dff = dff.with_columns(pl.col(selected_column).cast(original_dtype))
 
             # 'id' 컬럼을 기준으로 filtered_df와 df를 결합
-            updated_df = SSDF.dataframe.join(
-                dff, on="uniqid", how="left", suffix="_filtered"
-            )
+            updated_df = SSDF.dataframe.join(dff, on="uniqid", how="left", suffix="_filtered")
 
             # 'col1' 컬럼을 filtered_df의 값으로 업데이트
             updated_df = updated_df.with_columns(
@@ -488,9 +357,7 @@ class Columns:
                 .alias(selected_column)
             )
             # '_filtered' 접미사가 있는 모든 컬럼 삭제
-            columns_to_drop = [
-                col for col in updated_df.columns if col.endswith("_filtered")
-            ]
+            columns_to_drop = [col for col in updated_df.columns if col.endswith("_filtered")]
             SSDF.dataframe = updated_df.drop(columns_to_drop)
 
             updated_columnDefs = generate_column_definitions(SSDF.dataframe)
@@ -510,14 +377,7 @@ class Columns:
                 raise exceptions.PreventUpdate
             dff = displaying_df()
             if dff is None:
-                return (
-                    create_notification(
-                        message="No Dataframe loaded", position="center"
-                    ),
-                    False,
-                    [],
-                    [],
-                )
+                return (create_notification(message="No Dataframe loaded", position="center"), False, [], [])
             return None, True, dff.columns, []
 
         @app.callback(
@@ -532,13 +392,7 @@ class Columns:
             if n is None:
                 raise exceptions.PreventUpdate
             if not selected_columns:
-                return (
-                    create_notification(
-                        message="No columns selected", position="center"
-                    ),
-                    no_update,
-                    no_update,
-                )
+                return (create_notification(message="No columns selected", position="center"), no_update, no_update)
 
             SSDF.dataframe = SSDF.dataframe.drop(selected_columns)
             updated_columnDefs = generate_column_definitions(SSDF.dataframe)
@@ -556,12 +410,7 @@ class Columns:
                 raise exceptions.PreventUpdate
             dff = displaying_df()
             if dff is None:
-                return (
-                    create_notification(
-                        message="No Dataframe loaded", position="center"
-                    ),
-                    False,
-                )
+                return (create_notification(message="No Dataframe loaded", position="center"), False)
             return None, True
 
         @app.callback(
@@ -577,24 +426,16 @@ class Columns:
             if n is None:
                 raise exceptions.PreventUpdate
             if not add_column_header:
-                noti = create_notification(
-                    message="No header name given", position="center"
-                )
+                noti = create_notification(message="No header name given", position="center")
                 return noti, no_update, no_update
             if not add_column_header:
-                noti = create_notification(
-                    message="No column value given", position="center"
-                )
+                noti = create_notification(message="No column value given", position="center")
                 return noti, no_update, no_update
 
             if add_column_header in SSDF.dataframe.columns:
-                noti = create_notification(
-                    message="Header name exsists in data", position="center"
-                )
+                noti = create_notification(message="Header name exsists in data", position="center")
                 return noti, no_update, no_update
-            SSDF.dataframe = SSDF.dataframe.with_columns(
-                pl.lit(add_column_value).alias(add_column_header)
-            )
+            SSDF.dataframe = SSDF.dataframe.with_columns(pl.lit(add_column_value).alias(add_column_header))
             updated_columnDefs = generate_column_definitions(SSDF.dataframe)
             return None, False, updated_columnDefs
 
@@ -610,13 +451,7 @@ class Columns:
                 raise exceptions.PreventUpdate
             dff = displaying_df()
             if dff is None:
-                return (
-                    create_notification(
-                        message="No Dataframe loaded", position="center"
-                    ),
-                    False,
-                    [],
-                )
+                return (create_notification(message="No Dataframe loaded", position="center"), False, [])
             return None, True, dff.columns
 
         @app.callback(
@@ -631,16 +466,12 @@ class Columns:
             if n is None:
                 raise exceptions.PreventUpdate
             if not selected_columns or len(selected_columns) < 2:
-                noti = create_notification(
-                    message="Select more than 2 columns", position="center"
-                )
+                noti = create_notification(message="Select more than 2 columns", position="center")
                 return noti, no_update, no_update
             header_name = "-".join(selected_columns)
 
             SSDF.dataframe = SSDF.dataframe.with_columns(
-                pl.concat_str(
-                    [pl.col(col) for col in selected_columns], separator="-"
-                ).alias(header_name)
+                pl.concat_str([pl.col(col) for col in selected_columns], separator="-").alias(header_name)
             )
             updated_columnDefs = generate_column_definitions(SSDF.dataframe)
             return None, False, updated_columnDefs
@@ -659,23 +490,12 @@ class Columns:
                 raise exceptions.PreventUpdate
             dff = displaying_df()
             if dff is None:
-                return (
-                    create_notification(
-                        message="No Dataframe loaded", position="center"
-                    ),
-                    False,
-                    [],
-                    [],
-                )
+                return (create_notification(message="No Dataframe loaded", position="center"), False, [], [])
             return (
                 None,
                 True,
                 [col for col in dff.columns if col != "waiver"],
-                [
-                    col_def["field"]
-                    for col_def in current_columnDefs
-                    if col_def["editable"]
-                ],
+                [col_def["field"] for col_def in current_columnDefs if col_def["editable"]],
             )
 
         @app.callback(
@@ -691,13 +511,7 @@ class Columns:
             if n is None:
                 raise exceptions.PreventUpdate
             if not selected_columns:
-                return (
-                    create_notification(
-                        message="No columns selected", position="center"
-                    ),
-                    no_update,
-                    no_update,
-                )
+                return (create_notification(message="No columns selected", position="center"), no_update, no_update)
 
             patched_columnDefs = Patch()
 
@@ -707,12 +521,8 @@ class Columns:
                 if col == "waiver":
                     continue
                 elif col in selected_columns:
-                    patched_columnDefs[i] = generate_column_definition(
-                        col, SSDF.dataframe[col], is_editable=True
-                    )
+                    patched_columnDefs[i] = generate_column_definition(col, SSDF.dataframe[col], is_editable=True)
                 else:
-                    patched_columnDefs[i] = generate_column_definition(
-                        col, SSDF.dataframe[col], is_editable=False
-                    )
+                    patched_columnDefs[i] = generate_column_definition(col, SSDF.dataframe[col], is_editable=False)
 
             return None, False, patched_columnDefs

@@ -8,25 +8,15 @@ class GroupRow:
         return dmc.Group(
             [
                 dmc.Text("GroupRows: ", fw=500, size="sm", c="gray"),
-                self._create_tooltip(
-                    "expand-rowGroup", "Expand all groupRows", "unfold"
-                ),
-                self._create_tooltip(
-                    "collapse-rowGroup", "Collapse all groupRows", "fold"
-                ),
+                self._create_tooltip("expand-rowGroup", "Expand all groupRows", "unfold"),
+                self._create_tooltip("collapse-rowGroup", "Collapse all groupRows", "fold"),
             ],
             gap=2,
         )
 
     def _create_tooltip(self, id, label, icon):
         return dmc.Tooltip(
-            dmc.ActionIcon(
-                get_icon(icon),
-                variant="outline",
-                id=id,
-                n_clicks=0,
-                color="grey",
-            ),
+            dmc.ActionIcon(get_icon(icon), variant="outline", id=id, n_clicks=0, color="grey"),
             label=label,
             withArrow=True,
             position="bottom",

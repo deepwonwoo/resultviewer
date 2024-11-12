@@ -27,11 +27,7 @@ DEFAULT_COL_DEF: Dict[str, Any] = {
 
 
 def determine_column_type(column_expr: pl.Expr) -> ColumnType:
-    return (
-        ColumnType.NUMERIC
-        if column_expr.dtype in (pl.Float64, pl.Int64)
-        else ColumnType.STRING
-    )
+    return ColumnType.NUMERIC if column_expr.dtype in (pl.Float64, pl.Int64) else ColumnType.STRING
 
 
 def generate_waiver_column_definition(column_name: str) -> Dict[str, Any]:
@@ -42,10 +38,7 @@ def generate_waiver_column_definition(column_name: str) -> Dict[str, Any]:
         "checkboxSelection": {"function": "params.data.group != true"},
         "cellStyle": {
             "styleConditions": [
-                {
-                    "condition": f"params.data.waiver == '{status.value}'",
-                    "style": {"backgroundColor": color},
-                }
+                {"condition": f"params.data.waiver == '{status.value}'", "style": {"backgroundColor": color}}
                 for status, color in [
                     (WaiverStatus.WAIVER, "lightskyblue"),
                     (WaiverStatus.WAIVER_DOT, "lightskyblue"),
@@ -74,11 +67,7 @@ def generate_column_definition(
     col_def = {
         "headerName": column_name,
         "field": column_name,
-        "cellDataType": (
-            "text"
-            if determine_column_type(column_expr) == ColumnType.STRING
-            else "number"
-        ),
+        "cellDataType": ("text" if determine_column_type(column_expr) == ColumnType.STRING else "number"),
         "hide": column_name in col_hide,
         "editable": is_editable,
         "cellClass": "text-dark" if is_editable else "text-secondary",
@@ -90,11 +79,5 @@ def generate_column_definition(
     return col_def
 
 
-def generate_column_definitions(
-    df: pl.DataFrame, col_hide: List[str] = []
-) -> List[Dict[str, Any]]:
-    return [
-        generate_column_definition(col, df[col], col_hide)
-        for col in df.columns
-        if col != "uniqid"
-    ]
+def generate_column_definitions(df: pl.DataFrame, col_hide: List[str] = []) -> List[Dict[str, Any]]:
+    return [generate_column_definition(col, df[col], col_hide) for col in df.columns if col != "uniqid"]

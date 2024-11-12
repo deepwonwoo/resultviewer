@@ -19,39 +19,17 @@ class Uploader:
         self.init_csv = SSDF.init_csv
 
     def layout(self):
-        return html.Div(
-            [
-                self.open_menu(),
-                self.local_modal(),
-                self.drawer(),
-            ]
-        )
+        return html.Div([self.open_menu(), self.local_modal(), self.drawer()])
 
     def open_menu(self):
         return dmc.Menu(
             [
-                dmc.MenuTarget(
-                    dmc.Button(
-                        "Open",
-                        variant="outline",
-                        color="indigo",
-                        size="xs",
-                        id="open-data-btn",
-                    )
-                ),
+                dmc.MenuTarget(dmc.Button("Open", variant="outline", color="indigo", size="xs", id="open-data-btn")),
                 dmc.MenuDropdown(
                     [
+                        dmc.MenuItem("Local", id="open-local-btn", n_clicks=0, leftSection=get_icon("bx-folder-open")),
                         dmc.MenuItem(
-                            "Local",
-                            id="open-local-btn",
-                            n_clicks=0,
-                            leftSection=get_icon("bx-folder-open"),
-                        ),
-                        dmc.MenuItem(
-                            "WORKSPACE",
-                            id="open-workspace-btn",
-                            n_clicks=0,
-                            leftSection=get_icon("bx-cloud-download"),
+                            "WORKSPACE", id="open-workspace-btn", n_clicks=0, leftSection=get_icon("bx-cloud-download")
                         ),
                     ]
                 ),
@@ -71,17 +49,9 @@ class Uploader:
                     value=self.init_csv,
                     label="type in the path of CSV file to Open",
                     leftSection=dmc.ActionIcon(
-                        get_icon("bx-file-find"),
-                        id="open-csv-file-search",
-                        variant="subtle",
-                        n_clicks=0,
+                        get_icon("bx-file-find"), id="open-csv-file-search", variant="subtle", n_clicks=0
                     ),
-                    rightSection=dmc.Button(
-                        "Open",
-                        id="open-csv-local-btn",
-                        style={"width": 100},
-                        n_clicks=0,
-                    ),
+                    rightSection=dmc.Button("Open", id="open-csv-local-btn", style={"width": 100}, n_clicks=0),
                     rightSectionWidth=100,
                     required=True,
                     id="open-csv-path-input",
@@ -95,10 +65,7 @@ class Uploader:
             children=[
                 dmc.AccordionItem(
                     [
-                        dmc.AccordionControl(
-                            "Upload Data to Workspace",
-                            icon=get_icon("bx-cloud-upload"),
-                        ),
+                        dmc.AccordionControl("Upload Data to Workspace", icon=get_icon("bx-cloud-upload")),
                         dmc.AccordionPanel(
                             [
                                 dmc.Alert(
@@ -162,13 +129,13 @@ class Uploader:
                                     ],
                                     color="gray",
                                     variant="outline",
-                                ),
+                                )
                             ]
                         ),
                     ],
                     value="uploader",
-                ),
-            ],
+                )
+            ]
         )
 
         return dmc.Drawer(
@@ -179,11 +146,7 @@ class Uploader:
             opened=False,
             children=[
                 dmc.Stack(
-                    [
-                        self.explorer.layout(),
-                        dmc.Divider(),
-                        workspace_upload_layout,
-                    ],
+                    [self.explorer.layout(), dmc.Divider(), workspace_upload_layout],
                     justify="space-around",
                     align="stretch",
                     gap="xl",
@@ -235,9 +198,7 @@ class Uploader:
             State("cwd", "children"),
             prevent_initial_call=True,
         )
-        def upload_data_to_workspace(
-            n, csv_file_path, library_name, cell_name, so_app, cwd
-        ):
+        def upload_data_to_workspace(n, csv_file_path, library_name, cell_name, so_app, cwd):
             if not n or not csv_file_path:
                 raise exceptions.PreventUpdate
             try:
@@ -245,9 +206,7 @@ class Uploader:
                 if "childCount" in dff.columns:
                     dff = dff.drop("childCount")
             except Exception as e:
-                noti = create_notification(
-                    message=f"Error loading {csv_file_path}: {e}", position="center"
-                )
+                noti = create_notification(message=f"Error loading {csv_file_path}: {e}", position="center")
                 return no_update, noti
 
             dir_path = (
@@ -316,7 +275,6 @@ class Uploader:
             Output("aggrid-table", "columnDefs", allow_duplicate=True),
             Output("aggrid-table", "dashGridOptions", allow_duplicate=True),
             Output("total-row-count", "children", allow_duplicate=True),
-            # Output("csv-file-path", "children", allow_duplicate=True),
             Output("flex-layout", "model", allow_duplicate=True),
             Output("csv-mod-time", "data", allow_duplicate=True),
             Output("notifications", "children", allow_duplicate=True),
@@ -345,24 +303,11 @@ class Uploader:
                     patched_dashGridOptions["treeData"] = False
 
                 except Exception as e:
-                    noti = create_notification(
-                        message=f"Read Data Error: {e}", position="center"
-                    )
-                    return (
-                        no_update,
-                        no_update,
-                        no_update,
-                        no_update,
-                        no_update,
-                        noti,
-                        False,
-                        False,
-                    )
+                    noti = create_notification(message=f"Read Data Error: {e}", position="center")
+                    return (no_update, no_update, no_update, no_update, no_update, noti, False, False)
                 mod_time = os.path.getmtime(file_path)
                 patched_layout_model = Patch()
-                patched_layout_model["layout"]["children"][0]["children"][0][
-                    "name"
-                ] = file_path
+                patched_layout_model["layout"]["children"][0]["children"][0]["name"] = file_path
 
                 return (
                     generate_column_definitions(df),
@@ -375,13 +320,4 @@ class Uploader:
                     False,
                 )
 
-            return (
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-                no_update,
-                None,
-                no_update,
-                False,
-            )
+            return (no_update, no_update, no_update, no_update, no_update, None, no_update, False)

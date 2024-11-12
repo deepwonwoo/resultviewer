@@ -18,41 +18,20 @@ def apply_filters(df, request):
         if condition["filterType"] == "boolean":
             return df.filter(pl.col(col) == condition["type"])
 
-        if filter_type in [
-            "contains",
-            "notContains",
-            "startsWith",
-            "notStartsWith",
-            "endsWith",
-            "notEndsWith",
-        ]:
+        if filter_type in ["contains", "notContains", "startsWith", "notStartsWith", "endsWith", "notEndsWith"]:
             method = getattr(pl.col(col).str, filter_type.replace("not", "").lower())
-            expr = (
-                method(filter_value)
-                if "not" not in filter_type
-                else ~method(filter_value)
-            )
+            expr = method(filter_value) if "not" not in filter_type else ~method(filter_value)
             return df.filter(expr)
 
         if filter_type in ["equals", "notEqual"]:
-            return df.filter(
-                pl.col(col) == filter_value
-                if filter_type == "equals"
-                else pl.col(col) != filter_value
-            )
+            return df.filter(pl.col(col) == filter_value if filter_type == "equals" else pl.col(col) != filter_value)
 
         if filter_type in ["blank", "notBlank"]:
-            return df.filter(
-                pl.col(col).is_null()
-                if filter_type == "blank"
-                else pl.col(col).is_not_null()
-            )
+            return df.filter(pl.col(col).is_null() if filter_type == "blank" else pl.col(col).is_not_null())
 
         if condition["filterType"] == "number":
             if filter_type == "inRange":
-                return df.filter(
-                    pl.col(col).is_between(filter_value, condition.get("filterTo"))
-                )
+                return df.filter(pl.col(col).is_between(filter_value, condition.get("filterTo")))
             comparisons = {
                 "greaterThanOrEqual": ">=",
                 "lessThanOrEqual": "<=",
@@ -61,9 +40,7 @@ def apply_filters(df, request):
                 "notEqual": "!=",
                 "equals": "==",
             }
-            return df.filter(
-                eval(f"pl.col(col) {comparisons[filter_type]} filter_value")
-            )
+            return df.filter(eval(f"pl.col(col) {comparisons[filter_type]} filter_value"))
 
         return df
 
@@ -78,9 +55,7 @@ def apply_filters(df, request):
         elif operator == "OR":
             filtered_dfs = [
                 (
-                    process_conditions(
-                        df.clone(), condition["conditions"], condition["type"]
-                    )
+                    process_conditions(df.clone(), condition["conditions"], condition["type"])
                     if "conditions" in condition
                     else apply_filter_condition(df.clone(), condition)
                 )
@@ -94,9 +69,7 @@ def apply_filters(df, request):
         df = (
             apply_filter_condition(df, filterModel)
             if "colId" in filterModel
-            else process_conditions(
-                df, filterModel["conditions"], filterModel.get("type", "AND")
-            )
+            else process_conditions(df, filterModel["conditions"], filterModel.get("type", "AND"))
         )
         SSDF.filtered_row_count = len(df)
         return df
@@ -136,37 +109,25 @@ def apply_group(df, request):
                     else:
                         df = df.filter(pl.col(groupBy[i]) == groupKeys[i])
                         if i + 1 < len(groupBy):
-                            group_counts_next = df.group_by(groupBy[i + 1]).agg(
-                                pl.len().alias("count")
-                            )
+                            group_counts_next = df.group_by(groupBy[i + 1]).agg(pl.len().alias("count"))
                             total_count = len(group_counts_next["count"])
-                            additional_hier_group_info += (
-                                f"{groupKeys[i]}: {total_count}, "
-                            )
+                            additional_hier_group_info += f"{groupKeys[i]}: {total_count}, "
                 if additional_hier_group_info.endswith(", "):
                     row_counter_groupby += additional_hier_group_info[:-2] + ")"
 
                 if len(groupKeys) != len(groupBy):
-                    group_counts = df.group_by(groupBy[: len(groupKeys) + 1]).agg(
-                        pl.len().alias("childCount")
-                    )
+                    group_counts = df.group_by(groupBy[: len(groupKeys) + 1]).agg(pl.len().alias("childCount"))
                     df_agg = (
-                        df.group_by(
-                            groupBy[: len(groupKeys) + 1], maintain_order=True
-                        ).agg(
+                        df.group_by(groupBy[: len(groupKeys) + 1], maintain_order=True).agg(
                             [
                                 agg_function_mapping[agg_func](col_name).alias(col_name)
                                 for col_name, agg_func in agg.items()
                             ]
                         )
                         if agg
-                        else df.group_by(
-                            groupBy[: len(groupKeys) + 1], maintain_order=True
-                        ).agg([pl.col("*").first()])
+                        else df.group_by(groupBy[: len(groupKeys) + 1], maintain_order=True).agg([pl.col("*").first()])
                     )
-                    df = df_agg.join(
-                        group_counts, on=groupBy[: len(groupKeys) + 1], how="left"
-                    )
+                    df = df_agg.join(group_counts, on=groupBy[: len(groupKeys) + 1], how="left")
                     if "waiver" in df.columns and "waiver" not in groupBy:
                         df = df.drop("waiver").with_columns(pl.lit("").alias("waiver"))
                     df = df.with_columns(pl.lit(True).alias("group"))
@@ -178,15 +139,10 @@ def apply_group(df, request):
 
                 df_agg = (
                     df.group_by(groupBy[: len(groupKeys) + 1], maintain_order=True).agg(
-                        [
-                            agg_function_mapping[agg_func](col_name).alias(col_name)
-                            for col_name, agg_func in agg.items()
-                        ]
+                        [agg_function_mapping[agg_func](col_name).alias(col_name) for col_name, agg_func in agg.items()]
                     )
                     if agg
-                    else df.group_by(groupBy[0], maintain_order=True).agg(
-                        [pl.first("*")]
-                    )
+                    else df.group_by(groupBy[0], maintain_order=True).agg([pl.first("*")])
                 )
                 df = df_agg.join(group_counts, on=groupBy[0], how="left")
                 if "waiver" in df.columns and "waiver" not in groupBy:
@@ -208,16 +164,8 @@ def apply_sort(df, request):
         return df
 
     try:
-        sorting = [
-            sort["colId"]
-            for sort in sort_model
-            if sort["colId"] != "ag-Grid-AutoColumn"
-        ]
-        asc = [
-            sort["sort"] == "asc"
-            for sort in sort_model
-            if sort["colId"] != "ag-Grid-AutoColumn"
-        ]
+        sorting = [sort["colId"] for sort in sort_model if sort["colId"] != "ag-Grid-AutoColumn"]
+        asc = [sort["sort"] == "asc" for sort in sort_model if sort["colId"] != "ag-Grid-AutoColumn"]
         groupBy = [col["id"] for col in request.get("rowGroupCols", [])]
 
         if groupBy and "childCount" in df.columns:
@@ -229,9 +177,7 @@ def apply_sort(df, request):
             if group_sort:
                 df = df.sort(by=["childCount"], descending=not group_asc[0])
             elif non_group_sort:
-                df = df.with_columns(
-                    [pl.col(col).cast(pl.Utf8) for col in non_group_sort]
-                )
+                df = df.with_columns([pl.col(col).cast(pl.Utf8) for col in non_group_sort])
                 df = df.sort(non_group_sort, descending=[not a for a in non_group_asc])
         else:
             df = df.sort(

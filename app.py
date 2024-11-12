@@ -19,13 +19,7 @@ parser.add_argument("-lib", "--lib", default="", help="사용할 라이브러리
 parser.add_argument("-cell", "--cell", default="", help="셀 정보")
 args = parser.parse_args()
 SSDF.init_csv = args.csv
-SSDF.cp = {
-    "host": args.host,
-    "port": args.port,
-    "lib": args.lib,
-    "cell": args.cell,
-    "tool": args.tool,
-}
+SSDF.cp = {"host": args.host, "port": args.port, "lib": args.lib, "cell": args.cell, "tool": args.tool}
 
 
 def create_dash_app():
@@ -47,7 +41,7 @@ app, application = create_dash_app()
 def initialize_ssdf():
     global SSDF
     # 새로운 앱 인스턴스에 대해 SSDF 초기화
-    if request.endpoint == 'dash.index':
+    if request.endpoint == "dash.index":
         SSDF = get_ssdf()
 
 

@@ -35,29 +35,10 @@ class ResultViewer:
                     "selected": 0,
                     "size": 50,
                     "children": [
-                        {
-                            "type": "tab",
-                            "name": "Home",
-                            "component": "button",
-                            "id": "home-item",
-                        },
-                        {
-                            "type": "tab",
-                            "name": "View",
-                            "id": "view-item",
-                        },
-                        {
-                            "type": "tab",
-                            "name": "Edit",
-                            "component": "text",
-                            "id": "edit-item",
-                        },
-                        {
-                            "type": "tab",
-                            "name": "Script",
-                            "component": "text",
-                            "id": "script-item",
-                        },
+                        {"type": "tab", "name": "Home", "component": "button", "id": "home-item"},
+                        {"type": "tab", "name": "View", "id": "view-item"},
+                        {"type": "tab", "name": "Edit", "component": "text", "id": "edit-item"},
+                        {"type": "tab", "name": "Script", "component": "text", "id": "script-item"},
                     ],
                 },
             ],
@@ -67,14 +48,7 @@ class ResultViewer:
                 "children": [
                     {
                         "type": "tabset",
-                        "children": [
-                            {
-                                "type": "text",
-                                "name": "DataGrid",
-                                "component": "grid",
-                                "id": "grid-tab",
-                            }
-                        ],
+                        "children": [{"type": "text", "name": "DataGrid", "component": "grid", "id": "grid-tab"}],
                     }
                 ],
             },
@@ -92,22 +66,14 @@ class ResultViewer:
                 dmc.NotificationProvider(),
                 html.Div(id="notifications"),
                 dcc.Interval(id="check-update-interval", interval=5000),
-                dfl.FlexLayout(
-                    id="flex-layout",
-                    model=layout_config,
-                    children=nodes,
-                    useStateForModel=False,
-                ),
+                dfl.FlexLayout(id="flex-layout", model=layout_config, children=nodes, useStateForModel=False),
             ]
         )
 
     def subInfo(self):
         return dmc.Grid(
             children=[
-                dmc.GridCol(
-                    dmc.ScrollArea(id="footerLeft", scrollbarSize=6, type="auto"),
-                    span=3,
-                ),
+                dmc.GridCol(dmc.ScrollArea(id="footerLeft", scrollbarSize=6, type="auto"), span=3),
                 dmc.GridCol(id="footerRight", span="auto"),
             ]
         )
@@ -121,26 +87,13 @@ class ResultViewer:
 
         @app.callback(Output("aggrid-table", "style"), Input("flex-layout", "model"))
         def flex_layout(layout_config):
-            bottom_borders = [
-                bl for bl in layout_config["borders"] if bl.get("location") == "bottom"
-            ]
+            bottom_borders = [bl for bl in layout_config["borders"] if bl.get("location") == "bottom"]
             bottom_size = (
-                next(
-                    (
-                        bl.get("size", 50)
-                        for bl in bottom_borders
-                        if bl.get("selected", -1) == 0
-                    ),
-                    0,
-                )
+                next((bl.get("size", 50) for bl in bottom_borders if bl.get("selected", -1) == 0), 0)
                 if bottom_borders
                 else -30
             )
-            style = {
-                "height": f"calc(100vh - 180px - 25px - {bottom_size}px)",
-                "width": "100%",
-                "overflow": "auto",
-            }
+            style = {"height": f"calc(100vh - 180px - 25px - {bottom_size}px)", "width": "100%", "overflow": "auto"}
             return style
 
         @app.callback(

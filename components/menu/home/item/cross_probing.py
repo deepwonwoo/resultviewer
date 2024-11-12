@@ -29,11 +29,7 @@ class CrossProber:
             return False
 
     def cp_layout(self):
-        return (
-            self.cp_connected_layout()
-            if self.CP_socket
-            else self.cp_disconnected_layout()
-        )
+        return self.cp_connected_layout() if self.CP_socket else self.cp_disconnected_layout()
 
     def cp_connected_layout(self):
         return dmc.Group(
@@ -49,10 +45,7 @@ class CrossProber:
                                 id="cp-object-segmented",
                                 value="inst",
                                 color="red.5",
-                                data=[
-                                    {"value": "net", "label": "Net"},
-                                    {"value": "inst", "label": "Instance"},
-                                ],
+                                data=[{"value": "net", "label": "Net"}, {"value": "inst", "label": "Instance"}],
                                 size="xs",
                             ),
                             dmc.Select(
@@ -69,16 +62,12 @@ class CrossProber:
                     id="cp-manual-input",
                     placeholder="manual CrossProbing",
                     rightSection=dmc.ActionIcon(
-                        get_icon("bx-send"),
-                        id="cp-manual-button",
-                        size="sm",
-                        color="grey",
-                        variant="outline",
+                        get_icon("bx-send"), id="cp-manual-button", size="sm", color="grey", variant="outline"
                     ),
                     style={"width": 200},
                     size="xs",
                 ),
-            ],
+            ]
         )
 
     def cp_disconnected_layout(self):
@@ -92,24 +81,13 @@ class CrossProber:
                 size="xs",
                 disabled=True,
                 rightSection=dmc.SegmentedControl(
-                    id="cp-object-segmented",
-                    value="",
-                    color="black",
-                    data=[],
-                    size="xs",
-                    fullWidth=True,
+                    id="cp-object-segmented", value="", color="black", data=[], size="xs", fullWidth=True
                 ),
             ),
         )
 
     def layout(self):
-        return dmc.Group(
-            [
-                dmc.Text(f"CrossProbe: ", fw=500, size="sm", c="gray"),
-                self.CP_layout,
-            ],
-            gap=2,
-        )
+        return dmc.Group([dmc.Text(f"CrossProbe: ", fw=500, size="sm", c="gray"), self.CP_layout], gap=2)
 
     def send_message(self, message):
         """Usage:
@@ -119,19 +97,11 @@ class CrossProber:
         """
         try:
             self.CP_socket.sendall(message.encode())
-            return create_notification(
-                message=f"CP command: {message}", title="CrossProbing"
-            )
+            return create_notification(message=f"CP command: {message}", title="CrossProbing")
         except socket.timeout:
-            return create_notification(
-                message="Timed out while sending message",
-                title="CrossProbing",
-                color="red",
-            )
+            return create_notification(message="Timed out while sending message", title="CrossProbing", color="red")
         except Exception as e:
-            return create_notification(
-                message=f"Error: {e}", title="CrossProbing", color="red"
-            )
+            return create_notification(message=f"Error: {e}", title="CrossProbing", color="red")
 
     def close_connection(self):
         if self.CP_socket:
@@ -157,9 +127,7 @@ class CrossProber:
             paths = [remove_initial_x(path) for path in paths]
             s = delimiter.join(paths)
         try:
-            hier_path, name = s.rsplit(
-                delimiter, 1
-            )  # 오른쪽에서부터 문자열을 '.'으로 분리
+            hier_path, name = s.rsplit(delimiter, 1)  # 오른쪽에서부터 문자열을 '.'으로 분리
         except ValueError:  # '.'이 없어서 분리할 수 없는 경우
             hier_path = ""  # hier_path를 빈 문자열로 설정
             name = s  # name에 입력받은 문자열을 그대로 반환
@@ -175,9 +143,7 @@ class CrossProber:
     def cross_probing(self, selected_rows, obj, cp_col):
         logger.info(f"cross_probing! (obj:{obj}, tool:{cp_col})")
         if not obj or not cp_col:
-            noti = create_notification(
-                message="select 'net/instance' or 'column' to crossprobe"
-            )
+            noti = create_notification(message="select 'net/instance' or 'column' to crossprobe")
             return noti, []
 
         selected_row = selected_rows[0]
@@ -203,9 +169,7 @@ class CrossProber:
                 elif group_hier_path.startswith(selected_hier_path):
                     group_hier_path = group_hier_path.replace(selected_hier_path, "")
                     if len(group_hier_path) and group_hier_path[0] == ".":
-                        names.add(
-                            self.remove_init_r_m(obj, group_hier_path.split(".")[1])
-                        )
+                        names.add(self.remove_init_r_m(obj, group_hier_path.split(".")[1]))
 
             if self.current_view == selected_hier_path:
                 # Single Instance CrossProbing
@@ -233,9 +197,7 @@ class CrossProber:
     def register_callbacks(self, app):
 
         @app.callback(
-            Output("cp-column-select", "data"),
-            Input("aggrid-table", "columnDefs"),
-            prevent_initial_call=True,
+            Output("cp-column-select", "data"), Input("aggrid-table", "columnDefs"), prevent_initial_call=True
         )
         def update_cp_columns(columnDefs):
             return [coldef["field"] for coldef in columnDefs]
@@ -276,20 +238,3 @@ class CrossProber:
                 noti = self.send_message(cp_command)
                 return noti
             return None
-
-        # @app.callback(
-        #     Output("notifications", "children", allow_duplicate=True),
-        #     Output("cp_selected_rows", "selectedRows", allow_duplicate=True),
-        #     Input("cp_selected_rows", "selectedRows"),
-        #     State("el", "event"),
-        #     State("cp-object-segmented", "value"),
-        #     State("cp-column-select", "value"),
-        #     prevent_initial_call=True,
-        # )
-        # def get_selected_row(selected_rows, event, obj, cp_col):
-        #     if not selected_rows or event.get("button") != 1:
-        #         return None, []
-        #     elif self.CP_socket:
-        #         return self.cross_probing(selected_rows, obj, cp_col)
-        #     else:
-        #         return None, []

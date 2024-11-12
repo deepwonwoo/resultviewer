@@ -1,5 +1,4 @@
 import dash_mantine_components as dmc
-from dash import html
 from components.menu.script.item.chart_editor import ChartEditor
 from components.menu.script.item.data_comparison import Compare
 from components.menu.script.item.rule_table import RuleTable

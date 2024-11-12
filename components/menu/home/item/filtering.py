@@ -48,9 +48,7 @@ class Filter:
             else:
                 operator = operator_map.get(condition["type"], condition["type"])
                 filter_value = (
-                    f'"{condition["filter"]}"'
-                    if isinstance(condition["filter"], str)
-                    else condition["filter"]
+                    f'"{condition["filter"]}"' if isinstance(condition["filter"], str) else condition["filter"]
                 )
                 return f"[{condition['colId']}] {operator} {filter_value}"
 
@@ -107,34 +105,13 @@ class Filter:
                 dmc.Space(h=20),
                 dmc.Group(
                     [
-                        dmc.Button(
-                            "Clear Filters",
-                            color="blue",
-                            variant="outline",
-                            id=CLEAR_FILTERS,
-                        ),
-                        dmc.Button(
-                            "Preview",
-                            color="green",
-                            variant="outline",
-                            id=FILTER_PREVIEW,
-                        ),
-                        dmc.Button(
-                            "Apply",
-                            color="indigo",
-                            variant="outline",
-                            id=APPLY_FILTER,
-                        ),
-                        dmc.Button(
-                            "Close",
-                            color="red",
-                            variant="outline",
-                            id=CLOSE_FILTER_STORAGE,
-                        ),
-                    ],
+                        dmc.Button("Clear Filters", color="blue", variant="outline", id=CLEAR_FILTERS),
+                        dmc.Button("Preview", color="green", variant="outline", id=FILTER_PREVIEW),
+                        dmc.Button("Apply", color="indigo", variant="outline", id=APPLY_FILTER),
+                        dmc.Button("Close", color="red", variant="outline", id=CLOSE_FILTER_STORAGE),
+                    ]
                 ),
                 dmc.Space(h=20),
-                # dmc.Text("Filter History:", weight=500),
                 dmc.List([], id="filter-history", size="sm"),
             ],
         )
@@ -154,9 +131,7 @@ class Filter:
                 return True, None
             except Exception as e:
                 logger.error(f"Error opening filter storage: {str(e)}")
-                return False, create_notification(
-                    f"Error: {str(e)}", "Filter Storage Error", "red"
-                )
+                return False, create_notification(f"Error: {str(e)}", "Filter Storage Error", "red")
 
         @app.callback(
             Output("saved-filter-models", "children"),
@@ -178,9 +153,7 @@ class Filter:
                 )
             except Exception as e:
                 logger.error(f"Error storing filter condition: {str(e)}")
-                return no_update, create_notification(
-                    f"Error: {str(e)}", "Filter Storage Error", "red"
-                )
+                return no_update, create_notification(f"Error: {str(e)}", "Filter Storage Error", "red")
 
         @app.callback(
             Output("advancedFilterModel-store", "data", allow_duplicate=True),
@@ -192,14 +165,10 @@ class Filter:
             if n_clicks is None or n_clicks == 0:
                 raise exceptions.PreventUpdate
             try:
-                return None, create_notification(
-                    "Filters cleared", "Filters Cleared", "blue"
-                )
+                return None, create_notification("Filters cleared", "Filters Cleared", "blue")
             except Exception as e:
                 logger.error(f"Error clearing filters: {str(e)}")
-                return no_update, create_notification(
-                    f"Error: {str(e)}", "Clear Filters Error", "red"
-                )
+                return no_update, create_notification(f"Error: {str(e)}", "Clear Filters Error", "red")
 
         @app.callback(
             Output("notifications", "children", allow_duplicate=True),
@@ -216,11 +185,7 @@ class Filter:
                     return create_notification("No data loaded", "Preview Error", "red")
                 filter_expr = self.filter_model_to_expression(filter_model)
                 filtered_df = df.filter(filter_expr)
-                return create_notification(
-                    f"Filter would return {len(filtered_df)} rows",
-                    "Filter Preview",
-                    "blue",
-                )
+                return create_notification(f"Filter would return {len(filtered_df)} rows", "Filter Preview", "blue")
             except Exception as e:
                 logger.error(f"Error previewing filter: {str(e)}")
                 return create_notification(f"Error: {str(e)}", "Preview Error", "red")
@@ -245,19 +210,11 @@ class Filter:
                 return (
                     filter_model,
                     new_history,
-                    create_notification(
-                        "Filter applied successfully", "Filter Applied", "green"
-                    ),
+                    create_notification("Filter applied successfully", "Filter Applied", "green"),
                 )
             except Exception as e:
                 logger.error(f"Error applying filter: {str(e)}")
-                return (
-                    no_update,
-                    no_update,
-                    create_notification(
-                        f"Error: {str(e)}", "Apply Filter Error", "red"
-                    ),
-                )
+                return (no_update, no_update, create_notification(f"Error: {str(e)}", "Apply Filter Error", "red"))
 
     def load_filters(self):
         if os.path.exists(self.filter_yaml):

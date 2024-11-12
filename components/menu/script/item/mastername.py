@@ -27,7 +27,7 @@ class MasterName:
                     size="xs",
                 ),
                 self.modal(),
-            ],
+            ]
         )
 
     def modal(self):
@@ -57,10 +57,7 @@ class MasterName:
                                         n_clicks=0,
                                     ),
                                     rightSection=dmc.Button(
-                                        "Upload",
-                                        id="upload-ckt-file-btn",
-                                        style={"width": 100},
-                                        n_clicks=0,
+                                        "Upload", id="upload-ckt-file-btn", style={"width": 100}, n_clicks=0
                                     ),
                                     rightSectionWidth=100,
                                     required=True,
@@ -76,8 +73,8 @@ class MasterName:
                                             disabled=True,
                                             required=True,
                                             error=False,
-                                        ),
-                                    ],
+                                        )
+                                    ]
                                 ),
                             ],
                             shadow="sm",
@@ -95,12 +92,7 @@ class MasterName:
                                 dmc.Group(
                                     children=[
                                         dmc.RadioGroup(
-                                            children=dmc.Group(
-                                                [
-                                                    dmc.Radio(i, value=i)
-                                                    for i in ["net", "instance"]
-                                                ],
-                                            ),
+                                            children=dmc.Group([dmc.Radio(i, value=i) for i in ["net", "instance"]]),
                                             id="masterName-df-type-radioGroup",
                                             label="Select column type",
                                             size="xs",
@@ -108,12 +100,7 @@ class MasterName:
                                             required=True,
                                         ),
                                         dmc.RadioGroup(
-                                            children=dmc.Group(
-                                                [
-                                                    dmc.Radio(i, value=i)
-                                                    for i in [".", "/"]
-                                                ],
-                                            ),
+                                            children=dmc.Group([dmc.Radio(i, value=i) for i in [".", "/"]]),
                                             id="masterName-delimiter-radioGroup",
                                             label="Select delimiter",
                                             size="xs",
@@ -129,12 +116,7 @@ class MasterName:
                             withBorder=True,
                         ),
                         dmc.Button(
-                            "Run PERC",
-                            id="run-perc-btn",
-                            variant="outline",
-                            fullWidth=True,
-                            disabled=True,
-                            mt=15,
+                            "Run PERC", id="run-perc-btn", variant="outline", fullWidth=True, disabled=True, mt=15
                         ),
                     ],
                     withBorder=True,
@@ -180,9 +162,7 @@ class MasterName:
             try:
                 self.top_cell_names = extract_subckt_names(ckt_file_path)
             except Exception as e:
-                noti = create_notification(
-                    message=f"Error loading {ckt_file_path}: {e}", position="center"
-                )
+                noti = create_notification(message=f"Error loading {ckt_file_path}: {e}", position="center")
                 return no_update, True, noti
 
             return self.top_cell_names[0], False, None
@@ -222,16 +202,11 @@ class MasterName:
                 return True, predicted_delimiter
 
             if selected_column:
-                is_hierarchy, predicted_delimiter = check_hierarchy_column(
-                    selected_column
-                )
+                is_hierarchy, predicted_delimiter = check_hierarchy_column(selected_column)
                 if is_hierarchy:
                     return predicted_delimiter, ""
                 else:
-                    return (
-                        no_update,
-                        "Selected column is not a hierarchy path. Please select another column.",
-                    )
+                    return (no_update, "Selected column is not a hierarchy path. Please select another column.")
 
             raise exceptions.PreventUpdate
 
@@ -244,14 +219,8 @@ class MasterName:
             Input("ckt-top-subckt-textinput", "value"),
             prevent_initial_call=True,
         )
-        def activate_run_perc_btn(
-            type, delimiter, column, ckt_file_path, top_cell_name
-        ):
-            return (
-                False
-                if type and delimiter and column and ckt_file_path and top_cell_name
-                else True
-            )
+        def activate_run_perc_btn(type, delimiter, column, ckt_file_path, top_cell_name):
+            return False if type and delimiter and column and ckt_file_path and top_cell_name else True
 
         app.clientside_callback(
             """
@@ -271,9 +240,7 @@ class MasterName:
         )
         def check_perc_log(n):
             PERC_log = os.path.join(CONFIG.USER_RV_DIR, "PERC", "logs", "perc.log")
-            return dmc.Alert(
-                dmc.Text(os.path.abspath(PERC_log), fw=700), title="Check PERC Log:"
-            )
+            return dmc.Alert(dmc.Text(os.path.abspath(PERC_log), fw=700), title="Check PERC Log:")
 
         @app.callback(
             Output("masterName-modal", "opened", allow_duplicate=True),
@@ -307,21 +274,12 @@ class MasterName:
                 for entry in dff[column]:
                     f.write(f"{entry}\n")
 
-            proc = subprocess.run(
-                [f"./run_block_xr {ckt_file_path} {top_cell_name}"],
-                shell=True,
-                cwd=PERC_WORKSPACE,
-            )
+            proc = subprocess.run([f"./run_block_xr {ckt_file_path} {top_cell_name}"], shell=True, cwd=PERC_WORKSPACE)
 
             if proc.returncode == 0:
-                df_perc = pl.read_csv(
-                    f"{PERC_WORKSPACE}/results/instance_master_names.csv",
-                    has_header=False,
-                )
+                df_perc = pl.read_csv(f"{PERC_WORKSPACE}/results/instance_master_names.csv", has_header=False)
                 df_perc = df_perc.rename({"column_2": "Full Master Name"})
-                dff = dff.with_columns(
-                    pl.col(column).str.to_uppercase().alias("join_column")
-                )
+                dff = dff.with_columns(pl.col(column).str.to_uppercase().alias("join_column"))
                 dff = dff.join(df_perc, left_on="join_column", right_on="column_1")
                 SSDF.dataframe = dff.drop("join_column")
                 updated_columnDefs = generate_column_definitions(SSDF.dataframe)

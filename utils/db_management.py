@@ -1,17 +1,15 @@
 import os
-#import pwd
+
+# import pwd
 import polars as pl
 from filelock import SoftFileLock
 from typing import Dict, Any, List, Optional
 from utils.file_operations import get_viewers_from_lock_file
 
+
 class DataFrameManager:
     def __init__(self):
-        self._data: Dict[str, Any] = {
-            "df": pl.DataFrame(),
-            "lock": None,
-            "readonly": True,
-        }
+        self._data: Dict[str, Any] = {"df": pl.DataFrame(), "lock": None, "readonly": True}
         self._row_counter: Dict[str, int] = {"filtered": 0, "groupby": 0}
         self._cache: Dict[str, Any] = {
             "REQUEST": {},
@@ -68,7 +66,7 @@ class DataFrameManager:
             viewers = get_viewers_from_lock_file(lock.lock_file)
             current_user = os.getenv("USER")
             lock_filename = os.path.basename(lock.lock_file)
-            #viewers = [pwd.getpwnam(viewer).pw_uid for viewer in viewers]
+            # viewers = [pwd.getpwnam(viewer).pw_uid for viewer in viewers]
             viewers = []
 
             lock.release()
@@ -184,6 +182,7 @@ class DataFrameManager:
     @js.setter
     def js(self, value: Dict) -> None:
         self._cache["js"] = value
+
 
 # 전역 SSDF 객체를 함수로 대체
 def get_ssdf():

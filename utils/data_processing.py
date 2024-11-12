@@ -41,11 +41,7 @@ def process_dataframe(df):
                 df = df.with_columns(pl.col(col).str.strip_chars().alias(col))
             df = df.with_columns(pl.col(col).cast(pl.Float64()).alias(col))
             df = df.with_columns(
-                pl.col(col)
-                .replace(float("inf"), -99999)
-                .fill_null(-99999)
-                .fill_nan(-99999)
-                .alias(col)
+                pl.col(col).replace(float("inf"), -99999).fill_null(-99999).fill_nan(-99999).alias(col)
             )
             if df[col].dtype == pl.Float64:
                 if (df[col] == df[col].cast(pl.Int64())).sum() == len(df[col]):
@@ -64,29 +60,15 @@ def validate_df(filename):
             logger.error(f"Fail to read parquet: {e}")
     else:
         try:
-            df = pl.read_csv(
-                filename,
-                ignore_errors=True,
-                infer_schema_length=0,
-                separator=detect_separator(filename),
-            )
+            df = pl.read_csv(filename, ignore_errors=True, infer_schema_length=0, separator=detect_separator(filename))
         except pl.PolarsError as e:
             if "truncate_ragged_lines=True" in str(e):
-                df = pl.read_csv(
-                    filename,
-                    ignore_errors=True,
-                    infer_schema_length=0,
-                    truncate_ragged_lines=True,
-                )
+                df = pl.read_csv(filename, ignore_errors=True, infer_schema_length=0, truncate_ragged_lines=True)
     return process_dataframe(df).with_row_index("uniqid")
 
 
 def validate_js(json_file):
-    return (
-        pl.read_parquet(json_file)
-        if json_file.endswith(".parquet")
-        else pl.read_json(json_file)
-    )
+    return pl.read_parquet(json_file) if json_file.endswith(".parquet") else pl.read_json(json_file)
 
 
 def displaying_df(filtred_apply=False):

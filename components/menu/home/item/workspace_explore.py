@@ -22,7 +22,6 @@ class FileExplorer:
     def layout(self) -> html.Div:
         return html.Div(
             [
-                
                 dcc.Store(id=f"{self.id_prefix}stored_cwd", data=CONFIG.WORKSPACE),
                 dmc.Group(
                     [
@@ -43,23 +42,22 @@ class FileExplorer:
                     justify="flex-start",
                     gap="sm",
                 ),
-                # dmc.TextInput(placeholder="Search files...", leftSection=get_icon("bx-file-find"), id=f"{self.id_prefix}search_input", mt=10, mb=10),
-                
-                dmc.Group([
-                    dmc.TextInput(
-                        placeholder="Search files...",
-                        leftSection=get_icon("bx-file-find"),
-                        id=f"{self.id_prefix}search_input",
-                        style={"width": "80%"}
-                    ),
-                    dmc.Button("Search", id=f"{self.id_prefix}search_button")
-                ], mt=10, mb=10),
+                dmc.Group(
+                    [
+                        dmc.TextInput(
+                            placeholder="Search files...",
+                            leftSection=get_icon("bx-file-find"),
+                            id=f"{self.id_prefix}search_input",
+                            style={"width": "80%"},
+                        ),
+                        dmc.Button("Search", id=f"{self.id_prefix}search_button"),
+                    ],
+                    mt=10,
+                    mb=10,
+                ),
                 html.Div(
                     id=f"{self.id_prefix}cwd_files",
-                    style={
-                        "height": "auto" if self.id_prefix else 500,
-                        "overflow": "scroll",
-                    },
+                    style={"height": "auto" if self.id_prefix else 500, "overflow": "scroll"},
                 ),
                 dmc.Pagination(id=f"{self.id_prefix}pagination", total=1, value=1, siblings=1, boundaries=1),
             ]
@@ -80,10 +78,7 @@ class FileExplorer:
         details["filename"] = html.A(
             path.name,
             href="#",
-            id={
-                "type": f"{self.id_prefix}open-workspace-file",
-                "index": file_path,
-            },
+            id={"type": f"{self.id_prefix}open-workspace-file", "index": file_path},
             title=file_path.replace(CONFIG.WORKSPACE, "WORKSPACE"),
             n_clicks=0,
         )
@@ -102,21 +97,12 @@ class FileExplorer:
 
         return dmc.ButtonGroup(
             [
-                dcc.Store(
-                    id={
-                        "type": f"{self.id_prefix}refresh-flag",
-                        "index": file_path,
-                    },
-                    data=False,
-                ),
+                dcc.Store(id={"type": f"{self.id_prefix}refresh-flag", "index": file_path}, data=False),
                 dmc.Tooltip(
                     dmc.ActionIcon(
                         get_icon("copy"),
                         variant="transparent",
-                        id={
-                            "type": f"{self.id_prefix}copy-workspace-file",
-                            "index": file_path,
-                        },
+                        id={"type": f"{self.id_prefix}copy-workspace-file", "index": file_path},
                         n_clicks=0,
                     ),
                     label="Copy",
@@ -129,16 +115,13 @@ class FileExplorer:
                                 dmc.ActionIcon(
                                     get_icon("rename"),
                                     variant="subtle",
-                                    id={
-                                        "type": f"{self.id_prefix}rename-workspace-file",
-                                        "index": file_path,
-                                    },
+                                    id={"type": f"{self.id_prefix}rename-workspace-file", "index": file_path},
                                     n_clicks=0,
                                     disabled=not has_permission,
                                 ),
                                 label="Rename" if has_permission else "No permission to rename",
                                 openDelay=500,
-                            ),
+                            )
                         ),
                         dmc.MenuDropdown(
                             [
@@ -163,23 +146,19 @@ class FileExplorer:
                         ),
                     ],
                     disabled=not has_permission,
-
                 ),
                 dmc.Tooltip(
                     dmc.ActionIcon(
                         get_icon("remove"),
                         variant="subtle",
-                        id={
-                            "type": f"{self.id_prefix}remove-workspace-file",
-                            "index": file_path,
-                        },
+                        id={"type": f"{self.id_prefix}remove-workspace-file", "index": file_path},
                         n_clicks=0,
                         disabled=not has_permission,
                     ),
                     label="Remove" if has_permission else "No permission to remove",
                     openDelay=500,
                 ),
-            ],
+            ]
         )
 
     def file_info(self, path):
@@ -232,25 +211,27 @@ class FileExplorer:
         @app.callback(
             Output(f"{self.id_prefix}cwd_files", "children"),
             Output(f"{self.id_prefix}pagination", "total"),
-
             Input(f"{self.id_prefix}cwd", "children"),
             Input(f"{self.id_prefix}search_button", "n_clicks"),
-
             Input(f"{self.id_prefix}pagination", "value"),
-
             Input({"type": f"{self.id_prefix}refresh-flag", "index": ALL}, "data"),
             State(f"{self.id_prefix}search_input", "value"),
             prevent_initial_call=True,
         )
         def list_cwd_files(cwd, n_clicks, page, refresh_ns, search_pattern):
-            if ctx.triggered_id and isinstance(ctx.triggered_id, dict) and ctx.triggered_id.get("type") == f"{self.id_prefix}refresh-flag" and sum(refresh_ns) == 0:
+            if (
+                ctx.triggered_id
+                and isinstance(ctx.triggered_id, dict)
+                and ctx.triggered_id.get("type") == f"{self.id_prefix}refresh-flag"
+                and sum(refresh_ns) == 0
+            ):
                 return no_update
 
             if cwd and cwd.startswith("WORKSPACE"):
                 cwd = cwd.replace("WORKSPACE", CONFIG.WORKSPACE)
             else:
                 cwd = ""
-            
+
             if ctx.triggered_id == f"{self.id_prefix}search_button" and search_pattern:
                 all_file_details = self.search_files(cwd, search_pattern)
             else:
@@ -285,10 +266,7 @@ class FileExplorer:
                             details["filename"] = html.A(
                                 file,
                                 href="#",
-                                id={
-                                    "type": f"{self.id_prefix}open-workspace-file",
-                                    "index": full_path,
-                                },
+                                id={"type": f"{self.id_prefix}open-workspace-file", "index": full_path},
                                 title=full_path.replace(CONFIG.WORKSPACE, "WORKSPACE"),
                                 n_clicks=0,
                             )
@@ -297,20 +275,13 @@ class FileExplorer:
                                 details["option"] = dmc.ButtonGroup(
                                     [
                                         dcc.Store(
-                                            id={
-                                                "type": f"{self.id_prefix}refresh-flag",
-                                                "index": full_path,
-                                            },
-                                            data=False,
+                                            id={"type": f"{self.id_prefix}refresh-flag", "index": full_path}, data=False
                                         ),
                                         dmc.Tooltip(
                                             dmc.ActionIcon(
                                                 get_icon("copy"),
                                                 variant="transparent",
-                                                id={
-                                                    "type": f"{self.id_prefix}copy-workspace-file",
-                                                    "index": full_path,
-                                                },
+                                                id={"type": f"{self.id_prefix}copy-workspace-file", "index": full_path},
                                                 n_clicks=0,
                                             ),
                                             label="Copy",
@@ -331,7 +302,7 @@ class FileExplorer:
                                                         ),
                                                         label="Rename",
                                                         openDelay=500,
-                                                    ),
+                                                    )
                                                 ),
                                                 dmc.MenuDropdown(
                                                     [
@@ -369,15 +340,13 @@ class FileExplorer:
                                             label="Remove",
                                             openDelay=500,
                                         ),
-                                    ],
+                                    ]
                                 )
 
                             details["icon"] = get_icon("bx-file")
 
                         all_file_details.append(details)
 
-
-           
             table_header = [
                 dmc.TableThead(
                     dmc.TableTr(
@@ -398,7 +367,7 @@ class FileExplorer:
             start = (page - 1) * items_per_page
             end = start + items_per_page
             paginated_files = all_file_details[start:end]
-            
+
             table_body = [
                 dmc.TableTr(
                     [
@@ -439,16 +408,12 @@ class FileExplorer:
                 Output("aggrid-table", "columnDefs", allow_duplicate=True),
                 Output("aggrid-table", "dashGridOptions", allow_duplicate=True),
                 Output("total-row-count", "children", allow_duplicate=True),
-                # Output("csv-file-path", "children", allow_duplicate=True),
                 Output("flex-layout", "model", allow_duplicate=True),
                 Output("csv-mod-time", "data", allow_duplicate=True),
                 Output("notifications", "children", allow_duplicate=True),
                 Input({"type": "open-workspace-file", "index": ALL}, "n_clicks"),
                 Input({"type": "copy-workspace-file", "index": ALL}, "n_clicks"),
-                Input(
-                    {"type": "rename-workspace-file-confirm-btn", "index": ALL},
-                    "n_clicks",
-                ),
+                Input({"type": "rename-workspace-file-confirm-btn", "index": ALL}, "n_clicks"),
                 Input({"type": "remove-workspace-file", "index": ALL}, "n_clicks"),
                 State({"type": "rename-workspace-file-newfilename", "index": ALL}, "value"),
                 prevent_initial_call=True,
@@ -494,7 +459,9 @@ class FileExplorer:
                         ret_dashGridOptions = patched_dashGridOptions
                         ret_total_row_count = f"Total Rows: {len(df)}"
                         ret_display_file_path = Patch()
-                        ret_display_file_path["layout"]["children"][0]["children"][0]["name"] = file_path.replace(CONFIG.WORKSPACE, "WORKSPACE")
+                        ret_display_file_path["layout"]["children"][0]["children"][0]["name"] = file_path.replace(
+                            CONFIG.WORKSPACE, "WORKSPACE"
+                        )
 
                         ret_csv_mod_time = os.path.getmtime(file_path)
 
@@ -555,11 +522,7 @@ class FileExplorer:
 
                 except Exception as e:
                     logger.debug(f"Error: {e}")
-                    ret_noti = create_notification(
-                        message=f"Error: {e}",
-                        position="center",
-                        icon_name="bx-info-circle",
-                    )
+                    ret_noti = create_notification(message=f"Error: {e}", position="center", icon_name="bx-info-circle")
 
                 return (
                     ret_refresh_flags,
@@ -570,6 +533,4 @@ class FileExplorer:
                     ret_display_file_path,
                     ret_csv_mod_time,
                     ret_noti,
-                    # ret_mode_value,
-                    # ret_mode_disable,
                 )

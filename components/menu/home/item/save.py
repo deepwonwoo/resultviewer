@@ -14,22 +14,10 @@ class Saver:
     def layout(self) -> dmc.Menu:
         return dmc.Menu(
             [
-                dmc.MenuTarget(
-                    dmc.Button(
-                        "Save",
-                        variant="outline",
-                        color="indigo",
-                        size="xs",
-                    )
-                ),
+                dmc.MenuTarget(dmc.Button("Save", variant="outline", color="indigo", size="xs")),
                 dmc.MenuDropdown(
                     [
-                        dmc.MenuItem(
-                            "Save as",
-                            id="save-local-btn",
-                            n_clicks=0,
-                            leftSection=get_icon("bx-save"),
-                        ),
+                        dmc.MenuItem("Save as", id="save-local-btn", n_clicks=0, leftSection=get_icon("bx-save")),
                         dmc.MenuItem(
                             "Save to WORKSPACE",
                             id="save-workspace-btn",
@@ -45,27 +33,14 @@ class Saver:
                     opened=False,
                     size="55%",
                     children=[
-                        dmc.Checkbox(
-                            label="filtred data only",
-                            size="xs",
-                            checked=False,
-                            id="filtered-save-as",
-                        ),
+                        dmc.Checkbox(label="filtred data only", size="xs", checked=False, id="filtered-save-as"),
                         dmc.TextInput(
                             value="",
                             label="type in the path of CSV file to Save",
                             leftSection=dmc.ActionIcon(
-                                get_icon("bx-file-find"),
-                                id="save-csv-file-search",
-                                variant="subtle",
-                                n_clicks=0,
+                                get_icon("bx-file-find"), id="save-csv-file-search", variant="subtle", n_clicks=0
                             ),
-                            rightSection=dmc.Button(
-                                "Save",
-                                id="save-csv-local-btn",
-                                style={"width": 100},
-                                n_clicks=0,
-                            ),
+                            rightSection=dmc.Button("Save", id="save-csv-local-btn", style={"width": 100}, n_clicks=0),
                             rightSectionWidth=100,
                             required=True,
                             id="save-csv-path-input",
@@ -86,7 +61,6 @@ class Saver:
         @app.callback(
             Output("saver-notification", "children", allow_duplicate=True),
             Input("save-workspace-btn", "n_clicks"),
-            # State("csv-file-path", "children"),
             State("flex-layout", "model"),
             prevent_initial_call=True,
         )
@@ -97,19 +71,13 @@ class Saver:
 
             if displaying_df() is None:
                 print("save_csv_workspace_noti2")
-                return create_notification(
-                    message="No Dataframe loaded", position="center"
-                )
+                return create_notification(message="No Dataframe loaded", position="center")
             elif not csv_file_path.startswith("WORKSPACE"):
                 print("save_csv_workspace_noti3")
-                return create_notification(
-                    message="data is not from WORKSPACE", position="center"
-                )
+                return create_notification(message="data is not from WORKSPACE", position="center")
             elif SSDF.is_readonly:
                 print("save_csv_workspace_noti4")
-                return create_notification(
-                    message="file is READ ONLY mode", position="center"
-                )
+                return create_notification(message="file is READ ONLY mode", position="center")
             print("save_csv_workspace_noti5")
             return dmc.Notification(
                 id="save-workspace-noti",
@@ -119,11 +87,7 @@ class Saver:
                     value=csv_file_path,
                     size="xs",
                     rightSection=dmc.ActionIcon(
-                        get_icon("bx-cloud-upload"),
-                        id="save-csv-workspace",
-                        size="xs",
-                        variant="subtle",
-                        n_clicks=0,
+                        get_icon("bx-cloud-upload"), id="save-csv-workspace", size="xs", variant="subtle", n_clicks=0
                     ),
                 ),
                 loading=True,
@@ -151,9 +115,7 @@ class Saver:
                 return no_update
 
             if save_target_path.startswith("WORKSPACE"):
-                save_target_path = save_target_path.replace(
-                    "WORKSPACE", CONFIG.WORKSPACE
-                )
+                save_target_path = save_target_path.replace("WORKSPACE", CONFIG.WORKSPACE)
             else:
                 return dmc.Notification(
                     id="save-workspace-noti",
@@ -212,9 +174,7 @@ class Saver:
         )
         def get_save_file_path(n, csv_file_path):
             cmd = f"{CONFIG.SCRIPT}/QFileDialog/save_dialog"
-            result = subprocess.run(
-                [cmd, csv_file_path], capture_output=True, text=True
-            )
+            result = subprocess.run([cmd, csv_file_path], capture_output=True, text=True)
             save_path = result.stdout.strip()
             return save_path if save_path else no_update
 
@@ -229,13 +189,7 @@ class Saver:
         def open_local_modal(open_n, csv_file_path):
             df_to_save = displaying_df()
             if df_to_save is None:
-                return (
-                    create_notification(
-                        message="No Dataframe loaded", position="center"
-                    ),
-                    False,
-                    no_update,
-                )
+                return (create_notification(message="No Dataframe loaded", position="center"), False, no_update)
 
             file_name = os.path.basename(csv_file_path)
             if file_name.endswith(".parquet"):
@@ -258,12 +212,7 @@ class Saver:
 
             df_to_save = displaying_df(filtred_apply=filtered_save_as)
             if not save_path:
-                return (
-                    create_notification(
-                        message="No save path given", position="center"
-                    ),
-                    False,
-                )
+                return (create_notification(message="No save path given", position="center"), False)
 
             try:
                 if save_path.endswith(".parquet"):
@@ -271,17 +220,8 @@ class Saver:
                 elif save_path.endswith(".csv"):
                     df_to_save.write_csv(save_path)
             except Exception as e:
-                return (
-                    create_notification(
-                        message=f"File Save Error: {e}", position="center"
-                    ),
-                    False,
-                )
+                return (create_notification(message=f"File Save Error: {e}", position="center"), False)
             return (
-                create_notification(
-                    title="Saved",
-                    message=f"file saved to {save_path}",
-                    icon_name="bx-smile",
-                ),
+                create_notification(title="Saved", message=f"file saved to {save_path}", icon_name="bx-smile"),
                 False,
             )

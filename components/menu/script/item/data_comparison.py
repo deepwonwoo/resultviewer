@@ -46,14 +46,8 @@ def compare(df1, df2, keys, values, tolerances):
                 .otherwise(pl.lit("duplicated"))
                 .alias(f"{value}_compare")
             )
-        compare_condition = pl.all_horizontal(
-            [pl.col(f"{value}_compare") == pl.lit("same") for value in values]
-        )
-        compare_column = (
-            pl.when(compare_condition)
-            .then(pl.lit("same"))
-            .otherwise(pl.lit("duplicated"))
-        )
+        compare_condition = pl.all_horizontal([pl.col(f"{value}_compare") == pl.lit("same") for value in values])
+        compare_column = pl.when(compare_condition).then(pl.lit("same")).otherwise(pl.lit("duplicated"))
 
         df2_preprocess = df2_preprocess.with_columns(compare_column.alias("compare"))
 
@@ -66,10 +60,7 @@ def compare(df1, df2, keys, values, tolerances):
             ]
             + [
                 # 모든 값 컬럼에 대해 compare가 "same"이면 min 값을, 아니면 None을 선택
-                pl.when(pl.col(f"{value}_compare") == "same")
-                .then(pl.col(f"{value}_min"))
-                .otherwise(None)
-                .alias(value)
+                pl.when(pl.col(f"{value}_compare") == "same").then(pl.col(f"{value}_min")).otherwise(None).alias(value)
                 for value in values
             ]
             + [pl.col("compare")]
@@ -83,12 +74,8 @@ def compare(df1, df2, keys, values, tolerances):
     # Prepare columns to add
     columns_to_add = []
 
-    all_null_condition = pl.all_horizontal(
-        [pl.col(f"{value}_is_null") for value in values]
-    )
-    any_null_condition = pl.all_horizontal(
-        [pl.col(f"{value}_is_null") for value in values]
-    )
+    all_null_condition = pl.all_horizontal([pl.col(f"{value}_is_null") for value in values])
+    any_null_condition = pl.all_horizontal([pl.col(f"{value}_is_null") for value in values])
 
     # Calculate deltas and add them as new columns
     for value, tolerance in zip(values, tolerances):
@@ -101,9 +88,7 @@ def compare(df1, df2, keys, values, tolerances):
     compare_column = pl.lit("same")
 
     # df_joined에 대한 모든 values에 대해 결측값 여부를 확인하고 compare_column 업데이트
-    values_null_checks = [
-        pl.col(f"{value}_df2").is_null().alias(f"{value}_is_null") for value in values
-    ]
+    values_null_checks = [pl.col(f"{value}_df2").is_null().alias(f"{value}_is_null") for value in values]
     df_joined = df_joined.with_columns(values_null_checks)
 
     # 모든 값이 null일 경우 "not found", 하나라도 null이 있는 경우 "duplicated", 모두 null이 아니면 기존 compare 값을 사용
@@ -122,9 +107,7 @@ def compare(df1, df2, keys, values, tolerances):
         # Check if the delta exceeds the tolerance
         condition = pl.col(delta_name) > tolerances[i]
         # If any delta exceeds the tolerance, mark as "diff"
-        compare_column = (
-            pl.when(condition).then(pl.lit("diff")).otherwise(compare_column)
-        )
+        compare_column = pl.when(condition).then(pl.lit("diff")).otherwise(compare_column)
 
     # 최종 DataFrame 업데이트
     df_joined = df_joined.with_columns(columns_to_add)
@@ -164,20 +147,12 @@ class Compare:
                     size="xs",
                 ),
                 self.modal(),
-            ],
+            ]
         )
 
     def modal(self):
         body = dmc.TableTbody(id="table_rows")
-        head = dmc.TableThead(
-            dmc.TableTr(
-                [
-                    dmc.TableTh("Keys"),
-                    dmc.TableTh("Values"),
-                    dmc.TableTh("Tolerences"),
-                ]
-            )
-        )
+        head = dmc.TableThead(dmc.TableTr([dmc.TableTh("Keys"), dmc.TableTh("Values"), dmc.TableTh("Tolerences")]))
         caption = dmc.TableCaption("Selected Columns to Compare")
 
         return dmc.Modal(
@@ -192,16 +167,10 @@ class Compare:
                         dmc.TextInput(
                             label="Upload compare target file path",
                             leftSection=dmc.ActionIcon(
-                                get_icon("bx-file-find"),
-                                id="upload-compare-file-search",
-                                variant="subtle",
-                                n_clicks=0,
+                                get_icon("bx-file-find"), id="upload-compare-file-search", variant="subtle", n_clicks=0
                             ),
                             rightSection=dmc.Button(
-                                "Upload",
-                                id="upload-compare-target-btn",
-                                style={"width": 100},
-                                n_clicks=0,
+                                "Upload", id="upload-compare-target-btn", style={"width": 100}, n_clicks=0
                             ),
                             rightSectionWidth=100,
                             required=True,
@@ -212,18 +181,11 @@ class Compare:
                             placeholder="Select columns to compare!",
                             id="column-multi-select",
                             value=[],
-                            # data=df1.columns,
                             mb=10,
                             disabled=True,
                         ),
                         dmc.Table([head, body, caption]),
-                        dmc.Button(
-                            "Compare",
-                            id="run-compare-btn",
-                            variant="outline",
-                            fullWidth=True,
-                            mt=15,
-                        ),
+                        dmc.Button("Compare", id="run-compare-btn", variant="outline", fullWidth=True, mt=15),
                     ],
                     withBorder=True,
                     shadow="sm",
@@ -242,9 +204,7 @@ class Compare:
         )
         def compare_modal_open(nc):
             if displaying_df() is None:
-                return no_update, create_notification(
-                    message="No Dataframe loaded", position="center"
-                )
+                return no_update, create_notification(message="No Dataframe loaded", position="center")
             return True, None
 
         @app.callback(
@@ -271,10 +231,7 @@ class Compare:
             try:
                 target_df = validate_df(compare_target_path)
             except Exception as e:
-                noti = create_notification(
-                    message=f"Error loading {compare_target_path}: {e}",
-                    position="center",
-                )
+                noti = create_notification(message=f"Error loading {compare_target_path}: {e}", position="center")
                 return no_update, True, noti
 
             df_columns = SSDF.dataframe.columns
@@ -284,17 +241,14 @@ class Compare:
 
             if common_columns == []:
                 noti = create_notification(
-                    message="No common columns found between the two dataframes.",
-                    position="center",
+                    message="No common columns found between the two dataframes.", position="center"
                 )
                 return no_update, True, noti
 
             return common_columns, False, None
 
         @app.callback(
-            Output("table_rows", "children"),
-            Input("column-multi-select", "value"),
-            prevent_initial_call=True,
+            Output("table_rows", "children"), Input("column-multi-select", "value"), prevent_initial_call=True
         )
         def select_value(selected_list):
             rows = []
@@ -303,31 +257,16 @@ class Compare:
                     element = dmc.TableTr(
                         [
                             dmc.TableTd(""),
+                            dmc.TableTd(dmc.Text(selected, id={"type": "value", "index": i}, size="sm")),
                             dmc.TableTd(
-                                dmc.Text(
-                                    selected,
-                                    id={"type": "value", "index": i},
-                                    size="sm",
-                                )
-                            ),
-                            dmc.TableTd(
-                                dmc.NumberInput(
-                                    value=0,
-                                    min=0,
-                                    size="xs",
-                                    id={"type": "tolerance", "index": i},
-                                )
+                                dmc.NumberInput(value=0, min=0, size="xs", id={"type": "tolerance", "index": i})
                             ),
                         ]
                     )
                 else:
                     element = dmc.TableTr(
                         [
-                            dmc.TableTd(
-                                dmc.Text(
-                                    selected, id={"type": "key", "index": i}, size="sm"
-                                )
-                            ),
+                            dmc.TableTd(dmc.Text(selected, id={"type": "key", "index": i}, size="sm")),
                             dmc.TableTd(""),
                             dmc.TableTd(""),
                         ]
@@ -362,17 +301,13 @@ class Compare:
 
             target_df = validate_df(compare_file_path)
 
-            exclude_columns = ["compare"] + [
-                col for col in SSDF.dataframe.columns if col.startswith("delta_")
-            ]
+            exclude_columns = ["compare"] + [col for col in SSDF.dataframe.columns if col.startswith("delta_")]
             SSDF.dataframe = SSDF.dataframe.select(
                 [col for col in SSDF.dataframe.columns if col not in exclude_columns]
             )
             current_columnDefs = generate_column_definitions(SSDF.dataframe)
 
-            compare_df = compare(
-                SSDF.dataframe, target_df, key_list, value_list, tolerance_list
-            )
+            compare_df = compare(SSDF.dataframe, target_df, key_list, value_list, tolerance_list)
 
             SSDF.dataframe = compare_df
 
@@ -381,20 +316,12 @@ class Compare:
                 if field in key_list:
                     current_columnDefs[i]["headerClass"] = "text-primary"
 
-            current_columnDefs.append(
-                generate_column_definition("compare", compare_df["compare"])
-            )
+            current_columnDefs.append(generate_column_definition("compare", compare_df["compare"]))
 
-            cellClassRules = {
-                "text-danger": "params.data.compare === 'diff' && params.value != 0"
-            }
+            cellClassRules = {"text-danger": "params.data.compare === 'diff' && params.value != 0"}
             for v in value_list:
                 current_columnDefs.append(
-                    generate_column_definition(
-                        f"delta_{v}",
-                        compare_df[f"delta_{v}"],
-                        cellClassRules=cellClassRules,
-                    )
+                    generate_column_definition(f"delta_{v}", compare_df[f"delta_{v}"], cellClassRules=cellClassRules)
                 )
 
             result = compare_df.group_by("compare").agg(pl.count())
@@ -408,9 +335,6 @@ class Compare:
                 current_columnDefs,
                 False,
                 create_notification(
-                    title="Compare Applied",
-                    message=dcc.Markdown(msg),
-                    position="center",
-                    icon_name="bx-smile",
+                    title="Compare Applied", message=dcc.Markdown(msg), position="center", icon_name="bx-smile"
                 ),
             )

@@ -9,10 +9,7 @@ class EditMenu:
         self.colOrder = ColumnOrder()
 
     def layout(self):
-        return html.Div(
-            [self.cols.layout()],
-            className="d-grid gap-2 d-md-flex justify-content-md-start m-2",
-        )
+        return html.Div([self.cols.layout()], className="d-grid gap-2 d-md-flex justify-content-md-start m-2")
 
     def register_callbacks(self, app):
         self.cols.register_callbacks(app)
