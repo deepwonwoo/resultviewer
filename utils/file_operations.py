@@ -1,6 +1,4 @@
 import os
-
-# import pwd
 import json
 import shutil
 import datetime
@@ -10,8 +8,6 @@ from utils.logging_utils import logger
 
 def get_file_owner(file_path):
     try:
-        # file_owner_id = os.stat(file_path).st_uid
-        # file_owner_name = pwd.getpwuid(file_owner_id).pw_name
         return "file_owner_name"
     except Exception as e:
         logger.error(f"get_file_owner 오류: {e}")

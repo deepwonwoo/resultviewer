@@ -5,7 +5,6 @@ from utils.component_template import get_icon, create_notification
 from utils.db_management import SSDF
 from utils.data_processing import displaying_df, validate_df
 from utils.config import CONFIG
-from components.menu.home.item.workspace_explore import FileExplorer
 from components.grid.dag.column_definitions import (
     generate_column_definition,
     generate_column_definitions,

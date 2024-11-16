@@ -95,8 +95,8 @@ def apply_group(df, request):
         groupKeys = request.get("groupKeys")
         agg = {col["id"]: col["aggFunc"] for col in request.get("valueCols", [])}
         row_counter_groupby = ""
-        if SSDF.hide_waiver and "waiver" in df.columns:
-            df = df.filter(~pl.col("waiver").str.ends_with("."))
+        # if SSDF.hide_waiver and "waiver" in df.columns:
+        #     df = df.filter(~pl.col("waiver").str.ends_with("."))
         if groupBy:
             if groupKeys:
                 group_counts = df.group_by(groupBy[0]).agg(pl.len().alias("childCount"))
@@ -128,8 +128,8 @@ def apply_group(df, request):
                         else df.group_by(groupBy[: len(groupKeys) + 1], maintain_order=True).agg([pl.col("*").first()])
                     )
                     df = df_agg.join(group_counts, on=groupBy[: len(groupKeys) + 1], how="left")
-                    if "waiver" in df.columns and "waiver" not in groupBy:
-                        df = df.drop("waiver").with_columns(pl.lit("").alias("waiver"))
+                    # if "waiver" in df.columns and "waiver" not in groupBy:
+                    #     df = df.drop("waiver").with_columns(pl.lit("").alias("waiver"))
                     df = df.with_columns(pl.lit(True).alias("group"))
                 else:
                     df = df.with_columns(pl.lit(False).alias("group"))
@@ -145,8 +145,8 @@ def apply_group(df, request):
                     else df.group_by(groupBy[0], maintain_order=True).agg([pl.first("*")])
                 )
                 df = df_agg.join(group_counts, on=groupBy[0], how="left")
-                if "waiver" in df.columns and "waiver" not in groupBy:
-                    df = df.drop("waiver").with_columns(pl.lit("").alias("waiver"))
+                # if "waiver" in df.columns and "waiver" not in groupBy:
+                #     df = df.drop("waiver").with_columns(pl.lit("").alias("waiver"))
                 df = df.with_columns(pl.lit(True).alias("group"))
                 row_counter_groupby = f"{len(df):,}"
         SSDF.groupby_row_count = row_counter_groupby
@@ -197,15 +197,7 @@ def extract_rows_from_data(request):
     try:
         dff = SSDF.dataframe
         SSDF.request = request
-        dff = apply_filters(dff, request)
-        # if SSDF.tree_mode == "no-label-tree":
-        #     dff = apply_tree(dff, request)
-        # elif SSDF.tree_mode == "labeled-tree":
-        #     dff = apply_labeled_tree(dff, request)
-        #     dff = apply_sort(dff, request)
-        # else:
-        #     dff = apply_sort(dff, request)
-        #     dff = apply_group(dff, request)
+        dff = apply_filters(dff, request)        
         dff = apply_sort(dff, request)
         dff = apply_group(dff, request)
         dff = apply_sort(dff, request)

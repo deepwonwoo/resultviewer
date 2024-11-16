@@ -68,9 +68,6 @@ class DataGrid:
                 dcc.Store("csv-mod-time"),
                 dcc.Store("refresh-route"),
                 dcc.Store("purge-refresh"),
-                dcc.Store("cp_selected_rows"),
-                dcc.Store("waiver_selected_rows"),
-                dcc.Store("sub_info_selected_rows"),
                 EventListener(
                     id="el",
                     children=dag.AgGrid(
@@ -90,20 +87,7 @@ class DataGrid:
                     [
                         html.Div("Total Rows:", id="total-row-count"),
                         html.Div(id="row-counter"),
-                        html.Div(id="waiver-counter"),
-                        dmc.Tooltip(
-                            dmc.ActionIcon(
-                                get_icon("bx-refresh"),
-                                id="refresh-waiver-counter-btn",
-                                size="xs",
-                                color="black",
-                                variant="transparent",
-                                style={"display": "none"},
-                            ),
-                            label="Refresh Waiver Counter",
-                            position="top",
-                            color="grey",
-                        ),
+                        
                     ],
                     justify="flex-end",
                     py=0,
@@ -161,17 +145,6 @@ class DataGrid:
             prevent_initial_call=True,
         )
 
-        @app.callback(
-            Output("aggrid-table", "selectedRows", allow_duplicate=True),
-            Output("cp_selected_rows", "data", allow_duplicate=True),
-            Output("waiver_selected_rows", "data", allow_duplicate=True),
-            Output("sub_info_selected_rows", "data", allow_duplicate=True),
-            Input("aggrid-table", "selectedRows"),
-            prevent_initial_call=True,
-        )
-        def get_selected_row(selected_rows):
-            print("get_selected_row", selected_rows)
-            return [], selected_rows, selected_rows, selected_rows
 
     @staticmethod
     def _generate_counter_info() -> str:

@@ -4,8 +4,6 @@ import dash_mantine_components as dmc
 from dash import Input, Output, html, dcc
 from components.grid.data_grid import DataGrid
 from components.menu.home.home import HomeMenu
-
-# from components.menu.view.view import ViewMenu
 from components.menu.edit.edit import EditMenu
 from components.menu.script.script import ScriptMenu
 
@@ -13,7 +11,6 @@ from components.menu.script.script import ScriptMenu
 class ResultViewer:
     def __init__(self, app):
         self.home_menu = HomeMenu()
-        # self.view_menu = ViewMenu()
         self.edit_menu = EditMenu()
         self.script_menu = ScriptMenu()
         self.data_grid = DataGrid()
@@ -55,32 +52,21 @@ class ResultViewer:
         }
         nodes = [
             dfl.Tab(id="home-item", children=[self.home_menu.layout()]),
-            # dfl.Tab(id="view-item", children=[self.view_menu.layout()]),
             dfl.Tab(id="edit-item", children=[self.edit_menu.layout()]),
             dfl.Tab(id="script-item", children=[self.script_menu.layout()]),
             dfl.Tab(id="grid-tab", children=[self.data_grid.layout()]),
-            dfl.Tab(id="sub-info", children=[self.subInfo()]),
         ]
         return dmc.MantineProvider(
             [
                 dmc.NotificationProvider(),
                 html.Div(id="notifications"),
-                dcc.Interval(id="check-update-interval", interval=5000),
+                # dcc.Interval(id="check-update-interval", interval=5000),
                 dfl.FlexLayout(id="flex-layout", model=layout_config, children=nodes, useStateForModel=False),
-            ]
-        )
-
-    def subInfo(self):
-        return dmc.Grid(
-            children=[
-                dmc.GridCol(dmc.ScrollArea(id="footerLeft", scrollbarSize=6, type="auto"), span=3),
-                dmc.GridCol(id="footerRight", span="auto"),
             ]
         )
 
     def register_callbacks(self, app):
         self.home_menu.register_callbacks(app)
-        # self.view_menu.register_callbacks(app)
         self.edit_menu.register_callbacks(app)
         self.script_menu.register_callbacks(app)
         self.data_grid.register_callbacks(app)

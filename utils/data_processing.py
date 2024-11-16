@@ -73,19 +73,10 @@ def validate_js(json_file):
 
 def displaying_df(filtred_apply=False):
     dff = SSDF.dataframe
-    hide_waiver = SSDF.hide_waiver
     if dff.is_empty():
         return None
     try:
-        if hide_waiver and "waiver" in dff.columns:
-            conditions_expr = (dff["waiver"] == "Waiver.") | (dff["waiver"] == "Fixed.")
-            update_waiver_column = (
-                pl.when(conditions_expr)
-                .then(pl.col("waiver").str.strip_chars("."))
-                .otherwise(pl.col("waiver"))
-                .alias("waiver")
-            )
-            dff = dff.with_columns(update_waiver_column)
+        
         if filtred_apply:
             dff = apply_filters(dff, SSDF.request)
     except Exception as e:

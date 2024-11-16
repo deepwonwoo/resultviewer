@@ -1,6 +1,4 @@
 import os
-
-# import pwd
 import polars as pl
 from filelock import SoftFileLock
 from typing import Dict, Any, List, Optional
@@ -13,15 +11,7 @@ class DataFrameManager:
         self._row_counter: Dict[str, int] = {"filtered": 0, "groupby": 0}
         self._cache: Dict[str, Any] = {
             "REQUEST": {},
-            "hide_waiver": None,
-            "CP": {},
             "init_csv": {},
-            "TreeMode": {},
-            "TreeCol": {},
-            "viewmode": {},
-            "PropaRule": [],
-            "TreeDeli": {},
-            "js": {},
         }
 
     @property
@@ -112,77 +102,12 @@ class DataFrameManager:
         self._cache["REQUEST"] = value
 
     @property
-    def hide_waiver(self) -> Optional[bool]:
-        return self._cache.get("hide_waiver")
-
-    @hide_waiver.setter
-    def hide_waiver(self, value: Optional[bool]) -> None:
-        self._cache["hide_waiver"] = value
-
-    @property
-    def cp(self) -> Dict:
-        return self._cache.get("CP")
-
-    @cp.setter
-    def cp(self, value: Dict) -> None:
-        self._cache["CP"] = value
-
-    @property
     def init_csv(self) -> str:
         return self._cache.get("init_csv", "")
 
     @init_csv.setter
     def init_csv(self, value: str) -> None:
         self._cache["init_csv"] = value
-
-    @property
-    def tree_mode(self) -> Dict:
-        return self._cache.get("TreeMode")
-
-    @tree_mode.setter
-    def tree_mode(self, value: Dict) -> None:
-        self._cache["TreeMode"] = value
-
-    @property
-    def tree_col(self) -> Dict:
-        return self._cache.get("TreeCol")
-
-    @tree_col.setter
-    def tree_col(self, value: Dict) -> None:
-        self._cache["TreeCol"] = value
-
-    @property
-    def viewmode(self) -> Dict:
-        return self._cache.get("viewmode", "")
-
-    @viewmode.setter
-    def viewmode(self, value: Dict) -> None:
-        self._cache["viewmode"] = value
-
-    @property
-    def propa_rule(self) -> List:
-        return self._cache.get("PropaRule")
-
-    @propa_rule.setter
-    def propa_rule(self, value: List) -> None:
-        self._cache["PropaRule"] = value
-
-    @property
-    def tree_deli(self) -> Dict:
-        return self._cache.get("TreeDeli")
-
-    @tree_deli.setter
-    def tree_deli(self, value: Dict) -> None:
-        self._cache["TreeDeli"] = value
-
-    @property
-    def js(self) -> Dict:
-        return self._cache.get("js")
-
-    @js.setter
-    def js(self, value: Dict) -> None:
-        self._cache["js"] = value
-
 
 # 전역 SSDF 객체를 함수로 대체
 def get_ssdf():

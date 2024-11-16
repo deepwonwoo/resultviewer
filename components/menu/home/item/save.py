@@ -15,17 +15,7 @@ class Saver:
         return dmc.Menu(
             [
                 dmc.MenuTarget(dmc.Button("Save", variant="outline", color="indigo", size="xs")),
-                dmc.MenuDropdown(
-                    [
-                        dmc.MenuItem("Save as", id="save-local-btn", n_clicks=0, leftSection=get_icon("bx-save")),
-                        dmc.MenuItem(
-                            "Save to WORKSPACE",
-                            id="save-workspace-btn",
-                            n_clicks=0,
-                            leftSection=get_icon("bx-cloud-upload"),
-                        ),
-                    ]
-                ),
+                dmc.MenuDropdown([dmc.MenuItem("Save as", id="save-local-btn", n_clicks=0, leftSection=get_icon("bx-save"))]),
                 dmc.Modal(
                     title="File Save as",
                     id="local-file-save-modal",
@@ -53,116 +43,9 @@ class Saver:
         )
 
     def register_callbacks(self, app):
-        self._register_workspace_save_callback(app)
+        
         self._register_local_save_callback(app)
 
-    def _register_workspace_save_callback(self, app):
-
-        @app.callback(
-            Output("saver-notification", "children", allow_duplicate=True),
-            Input("save-workspace-btn", "n_clicks"),
-            State("flex-layout", "model"),
-            prevent_initial_call=True,
-        )
-        def save_csv_workspace_noti(n, layout_model):
-            if not n:
-                return no_update
-            csv_file_path = layout_model["layout"]["children"][0]["children"][0]["name"]
-
-            if displaying_df() is None:
-                print("save_csv_workspace_noti2")
-                return create_notification(message="No Dataframe loaded", position="center")
-            elif not csv_file_path.startswith("WORKSPACE"):
-                print("save_csv_workspace_noti3")
-                return create_notification(message="data is not from WORKSPACE", position="center")
-            elif SSDF.is_readonly:
-                print("save_csv_workspace_noti4")
-                return create_notification(message="file is READ ONLY mode", position="center")
-            print("save_csv_workspace_noti5")
-            return dmc.Notification(
-                id="save-workspace-noti",
-                title="Save to Workspace",
-                message=dmc.TextInput(
-                    id="save-target-path",
-                    value=csv_file_path,
-                    size="xs",
-                    rightSection=dmc.ActionIcon(
-                        get_icon("bx-cloud-upload"), id="save-csv-workspace", size="xs", variant="subtle", n_clicks=0
-                    ),
-                ),
-                loading=True,
-                color="orange",
-                action="show",
-                autoClose=False,
-                style={
-                    "position": "fixed",
-                    "bottom": 20,
-                    "left": "50%",
-                    "transform": "translateX(-50%)",
-                    "width": "50%",
-                    "zIndex": 9999,
-                },
-            )
-
-        @app.callback(
-            Output("saver-notification", "children", allow_duplicate=True),
-            Input("save-csv-workspace", "n_clicks"),
-            State("save-target-path", "value"),
-            prevent_initial_call=True,
-        )
-        def save_csv_workspace(n, save_target_path):
-            if not n:
-                return no_update
-
-            if save_target_path.startswith("WORKSPACE"):
-                save_target_path = save_target_path.replace("WORKSPACE", CONFIG.WORKSPACE)
-            else:
-                return dmc.Notification(
-                    id="save-workspace-noti",
-                    title="Saved to Workspace Error",
-                    message="Path should be start with 'WORKSPACE/'",
-                    loading=False,
-                    color="red",
-                    action="update",
-                    autoClose=True,
-                    icon=get_icon("bx-tired"),
-                )
-            if save_target_path.endswith(".csv"):
-                save_target_path = save_target_path.replace(".csv", ".parquet")
-
-            dir_path = os.path.dirname(save_target_path)
-            if not os.path.exists(dir_path):
-                return dmc.Notification(
-                    id="save-workspace-noti",
-                    title="Saved to Workspace Error",
-                    message="The directory does not exists in WORKSPACE'",
-                    loading=False,
-                    color="red",
-                    action="update",
-                    autoClose=True,
-                    icon=get_icon("bx-tired"),
-                )
-
-            file_exists = os.path.isfile(save_target_path)
-            if file_exists:
-                backup_file(dir_path, save_target_path)
-
-            df_to_save = displaying_df()
-            df_to_save.write_parquet(save_target_path)
-            os.chmod(save_target_path, 0o777)
-
-            message = "Updated!" if file_exists else "Created!"
-
-            return dmc.Notification(
-                id="save-workspace-noti",
-                title="Saved to Workspace",
-                message=message,
-                loading=False,
-                color="yellow",
-                action="update",
-                autoClose=True,
-                icon=get_icon("bx-cool"),
-            )
 
     def _register_local_save_callback(self, app):
 
@@ -225,3 +108,118 @@ class Saver:
                 create_notification(title="Saved", message=f"file saved to {save_path}", icon_name="bx-smile"),
                 False,
             )
+
+
+
+
+
+
+
+
+    # def _register_workspace_save_callback(self, app):
+
+    #     @app.callback(
+    #         Output("saver-notification", "children", allow_duplicate=True),
+    #         Input("save-workspace-btn", "n_clicks"),
+    #         State("flex-layout", "model"),
+    #         prevent_initial_call=True,
+    #     )
+    #     def save_csv_workspace_noti(n, layout_model):
+    #         if not n:
+    #             return no_update
+    #         csv_file_path = layout_model["layout"]["children"][0]["children"][0]["name"]
+
+    #         if displaying_df() is None:
+    #             print("save_csv_workspace_noti2")
+    #             return create_notification(message="No Dataframe loaded", position="center")
+    #         elif not csv_file_path.startswith("WORKSPACE"):
+    #             print("save_csv_workspace_noti3")
+    #             return create_notification(message="data is not from WORKSPACE", position="center")
+    #         elif SSDF.is_readonly:
+    #             print("save_csv_workspace_noti4")
+    #             return create_notification(message="file is READ ONLY mode", position="center")
+    #         print("save_csv_workspace_noti5")
+    #         return dmc.Notification(
+    #             id="save-workspace-noti",
+    #             title="Save to Workspace",
+    #             message=dmc.TextInput(
+    #                 id="save-target-path",
+    #                 value=csv_file_path,
+    #                 size="xs",
+    #                 rightSection=dmc.ActionIcon(
+    #                     get_icon("bx-cloud-upload"), id="save-csv-workspace", size="xs", variant="subtle", n_clicks=0
+    #                 ),
+    #             ),
+    #             loading=True,
+    #             color="orange",
+    #             action="show",
+    #             autoClose=False,
+    #             style={
+    #                 "position": "fixed",
+    #                 "bottom": 20,
+    #                 "left": "50%",
+    #                 "transform": "translateX(-50%)",
+    #                 "width": "50%",
+    #                 "zIndex": 9999,
+    #             },
+    #         )
+
+    #     @app.callback(
+    #         Output("saver-notification", "children", allow_duplicate=True),
+    #         Input("save-csv-workspace", "n_clicks"),
+    #         State("save-target-path", "value"),
+    #         prevent_initial_call=True,
+    #     )
+    #     def save_csv_workspace(n, save_target_path):
+    #         if not n:
+    #             return no_update
+
+    #         if save_target_path.startswith("WORKSPACE"):
+    #             save_target_path = save_target_path.replace("WORKSPACE", CONFIG.WORKSPACE)
+    #         else:
+    #             return dmc.Notification(
+    #                 id="save-workspace-noti",
+    #                 title="Saved to Workspace Error",
+    #                 message="Path should be start with 'WORKSPACE/'",
+    #                 loading=False,
+    #                 color="red",
+    #                 action="update",
+    #                 autoClose=True,
+    #                 icon=get_icon("bx-tired"),
+    #             )
+    #         if save_target_path.endswith(".csv"):
+    #             save_target_path = save_target_path.replace(".csv", ".parquet")
+
+    #         dir_path = os.path.dirname(save_target_path)
+    #         if not os.path.exists(dir_path):
+    #             return dmc.Notification(
+    #                 id="save-workspace-noti",
+    #                 title="Saved to Workspace Error",
+    #                 message="The directory does not exists in WORKSPACE'",
+    #                 loading=False,
+    #                 color="red",
+    #                 action="update",
+    #                 autoClose=True,
+    #                 icon=get_icon("bx-tired"),
+    #             )
+
+    #         file_exists = os.path.isfile(save_target_path)
+    #         if file_exists:
+    #             backup_file(dir_path, save_target_path)
+
+    #         df_to_save = displaying_df()
+    #         df_to_save.write_parquet(save_target_path)
+    #         os.chmod(save_target_path, 0o777)
+
+    #         message = "Updated!" if file_exists else "Created!"
+
+    #         return dmc.Notification(
+    #             id="save-workspace-noti",
+    #             title="Saved to Workspace",
+    #             message=message,
+    #             loading=False,
+    #             color="yellow",
+    #             action="update",
+    #             autoClose=True,
+    #             icon=get_icon("bx-cool"),
+    #         )
