@@ -37,6 +37,7 @@ class HomeMenu:
         )
 
     def register_callbacks(self, app):
+        self.filter.register_callbacks(app)
         self.filemode.register_callbacks(app)
         self.uploader.register_callbacks(app)
         self.saver.register_callbacks(app)
