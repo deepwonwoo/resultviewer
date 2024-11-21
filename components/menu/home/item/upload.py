@@ -294,7 +294,7 @@ class Uploader:
 
             if file_path:
                 try:
-                    df = file2df(file_path, workspace=False)
+                    df = file2df(file_path)
                     patched_dashGridOptions = Patch()
                     SSDF.tree_mode = False
                     SSDF.tree_col = None
