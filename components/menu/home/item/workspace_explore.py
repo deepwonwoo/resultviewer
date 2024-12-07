@@ -5,7 +5,7 @@ import dash_mantine_components as dmc
 from pathlib import Path
 from dash import html, Output, Input, State, no_update, ctx, ALL, Patch, dcc, exceptions
 from components.grid.dag.column_definitions import generate_column_definitions
-from utils.component_template import get_icon, create_notification
+
 from utils.file_operations import get_file_owner, get_lock_status
 from utils.data_processing import file2df
 from utils.logging_utils import logger

@@ -1,7 +1,7 @@
 import dash_mantine_components as dmc
 from dash import Input, Output, ctx, no_update, callback
 from utils.logging_utils import logger
-from utils.component_template import create_notification
+
 
 
 class ColumnSizer:

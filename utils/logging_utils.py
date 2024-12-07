@@ -10,7 +10,6 @@ from utils.config import CONFIG
 
 class ResultViewerLogger:
     _instance: Optional["ResultViewerLogger"] = None
-
     def __init__(self, debug_mode: bool = True):
         self.logger = logging.getLogger("ResultViewer")
         self.logger.setLevel(logging.DEBUG)  # Set to DEBUG to capture all levels

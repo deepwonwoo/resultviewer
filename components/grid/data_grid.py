@@ -1,11 +1,12 @@
 import flask
 import dash_ag_grid as dag
 import dash_mantine_components as dmc
+import dash_blueprint_components as dbpc
 from dash import Input, Output, html, dcc
 from components.grid.dag.column_definitions import DEFAULT_COL_DEF
 from components.grid.dag.server_side_operations import extract_rows_from_data
 from dash_extensions import EventListener
-from utils.component_template import get_icon
+#from utils.component_template import get_icon
 from utils.db_management import SSDF
 
 
@@ -92,8 +93,8 @@ class DataGrid:
                         html.Div(id="row-counter"),
                         html.Div(id="waiver-counter"),
                         dmc.Tooltip(
-                            dmc.ActionIcon(
-                                get_icon("bx-refresh"),
+                            dbpc.Button(
+                                #get_icon("bx-refresh"),
                                 id="refresh-waiver-counter-btn",
                                 size="xs",
                                 color="black",

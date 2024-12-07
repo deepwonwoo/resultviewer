@@ -4,7 +4,7 @@ from flask import Flask, request
 from flaskwebgui import FlaskUI
 from dash import DiskcacheManager
 from dash_extensions.enrich import DashProxy
-from components.layout import ResultViewer
+from components.RV import ResultViewer
 from utils.db_management import SSDF, get_ssdf
 from utils.config import CONFIG
 
@@ -35,14 +35,6 @@ def create_dash_app():
 
 
 app, application = create_dash_app()
-
-
-@app.server.before_request
-def initialize_ssdf():
-    global SSDF
-    # 새로운 앱 인스턴스에 대해 SSDF 초기화
-    if request.endpoint == "dash.index":
-        SSDF = get_ssdf()
 
 
 RV = ResultViewer(app)

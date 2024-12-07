@@ -6,7 +6,6 @@ from components.grid.dag.server_side_operations import apply_filters
 
 
 def file2df(csv_file_path):
-    print("file2df")
     try:
         df = validate_df(csv_file_path)
     except:
@@ -32,7 +31,6 @@ def detect_separator(file_path, sample_lines=10):
 
 
 def process_dataframe(df):
-    print("process_dataframe")
     df = df.rename({col: col.strip() for col in df.columns})
     df = df.select([col for col in df.columns if col != ""])
     for col in df.columns:
@@ -52,7 +50,6 @@ def process_dataframe(df):
 
 
 def validate_df(filename):
-    print("validate_df")
     if filename.endswith(".parquet"):
         try:
             df = pl.read_parquet(filename)

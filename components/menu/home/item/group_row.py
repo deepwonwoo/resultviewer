@@ -1,6 +1,7 @@
 import dash_mantine_components as dmc
+import dash_blueprint_components as dbpc
+
 from dash import Input, Output, State
-from utils.component_template import get_icon
 
 
 class GroupRow:
@@ -16,7 +17,7 @@ class GroupRow:
 
     def _create_tooltip(self, id, label, icon):
         return dmc.Tooltip(
-            dmc.ActionIcon(get_icon(icon), variant="outline", id=id, n_clicks=0, color="grey"),
+            dbpc.Button(icon=icon, id=id, small=True),
             label=label,
             withArrow=True,
             position="bottom",

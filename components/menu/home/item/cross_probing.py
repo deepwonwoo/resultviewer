@@ -2,8 +2,8 @@ import re
 import socket
 import polars as pl
 import dash_mantine_components as dmc
-from dash import Input, Output, State
-from utils.component_template import get_icon, create_notification
+import dash_blueprint_components as dbpc
+from dash import Input, Output, State, no_update
 from utils.db_management import SSDF
 from utils.logging_utils import logger
 
@@ -13,7 +13,6 @@ class CrossProber:
     def __init__(self):
         self.CP = SSDF.cp
         self.CP_socket = self.create_connection() if all(self.CP.values()) else False
-        self.CP_layout = self.cp_layout()
         self.current_view = ""
         self.history = []
 
@@ -28,93 +27,98 @@ class CrossProber:
             logger.error(f"Failed to connect to CP server: {e}")
             return False
 
-    def cp_layout(self):
-        return self.cp_connected_layout() if self.CP_socket else self.cp_disconnected_layout()
-
     def cp_connected_layout(self):
         return dmc.Group(
             [
-                get_icon("bx-wifi"),
-                dmc.Tooltip(
-                    label="Select Net/Instance and Column, Middle click on a row to CrossProbe",
-                    color="grey",
-                    withArrow=True,
-                    children=dmc.Group(
-                        [
-                            dmc.SegmentedControl(
-                                id="cp-object-segmented",
-                                value="inst",
-                                color="red.5",
-                                data=[{"value": "net", "label": "Net"}, {"value": "inst", "label": "Instance"}],
-                                size="xs",
-                            ),
-                            dmc.Select(
-                                id="cp-column-select",
-                                data=[],
-                                placeholder="Select column",
-                                style={"width": 150},
-                                size="xs",
-                            ),
-                        ]
-                    ),
+                dbpc.Tooltip(
+                    [dbpc.Button(icon="link", minimal=True, outlined=True, disabled=True)],
+                    placement="bottom",
+                    content="Select Net/Instance and Column, Middle click on a row to CrossProbe",
+                    compact=True,
+                    minimal=True,
+                ),
+                dmc.SegmentedControl(
+                    id="cp-object-segmented",
+                    value="inst",
+                    color="indigo.5",
+                    data=[
+                        {"value": "net", "label": "Net"},
+                        {"value": "inst", "label": "Instance"},
+                    ],
+                    size="xs",
+                ),
+                dmc.Select(
+                    id="cp-column-select",
+                    data=[],
+                    placeholder="Select column",
+                    style={"width": 150},
+                    size="xs",
                 ),
                 dmc.TextInput(
                     id="cp-manual-input",
                     placeholder="manual CrossProbing",
-                    rightSection=dmc.ActionIcon(
-                        get_icon("bx-send"), id="cp-manual-button", size="sm", color="grey", variant="outline"
+                    rightSection=dbpc.Button(
+                        id="cp-manual-button",
+                        icon="send-message",
+                        small=True,
+                        minimal=True,
                     ),
                     style={"width": 200},
                     size="xs",
                 ),
-            ]
+            ],
+            gap="xs",
         )
 
     def cp_disconnected_layout(self):
-        return dmc.Tooltip(
-            label="Open from VSE/BTS to CrossProbe",
-            color="grey",
-            withArrow=True,
-            children=dmc.Button(
-                "Disabled",
-                leftSection=get_icon("bx-wifi-off"),
-                size="xs",
-                disabled=True,
-                rightSection=dmc.SegmentedControl(
-                    id="cp-object-segmented", value="", color="black", data=[], size="xs", fullWidth=True
-                ),
-            ),
+        return dbpc.Tooltip(
+            [dbpc.Button(icon="unlink", minimal=True, outlined=True, disabled=True)],
+            placement="bottom",
+            content="Restart SORV from VSE/BTS to use CrossProbe",
+            compact=True,
+            minimal=True,
         )
 
     def layout(self):
-        return dmc.Group([dmc.Text(f"CrossProbe: ", fw=500, size="sm", c="gray"), self.CP_layout], gap=2)
+        return dbpc.FormGroup(
+            children=(self.cp_connected_layout() if self.CP_socket else self.cp_disconnected_layout()),
+            label=dmc.Text("CrossProbe: ", fw=500, size="sm", c="gray"),
+            inline=True,
+        )
 
-    def send_message(self, message):
-        """Usage:
-        select -obj inst -hier top1.top2.top3 -name object_names
-        pushDesign -top true -hier top1.path1.path2
-        selectCurObject -obj net(or inst) -name object_names
-        """
+    def send_cp_message(self, message):
+        # Usage:
+        # select -obj inst -hier top1.top2.top3 -name object_names
+        # pushDesign -top true -hier top1.path1.path2
+        # selectCurObject -obj net(or inst) -name object_names
         try:
             self.CP_socket.sendall(message.encode())
-            return create_notification(message=f"CP command: {message}", title="CrossProbing")
-        except socket.timeout:
-            return create_notification(message="Timed out while sending message", title="CrossProbing", color="red")
+            logger.info(f"CP message: {message}")
+            return [
+                dbpc.Toast(
+                    message=f"CP command: {message}",
+                    intent="success",
+                    icon="send-message",
+                )
+            ]
+
         except Exception as e:
-            return create_notification(message=f"Error: {e}", title="CrossProbing", color="red")
+            logger.error(f"Failed to send message: {e}")
+            return [dbpc.Toast(message=f"{str(e)}", intent="danger", icon="error")]
 
     def close_connection(self):
         if self.CP_socket:
             try:
                 self.CP_socket.close()
             except Exception as e:
-                print(f"Error closing connection: {e}")
+                logger.error(f"Error closing connection: {e}")
+
+    def remove_initial_x(self, s):
+        s = re.sub(r"^[xX]{2}(?!or)", "x", s, flags=re.IGNORECASE)
+        s = re.sub(r"^[xX]", "", s, flags=re.IGNORECASE)
+        return s
 
     def hier_name(self, s, delimiter="."):
-        def remove_initial_x(s):
-            s = re.sub(r"^[xX]{2}(?!or)", "x", s, flags=re.IGNORECASE)
-            s = re.sub(r"^[xX]", "", s, flags=re.IGNORECASE)
-            return s
 
         def remove_dot_main(s):
             return re.sub(r"\.main$", "", s)
@@ -124,13 +128,17 @@ class CrossProber:
 
         paths = s.split(delimiter)
         if len(paths) > 1:
-            paths = [remove_initial_x(path) for path in paths]
+            # paths = [path[1:] if path.lower()[0]=="x" else path for path in paths]
+            paths = [self.remove_initial_x(path) for path in paths]
             s = delimiter.join(paths)
+        elif len(paths) == 1:
+            s = self.remove_initial_x(s)
         try:
             hier_path, name = s.rsplit(delimiter, 1)  # 오른쪽에서부터 문자열을 '.'으로 분리
         except ValueError:  # '.'이 없어서 분리할 수 없는 경우
             hier_path = ""  # hier_path를 빈 문자열로 설정
             name = s  # name에 입력받은 문자열을 그대로 반환
+
         return hier_path, name
 
     def remove_init_r_m(self, obj, selected_name):
@@ -140,19 +148,42 @@ class CrossProber:
                 selected_name = selected_name[1:]
         return selected_name
 
+    def preprocess_d_name(obj, name):
+        if obj == "inst" and len(name) > 1:
+            # 'd'로 시작하지 않으면 원래 이름 반환
+            if not name.startswith("d"):
+                return name
+            # 'd' 제거
+            processed_name = name[1:]
+            # 'd' 제거 후 숫자로만 이루어진 경우 원래 이름으로 복원
+            if re.match(r"^\d+$", processed_name):
+                return name
+            return processed_name
+        else:
+            return name
+
     def cross_probing(self, selected_rows, obj, cp_col):
         logger.info(f"cross_probing! (obj:{obj}, tool:{cp_col})")
-        if not obj or not cp_col:
-            noti = create_notification(message="select 'net/instance' or 'column' to crossprobe")
-            return noti, []
+        if not obj:
+            return [
+                dbpc.Toast(
+                    message="select 'net/instance to crossprobe",
+                    intent="warning",
+                    icon="warning-sign",
+                )
+            ]
 
         selected_row = selected_rows[0]
         value = selected_row[cp_col]
+        if value == "":
+            return no_update
+
         request = SSDF.request
         groupBy = [col["id"] for col in request.get("rowGroupCols", [])]
 
         selected_hier_path, selected_name = self.hier_name(value)
         selected_name = self.remove_init_r_m(obj, selected_name)
+        # selected_name = self.preprocess_d_name(obj,selected_name)
 
         # Group CrossProbing
         if groupBy:
@@ -164,12 +195,16 @@ class CrossProber:
             for group_value in dff[cp_col]:
                 group_hier_path, group_hier_name = self.hier_name(group_value)
                 if group_hier_path == selected_hier_path:
-                    names.add(self.remove_init_r_m(obj, group_hier_name))
+                    name = self.remove_init_r_m(obj, group_hier_name)
+                    # name = self.preprocess_d_name(obj, name)
+                    names.add(name)
 
                 elif group_hier_path.startswith(selected_hier_path):
                     group_hier_path = group_hier_path.replace(selected_hier_path, "")
                     if len(group_hier_path) and group_hier_path[0] == ".":
-                        names.add(self.remove_init_r_m(obj, group_hier_path.split(".")[1]))
+                        name = self.remove_init_r_m(obj, group_hier_path.split(".")[1])
+                        # name = self.preprocess_d_name(obj, name)
+                        names.add(name)
 
             if self.current_view == selected_hier_path:
                 # Single Instance CrossProbing
@@ -178,63 +213,83 @@ class CrossProber:
                 msg = f"select -obj {obj} -hier {selected_hier_path} -name {','.join(names)}\n"
         else:
             # if save view hierarchy
-            if self.current_view == selected_hier_path:  # Single Instance CrossProbing
-
+            if self.current_view == selected_hier_path:
+                # Single Instance CrossProbing
                 msg = f"selectCurObject -obj {obj} -name {selected_name}\n"
-            else:  # Single Instance CrossProbing
-
-                msg = (
-                    f"select -obj {obj} -hier {selected_hier_path} -name {selected_name}\n"
-                    if selected_hier_path
-                    else f"select -obj {obj} -name {selected_name}\n"
-                )
+            else:
+                # Single Instance CrossProbing
+                if selected_hier_path:
+                    msg = f"select -obj {obj} -hier {selected_hier_path} -name {selected_name}\n"
+                else:
+                    msg = f"select -obj {obj} -name {selected_name}\n"
                 self.current_view = selected_hier_path
 
-        noti = self.send_message(msg)
-
-        return noti, []
+        return msg
 
     def register_callbacks(self, app):
 
-        @app.callback(
-            Output("cp-column-select", "data"), Input("aggrid-table", "columnDefs"), prevent_initial_call=True
-        )
-        def update_cp_columns(columnDefs):
-            return [coldef["field"] for coldef in columnDefs]
+        if self.CP_socket:
 
-        # middel click
-        app.clientside_callback(
-            """
-            function(gridId) {
-                dash_ag_grid.getApiAsync(gridId).then((grid) => {
-                    console.log("Grid click");
-                    grid.addEventListener('cellMouseDown', (e) => {
-                        if (e.event.button == 1) {
-                            console.log("middle click");
-                            e.api.setNodesSelected({nodes: [e.node], newValue: true})
-                        } 
+            @app.callback(
+                Output("cp-column-select", "data"),
+                Input("aggrid-table", "columnDefs"),
+                prevent_initial_call=True,
+            )
+            def update_cp_columns(columnDefs):
+                return [coldef["field"] for coldef in columnDefs]
+
+            # middel click
+            app.clientside_callback(
+                """
+                function(gridId) {
+                    dash_ag_grid.getApiAsync(gridId).then((grid) => {
+                        grid.addEventListener('cellMouseDown', (e) => {
+                            if (e.event.button == 1) {
+                                e.api.setNodesSelected({nodes: [e.node], newValue: true})
+                            } 
+                        })
                     })
-                })
-                return dash_clientside.no_update
-            }
-            """,
-            Output("aggrid-table", "id", allow_duplicate=True),
-            Input("aggrid-table", "id"),
-        )
+                    return dash_clientside.no_update
+                }
+                """,
+                Output("aggrid-table", "id", allow_duplicate=True),
+                Input("aggrid-table", "id"),
+            )
 
-        @app.callback(
-            Output("notifications", "children", allow_duplicate=True),
-            Input("cp-manual-button", "n_clicks"),
-            State("cp-manual-input", "value"),
-            State("cp-object-segmented", "value"),
-            prevent_initial_call=True,
-        )
-        def manual_crossprobing(n, cp_name, obj):
-            if n and cp_name:
+            @app.callback(
+                Output("toaster", "toasts", allow_duplicate=True),
+                Input("cp-manual-button", "n_clicks"),
+                State("cp-manual-input", "value"),
+                State("cp-object-segmented", "value"),
+                prevent_initial_call=True,
+            )
+            def manual_crossprobing(n, cp_name, obj):
+                if n and cp_name:
+                    selected_hier_path, selected_name = self.hier_name(cp_name)
+                    selected_name = self.remove_init_r_m(obj, selected_name)
+                    # selected_name = self.preprocess_d_name(obj, selected_name)
+                    cp_command = f"select -obj {obj} -hier {selected_hier_path} -name {selected_name}\n"
+                    toasts = self.send_cp_message(cp_command)
+                    return toasts
+                return no_update
 
-                selected_hier_path, selected_name = self.hier_name(cp_name)
-                selected_name = self.remove_init_r_m(obj, selected_name)
-                cp_command = f"select -obj {obj} -hier {selected_hier_path} -name {selected_name}\n"
-                noti = self.send_message(cp_command)
-                return noti
-            return None
+            @app.callback(
+                Output("toaster", "toasts", allow_duplicate=True),
+                Input("cp_selected_rows", "data"),
+                State("el", "event"),
+                State("cp-object-segmented", "value"),
+                State("cp-column-select", "value"),
+                prevent_initial_call=True,
+            )
+            def get_selected_row(selected_rows, event, obj, cp_col):
+                if event.get("button") != 1:
+                    logger.info("btn1")
+                    return no_update
+                elif self.CP_socket:
+                    if not cp_col:
+                        cp_col = event.get("srcElement.attributes.col-id.nodeValue")
+                    msg = self.cross_probing(selected_rows, obj, cp_col)
+                    toasts = self.send_cp_message(msg)
+                    return toasts
+                else:
+                    return no_update
