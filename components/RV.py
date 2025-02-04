@@ -1,7 +1,7 @@
 import dash_flexlayout as dfl
 import dash_mantine_components as dmc
 import dash_blueprint_components as dbpc
-from dash import Input, Output
+from dash import Input, Output, html
 from components.grid.data_grid import DataGrid
 from components.menu.home.home import HomeMenu
 #from components.menu.view.view import ViewMenu
@@ -81,6 +81,7 @@ class ResultViewer:
         return dmc.MantineProvider(
             [
                 dmc.NotificationProvider(),
+                html.Div(id="notifications"),
                 dbpc.OverlayToaster(id="toaster", position="top-right", usePortal=True),
                 dfl.FlexLayout(id="flex-layout", model=fl_config, children=fl_nodes, useStateForModel=False),
             ]
