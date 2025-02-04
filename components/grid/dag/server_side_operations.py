@@ -8,18 +8,17 @@ from components.grid.dag.SSRM.apply_group import apply_group
 def extract_rows_from_data(request):
     # request:{'endRow': 1000,'filterModel': None,'groupKeys': [],'rowGroupCols': [],'sortModel': [],'startRow': 0,'valueCols': []}
 
-    dff = SSDF.dataframe
+    dff = SSDF.dataframe.lazy()
     SSDF.request = request
-    print(request)
-    
     
     dff = apply_filters(dff, request)
     
+    dff = apply_group(dff, request)
     
     dff = apply_sort(dff, request)
     
     
-    dff = apply_group(dff, request)
+    dff = dff.collect()
     
     start_row = request.get("startRow", 0)
     end_row = request.get("endRow", 1000)

@@ -58,6 +58,49 @@ def apply_filters(df, request):
         col = condition["colId"]
         return filterDf(df, condition, col)
 
+    def create_filter_expression(condition, col):
+        filter_type = condition.get("type")
+        filter_value = condition.get("filter")
+        
+        if filter_type == "contains":
+            return pl.col(col).str.contains(filter_value)
+        elif filter_type == "notContains":
+            return ~pl.col(col).str.contains(filter_value)
+        elif filter_type == "equals":
+            return pl.col(col) == filter_value
+        elif filter_type == "notEqual":
+            return pl.col(col) != filter_value
+        elif filter_type == "startsWith":
+            return pl.col(col).str.starts_with(filter_value)
+        elif filter_type == "notStartsWith":
+            return ~pl.col(col).str.starts_with(filter_value)        
+        elif filter_type == "endsWith":
+            return pl.col(col).str.ends_with(filter_value)
+        elif filter_type == "notEndsWith":
+            return ~pl.col(col).str.ends_with(filter_value)
+        
+        elif filter_type == "blank":
+            return pl.col(col) == ""
+        elif filter_type == "notBlank":
+            return pl.col(col) != ""
+        
+        # 숫자형 필터 처리
+        if condition.get("filterType") == "number":
+            if filter_type == "greaterThan":
+                return pl.col(col) > filter_value
+            elif filter_type == "lessThan":
+                return pl.col(col) < filter_value
+            elif filter_type == "greaterThanOrEqual":
+                return pl.col(col) >= filter_value
+            elif filter_type == "lessThanOrEqual":
+                return pl.col(col) <= filter_value
+            elif filter_type == "notEqual":
+                return pl.col(col) != filter_value
+            elif filter_type == "equals":
+                return pl.col(col) == filter_value        
+        
+        raise ValueError(f"Unsupported filter type: {filter_type}")
+
     def process_conditions(df, conditions, operator):
         if operator == "AND":
             for condition in conditions:
@@ -66,21 +109,22 @@ def apply_filters(df, request):
                 else:
                     df = apply_filter_condition(df, condition)
         elif operator == "OR":
-            expressions = []
+            or_expressions = []
             for condition in conditions:
                 if "conditions" in condition:
-                    temp_df = process_conditions(df.clone(), condition["conditions"], condition["type"])
-                    expressions.append(temp_df)
+                    # 재귀적으로 중첩 조건 처리
+                    nested_expr = process_conditions(df, condition["conditions"], condition["type"])
+                    or_expressions.append(nested_expr)
+
                 else:
-                    temp_df = apply_filter_condition(df.clone(), condition)
-                    expressions.append(temp_df)
-            # OR 조건을 만족하는 모든 행을 포함하는 단일 DataFrame을 생성
-            if expressions:
-                # 첫 번째 DataFrame을 기준으로 시작
-                final_df = expressions[0]
-                for expr_df in expressions[1:]:
-                    final_df = final_df.vstack(expr_df).unique(maintain_order=True)
-                df = final_df
+                    # 개별 조건에 대한 필터 표현식 생성
+                    col = condition["colId"]
+                    filter_expr = create_filter_expression(condition, col)
+                    or_expressions.append(filter_expr)
+            # 모든 OR 조건을 단일 표현식으로 결합
+            if or_expressions:
+                combined_expr = pl.any_horizontal(or_expressions)
+                df = df.filter(combined_expr)
         return df
 
     try:
@@ -90,7 +134,8 @@ def apply_filters(df, request):
         elif "conditions" in filterModel:
             operator = filterModel.get("type", "AND")
             df = process_conditions(df, filterModel["conditions"], operator)
-        SSDF.filtered_row_count = f"{len(df):,}"
+        #SSDF.filtered_row_count = f"{len(df):,}"
+        SSDF.filtered_row_count = f"{df.select(pl.count()).collect().item():,}"
         return df
     except Exception as e:
         logger.error(f"Error: {e}")
