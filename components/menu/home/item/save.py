@@ -27,9 +27,7 @@ class Saver:
                         dmc.TextInput(
                             value="",
                             label="type in the path of CSV file to Save",
-                            leftSection=dmc.ActionIcon(
-                                get_icon("bx-file-find"), id="save-csv-file-search", variant="subtle", n_clicks=0
-                            ),
+                            leftSection=dmc.ActionIcon(get_icon("bx-file-find"), id="save-csv-file-search", variant="subtle", n_clicks=0),
                             rightSection=dmc.Button("Save", id="save-csv-local-btn", style={"width": 100}, n_clicks=0),
                             rightSectionWidth=100,
                             required=True,
@@ -43,9 +41,8 @@ class Saver:
         )
 
     def register_callbacks(self, app):
-        
-        self._register_local_save_callback(app)
 
+        self._register_local_save_callback(app)
 
     def _register_local_save_callback(self, app):
 
@@ -108,13 +105,6 @@ class Saver:
                 create_notification(title="Saved", message=f"file saved to {save_path}", icon_name="bx-smile"),
                 False,
             )
-
-
-
-
-
-
-
 
     # def _register_workspace_save_callback(self, app):
 

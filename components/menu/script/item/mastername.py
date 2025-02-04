@@ -56,9 +56,7 @@ class MasterName:
                                         variant="subtle",
                                         n_clicks=0,
                                     ),
-                                    rightSection=dmc.Button(
-                                        "Upload", id="upload-ckt-file-btn", style={"width": 100}, n_clicks=0
-                                    ),
+                                    rightSection=dmc.Button("Upload", id="upload-ckt-file-btn", style={"width": 100}, n_clicks=0),
                                     rightSectionWidth=100,
                                     required=True,
                                     id="masterName-ckt-file-path",
@@ -115,9 +113,7 @@ class MasterName:
                             p="xl",
                             withBorder=True,
                         ),
-                        dmc.Button(
-                            "Run PERC", id="run-perc-btn", variant="outline", fullWidth=True, disabled=True, mt=15
-                        ),
+                        dmc.Button("Run PERC", id="run-perc-btn", variant="outline", fullWidth=True, disabled=True, mt=15),
                     ],
                     withBorder=True,
                     shadow="sm",

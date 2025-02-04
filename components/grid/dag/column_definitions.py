@@ -8,7 +8,6 @@ class ColumnType(Enum):
     STRING = "text"
 
 
-
 DEFAULT_COL_DEF: Dict[str, Any] = {
     "filter": True,
     "sortable": True,

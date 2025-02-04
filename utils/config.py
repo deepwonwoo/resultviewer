@@ -5,7 +5,7 @@ import diskcache as dc
 
 
 class Config:
-    
+
     def __init__(self):
         # self.WORKSPACE = "/user/ecolake/DATA/VERIFY/SIGNOFF/ResultViewer"
         # self.SCRIPT = "/user/signoff.dev/deepwonwoo/scripts"
@@ -22,7 +22,7 @@ class Config:
 
         base_dir = "RV"
         user_dir = f"./{base_dir}_{username}"
-        
+
         user_dir = os.path.join(tempfile.gettempdir(), f"{base_dir}_{username}")
         return user_dir, make_cache_dir(user_dir)
 

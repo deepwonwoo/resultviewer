@@ -81,12 +81,8 @@ class CategorizePart:
                                 dmc.Text("Rule Table: ", mr=2, fw=500, size="sm"),
                                 dmc.Group(
                                     [
-                                        dmc.Button(
-                                            "Download", id="categorizePart-download-btn", size="xs", variant="outline"
-                                        ),
-                                        dmc.Button(
-                                            "Upload", id="categorizePart-upload-btn", size="xs", variant="outline"
-                                        ),
+                                        dmc.Button("Download", id="categorizePart-download-btn", size="xs", variant="outline"),
+                                        dmc.Button("Upload", id="categorizePart-upload-btn", size="xs", variant="outline"),
                                     ],
                                     gap="xs",
                                     mb=1,
@@ -336,8 +332,7 @@ class CategorizePart:
                     if use_regex:
                         if case_sensitive:
                             compiled_rules = [
-                                (re.compile(regex), {col: rules[col][i] for col in column_names})
-                                for i, regex in enumerate(rules[pattern_col])
+                                (re.compile(regex), {col: rules[col][i] for col in column_names}) for i, regex in enumerate(rules[pattern_col])
                             ]
                         else:
                             compiled_rules = [
@@ -346,14 +341,10 @@ class CategorizePart:
                             ]
                     else:
                         if case_sensitive:
-                            compiled_rules = [
-                                (regex, {col: rules[col][i] for col in column_names})
-                                for i, regex in enumerate(rules[pattern_col])
-                            ]
+                            compiled_rules = [(regex, {col: rules[col][i] for col in column_names}) for i, regex in enumerate(rules[pattern_col])]
                         else:
                             compiled_rules = [
-                                (regex.lower(), {col: rules[col][i] for col in column_names})
-                                for i, regex in enumerate(rules[pattern_col])
+                                (regex.lower(), {col: rules[col][i] for col in column_names}) for i, regex in enumerate(rules[pattern_col])
                             ]
 
                     skip_masters = [s.strip() for s in skip_masters_str.split(",") if s.strip()]
@@ -388,9 +379,7 @@ class CategorizePart:
                     rule_df = pl.DataFrame(rowData)
                     pattern_col = rule_df.columns[0]
 
-                    SSDF.dataframe = dff.join(
-                        rule_df, left_on=selected_col, right_on=pattern_col, how="left", suffix="_cate"
-                    )
+                    SSDF.dataframe = dff.join(rule_df, left_on=selected_col, right_on=pattern_col, how="left", suffix="_cate")
 
                     updated_columnDefs = generate_column_definitions(SSDF.dataframe)
 

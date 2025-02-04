@@ -74,11 +74,7 @@ class ResultViewer:
         @app.callback(Output("aggrid-table", "style"), Input("flex-layout", "model"))
         def flex_layout(layout_config):
             bottom_borders = [bl for bl in layout_config["borders"] if bl.get("location") == "bottom"]
-            bottom_size = (
-                next((bl.get("size", 50) for bl in bottom_borders if bl.get("selected", -1) == 0), 0)
-                if bottom_borders
-                else -30
-            )
+            bottom_size = next((bl.get("size", 50) for bl in bottom_borders if bl.get("selected", -1) == 0), 0) if bottom_borders else -30
             style = {"height": f"calc(100vh - 180px - 25px - {bottom_size}px)", "width": "100%", "overflow": "auto"}
             return style
 

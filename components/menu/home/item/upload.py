@@ -39,9 +39,7 @@ class Uploader:
                 dmc.TextInput(
                     value=self.init_csv,
                     label="type in the path of CSV file to Open",
-                    leftSection=dmc.ActionIcon(
-                        get_icon("bx-file-find"), id="open-csv-file-search", variant="subtle", n_clicks=0
-                    ),
+                    leftSection=dmc.ActionIcon(get_icon("bx-file-find"), id="open-csv-file-search", variant="subtle", n_clicks=0),
                     rightSection=dmc.Button("Open", id="open-csv-local-btn", style={"width": 100}, n_clicks=0),
                     rightSectionWidth=100,
                     required=True,
@@ -52,7 +50,6 @@ class Uploader:
 
     def register_callbacks(self, app):
         self._register_local_save_callback(app)
-
 
     def _register_local_save_callback(self, app):
 

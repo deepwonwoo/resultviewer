@@ -32,18 +32,13 @@ def compare(df1, df2, keys, values, tolerances):
     def preprocessing_target_df(df2, keys, values):
         df2_preprocess = df2.select(keys + values)
         # 각 키 조합에 대해 값들이 일관된지 확인
-        df2_preprocess = df2_preprocess.group_by(keys).agg(
-            [pl.min(values).name.suffix("_min"), pl.max(values).name.suffix("_max")]
-        )
+        df2_preprocess = df2_preprocess.group_by(keys).agg([pl.min(values).name.suffix("_min"), pl.max(values).name.suffix("_max")])
         # 최소값과 최대값이 모두 동일한 경우 "same", 그렇지 않으면 "duplicated"
         for value in values:
             min_col = f"{value}_min"
             max_col = f"{value}_max"
             df2_preprocess = df2_preprocess.with_columns(
-                pl.when(pl.col(min_col) == pl.col(max_col))
-                .then(pl.lit("same"))
-                .otherwise(pl.lit("duplicated"))
-                .alias(f"{value}_compare")
+                pl.when(pl.col(min_col) == pl.col(max_col)).then(pl.lit("same")).otherwise(pl.lit("duplicated")).alias(f"{value}_compare")
             )
         compare_condition = pl.all_horizontal([pl.col(f"{value}_compare") == pl.lit("same") for value in values])
         compare_column = pl.when(compare_condition).then(pl.lit("same")).otherwise(pl.lit("duplicated"))
@@ -165,12 +160,8 @@ class Compare:
                     children=[
                         dmc.TextInput(
                             label="Upload compare target file path",
-                            leftSection=dmc.ActionIcon(
-                                get_icon("bx-file-find"), id="upload-compare-file-search", variant="subtle", n_clicks=0
-                            ),
-                            rightSection=dmc.Button(
-                                "Upload", id="upload-compare-target-btn", style={"width": 100}, n_clicks=0
-                            ),
+                            leftSection=dmc.ActionIcon(get_icon("bx-file-find"), id="upload-compare-file-search", variant="subtle", n_clicks=0),
+                            rightSection=dmc.Button("Upload", id="upload-compare-target-btn", style={"width": 100}, n_clicks=0),
                             rightSectionWidth=100,
                             required=True,
                             id="upload-compare-path-input",
@@ -239,16 +230,12 @@ class Compare:
             common_columns = [col for col in df_columns if col in target_df_columns]
 
             if common_columns == []:
-                noti = create_notification(
-                    message="No common columns found between the two dataframes.", position="center"
-                )
+                noti = create_notification(message="No common columns found between the two dataframes.", position="center")
                 return no_update, True, noti
 
             return common_columns, False, None
 
-        @app.callback(
-            Output("table_rows", "children"), Input("column-multi-select", "value"), prevent_initial_call=True
-        )
+        @app.callback(Output("table_rows", "children"), Input("column-multi-select", "value"), prevent_initial_call=True)
         def select_value(selected_list):
             rows = []
             for i, selected in enumerate(selected_list):
@@ -257,9 +244,7 @@ class Compare:
                         [
                             dmc.TableTd(""),
                             dmc.TableTd(dmc.Text(selected, id={"type": "value", "index": i}, size="sm")),
-                            dmc.TableTd(
-                                dmc.NumberInput(value=0, min=0, size="xs", id={"type": "tolerance", "index": i})
-                            ),
+                            dmc.TableTd(dmc.NumberInput(value=0, min=0, size="xs", id={"type": "tolerance", "index": i})),
                         ]
                     )
                 else:
@@ -301,9 +286,7 @@ class Compare:
             target_df = validate_df(compare_file_path)
 
             exclude_columns = ["compare"] + [col for col in SSDF.dataframe.columns if col.startswith("delta_")]
-            SSDF.dataframe = SSDF.dataframe.select(
-                [col for col in SSDF.dataframe.columns if col not in exclude_columns]
-            )
+            SSDF.dataframe = SSDF.dataframe.select([col for col in SSDF.dataframe.columns if col not in exclude_columns])
             current_columnDefs = generate_column_definitions(SSDF.dataframe)
 
             compare_df = compare(SSDF.dataframe, target_df, key_list, value_list, tolerance_list)
@@ -319,9 +302,7 @@ class Compare:
 
             cellClassRules = {"text-danger": "params.data.compare === 'diff' && params.value != 0"}
             for v in value_list:
-                current_columnDefs.append(
-                    generate_column_definition(f"delta_{v}", compare_df[f"delta_{v}"], cellClassRules=cellClassRules)
-                )
+                current_columnDefs.append(generate_column_definition(f"delta_{v}", compare_df[f"delta_{v}"], cellClassRules=cellClassRules))
 
             result = compare_df.group_by("compare").agg(pl.count())
             result_dicts = result.to_dicts()
@@ -333,7 +314,5 @@ class Compare:
                 False,
                 current_columnDefs,
                 False,
-                create_notification(
-                    title="Compare Applied", message=dcc.Markdown(msg), position="center", icon_name="bx-smile"
-                ),
+                create_notification(title="Compare Applied", message=dcc.Markdown(msg), position="center", icon_name="bx-smile"),
             )

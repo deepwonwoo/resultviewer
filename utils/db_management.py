@@ -7,7 +7,7 @@ from utils.file_operations import get_viewers_from_lock_file
 
 class DataFrameManager:
     def __init__(self):
-        self._data: Dict[str, Any] = {"df": pl.DataFrame(), "lock": None, "readonly": True}
+        self._data: Dict[str, Any] = {"df": pl.DataFrame(), "lock": None, "readonly": True, "hide_waiver": False}
         self._row_counter: Dict[str, int] = {"filtered": 0, "groupby": 0}
         self._cache: Dict[str, Any] = {
             "REQUEST": {},
@@ -29,6 +29,14 @@ class DataFrameManager:
     @is_readonly.setter
     def is_readonly(self, value: bool) -> None:
         self._data["readonly"] = value
+
+    @property
+    def hide_waiver(self) -> bool:
+        return self._data.get("hide_waiver", True)
+
+    @hide_waiver.setter
+    def hide_waiver(self, value: bool) -> None:
+        self._data["hide_waiver"] = value
 
     @property
     def lock(self) -> Optional[SoftFileLock]:
@@ -108,6 +116,7 @@ class DataFrameManager:
     @init_csv.setter
     def init_csv(self, value: str) -> None:
         self._cache["init_csv"] = value
+
 
 # 전역 SSDF 객체를 함수로 대체
 def get_ssdf():

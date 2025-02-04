@@ -87,7 +87,6 @@ class DataGrid:
                     [
                         html.Div("Total Rows:", id="total-row-count"),
                         html.Div(id="row-counter"),
-                        
                     ],
                     justify="flex-end",
                     py=0,
@@ -144,7 +143,6 @@ class DataGrid:
             [Input("aggrid-table", "id"), Input("aggrid-table", "columnDefs")],
             prevent_initial_call=True,
         )
-
 
     @staticmethod
     def _generate_counter_info() -> str:

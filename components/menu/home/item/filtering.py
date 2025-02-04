@@ -47,9 +47,7 @@ class Filter:
                 return f"({join_type.join(expressions)})"
             else:
                 operator = operator_map.get(condition["type"], condition["type"])
-                filter_value = (
-                    f'"{condition["filter"]}"' if isinstance(condition["filter"], str) else condition["filter"]
-                )
+                filter_value = f'"{condition["filter"]}"' if isinstance(condition["filter"], str) else condition["filter"]
                 return f"[{condition['colId']}] {operator} {filter_value}"
 
         return build_expression(filter_model)
@@ -148,9 +146,7 @@ class Filter:
                 filters = self.load_filters()
                 filters[filter_name] = filter_model
                 self.save_filters(filters)
-                return self.generate_filter_list(filters), create_notification(
-                    "Filter saved successfully", "Filter Saved", "green"
-                )
+                return self.generate_filter_list(filters), create_notification("Filter saved successfully", "Filter Saved", "green")
             except Exception as e:
                 logger.error(f"Error storing filter condition: {str(e)}")
                 return no_update, create_notification(f"Error: {str(e)}", "Filter Storage Error", "red")

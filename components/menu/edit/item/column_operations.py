@@ -65,9 +65,7 @@ class Columns:
                             label="Header",
                             style={"width": 100},
                         ),
-                        dmc.TextInput(
-                            id="add-column-value-input", size="xs", value="", label="Value:", placeholder="value"
-                        ),
+                        dmc.TextInput(id="add-column-value-input", size="xs", value="", label="Value:", placeholder="value"),
                     ],
                     gap="sm",
                 ),
@@ -176,9 +174,7 @@ class Columns:
             children=[
                 dmc.Group(
                     [
-                        dmc.Select(
-                            label="Select Columns to Rename", id="rename-column-select", clearable=False, data=[], w=200
-                        ),
+                        dmc.Select(label="Select Columns to Rename", id="rename-column-select", clearable=False, data=[], w=200),
                         dmc.TextInput(label="New Column Name", id="new-column-name-input", style={"width": 200}),
                     ],
                     gap="sm",
@@ -282,13 +278,9 @@ class Columns:
             try:
                 if isinstance(SSDF.dataframe[column].dtype, pl.Utf8):
                     SSDF.dataframe = (
-                        SSDF.dataframe.with_columns(
-                            pl.col(column).str.replace_all(find_value, replace_value).alias(column)
-                        )
+                        SSDF.dataframe.with_columns(pl.col(column).str.replace_all(find_value, replace_value).alias(column))
                         if use_regex
-                        else SSDF.dataframe.with_columns(
-                            pl.col(column).str.replace(find_value, replace_value).alias(column)
-                        )
+                        else SSDF.dataframe.with_columns(pl.col(column).str.replace(find_value, replace_value).alias(column))
                     )
                 else:
                     SSDF.dataframe = SSDF.dataframe.with_columns(
@@ -470,9 +462,7 @@ class Columns:
                 return noti, no_update, no_update
             header_name = "-".join(selected_columns)
 
-            SSDF.dataframe = SSDF.dataframe.with_columns(
-                pl.concat_str([pl.col(col) for col in selected_columns], separator="-").alias(header_name)
-            )
+            SSDF.dataframe = SSDF.dataframe.with_columns(pl.concat_str([pl.col(col) for col in selected_columns], separator="-").alias(header_name))
             updated_columnDefs = generate_column_definitions(SSDF.dataframe)
             return None, False, updated_columnDefs
 

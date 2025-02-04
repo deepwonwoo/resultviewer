@@ -40,9 +40,7 @@ def process_dataframe(df):
             if df[col].dtype == pl.Utf8:
                 df = df.with_columns(pl.col(col).str.strip_chars().alias(col))
             df = df.with_columns(pl.col(col).cast(pl.Float64()).alias(col))
-            df = df.with_columns(
-                pl.col(col).replace(float("inf"), -99999).fill_null(-99999).fill_nan(-99999).alias(col)
-            )
+            df = df.with_columns(pl.col(col).replace(float("inf"), -99999).fill_null(-99999).fill_nan(-99999).alias(col))
             if df[col].dtype == pl.Float64:
                 if (df[col] == df[col].cast(pl.Int64())).sum() == len(df[col]):
                     df = df.with_columns(pl.col(col).cast(pl.Int64()).alias(col))
@@ -76,7 +74,7 @@ def displaying_df(filtred_apply=False):
     if dff.is_empty():
         return None
     try:
-        
+
         if filtred_apply:
             dff = apply_filters(dff, SSDF.request)
     except Exception as e:

@@ -20,9 +20,7 @@ class RuleTable:
     def layout(self):
         return html.Div(
             [
-                dmc.Button(
-                    "Create Rule Table", id="create-ruletable-btn", variant="outline", color="indigo", size="xs"
-                ),
+                dmc.Button("Create Rule Table", id="create-ruletable-btn", variant="outline", color="indigo", size="xs"),
                 self.modal(),
             ]
         )
@@ -48,9 +46,7 @@ class RuleTable:
                                         variant="subtle",
                                         n_clicks=0,
                                     ),
-                                    rightSection=dmc.Button(
-                                        "Upload", id="ruletable-upload-ckt-file-btn", style={"width": 100}, n_clicks=0
-                                    ),
+                                    rightSection=dmc.Button("Upload", id="ruletable-upload-ckt-file-btn", style={"width": 100}, n_clicks=0),
                                     rightSectionWidth=100,
                                     required=True,
                                     id="ruletable-ckt-file-path-input",
@@ -208,13 +204,9 @@ class RuleTable:
             perc_script = os.path.join(PERC_WORKSPACE, "run_extract_full_master")
             os.chmod(perc_script, 0o755)
             try:
-                result = subprocess.run(
-                    [f"./run_extract_full_master {ckt_file_path} {top_cell_name}"], shell=True, cwd=PERC_WORKSPACE
-                )
+                result = subprocess.run([f"./run_extract_full_master {ckt_file_path} {top_cell_name}"], shell=True, cwd=PERC_WORKSPACE)
                 row_data = self.parse_hierarchy(f"{PERC_WORKSPACE}/results/full_master.csv")
-                noti = create_notification(
-                    title="FullMasterNames Extracted", message="PERC script executed successfully", icon_name="bx-smile"
-                )
+                noti = create_notification(title="FullMasterNames Extracted", message="PERC script executed successfully", icon_name="bx-smile")
             except Exception as e:
                 row_data = []
                 noti = create_notification(f"PERC script execution failed: {e}")

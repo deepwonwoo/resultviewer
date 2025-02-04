@@ -126,27 +126,15 @@ class FileMode:
                     return no_update, None, False, no_update, False
                 if checked and ("waiver" in df_workspace.columns):
                     df_local = SSDF.dataframe
-                    df_local = df_local.select("waiver", "user").rename(
-                        {"waiver": "waiver_local", "user": "user_local"}
-                    )
+                    df_local = df_local.select("waiver", "user").rename({"waiver": "waiver_local", "user": "user_local"})
                     dff = pl.concat([df_workspace, df_local], how="horizontal")
                     conditions_expr = (
                         (pl.col("waiver") != pl.col("waiver_local"))
                         & (pl.col("user_local").str.starts_with(CONFIG.USERNAME))
-                        & (
-                            (pl.col("user") == CONFIG.USERNAME)
-                            | ((pl.col("waiver_local") != "Result") & (pl.col("waiver") != "Fixed"))
-                        )
+                        & ((pl.col("user") == CONFIG.USERNAME) | ((pl.col("waiver_local") != "Result") & (pl.col("waiver") != "Fixed")))
                     )
-                    update_waiver_column = (
-                        pl.when(conditions_expr)
-                        .then(pl.col("waiver_local"))
-                        .otherwise(pl.col("waiver"))
-                        .alias("waiver")
-                    )
-                    update_user_column = (
-                        pl.when(conditions_expr).then(pl.col("user_local")).otherwise(pl.col("user")).alias("user")
-                    )
+                    update_waiver_column = pl.when(conditions_expr).then(pl.col("waiver_local")).otherwise(pl.col("waiver")).alias("waiver")
+                    update_user_column = pl.when(conditions_expr).then(pl.col("user_local")).otherwise(pl.col("user")).alias("user")
                     dff = dff.with_columns(update_waiver_column, update_user_column)
                     df_workspace = dff.select(pl.exclude(["waiver_local", "user_local"]))
 

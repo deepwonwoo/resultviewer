@@ -15,6 +15,7 @@ parser.add_argument("-csv", "--csv", help="표시할 CSV 파일 경로")
 args = parser.parse_args()
 SSDF.init_csv = args.csv
 
+
 def create_dash_app():
     application = Flask(__name__)
     app = DashProxy(
