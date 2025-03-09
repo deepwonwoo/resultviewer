@@ -83,3 +83,36 @@ def displaying_df(filtred_apply=False):
         if col in dff.columns:
             dff = dff.drop(col)
     return dff
+
+
+
+
+
+"""
+def displaying_df(filtered_apply=False):
+    try:
+        dff = SSDF.dataframe.lazy()
+        
+        # 필터링 적용
+        if filtered_apply and SSDF.request.get('filterModel'):
+            dff = apply_filters(dff, SSDF.request)
+        
+        # 그룹화 적용 (기존 데이터 처리 파이프라인과 동일한 로직)
+        if SSDF.request.get('rowGroupCols'):
+            dff = apply_group(dff, SSDF.request)
+            dff = apply_sort(dff, SSDF.request)
+            
+            # 그룹 계층 구조 평탄화
+            dff = dff.with_columns(
+                pl.when(pl.col("group") == True)
+                .then(pl.col("childCount"))
+                .otherwise(None)
+                .alias("_is_group_row")
+            )
+        
+        return dff.collect()
+    
+    except Exception as e:
+        logger.error(f"Error preparing display DF: {e}")
+        return SSDF.dataframe
+"""
