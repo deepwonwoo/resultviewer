@@ -3,7 +3,7 @@ import os
 # import pwd
 import json
 import shutil
-import datetime
+from datetime import datetime
 from utils.config import CONFIG
 from utils.logging_utils import logger
 
@@ -20,10 +20,14 @@ def get_file_owner(file_path):
 
 def get_lock_status(file_path):
     lock_path = f"{file_path}.lock"
-    if not os.path.exists(lock_path):
-        return False, None
-    file_owner_name = get_file_owner(lock_path)
-    return True, file_owner_name
+    try:
+        if not os.path.exists(lock_path):
+            return False, None
+        file_owner_name = get_file_owner(lock_path)
+        return True, file_owner_name
+    except Exception as e:
+        logger.error(f"Error checking lock status for {file_path}: {e}")
+    return False, None
 
 
 def add_viewer_to_lock_file(file_path, viewer_id):
@@ -79,9 +83,12 @@ def backup_file(dir_path, file_path):
     backup_dir = os.path.join(dir_path, "backup")
     make_dirs_with_permissions(backup_dir)
     file_owner = get_file_owner(file_path)
-    file_timestamp = datetime.datetime.fromtimestamp(os.path.getmtime(file_path)).strftime("%Y%m%d_%H%M")
+    file_timestamp = datetime.datetime.fromtimestamp(
+        os.path.getmtime(file_path)
+    ).strftime("%Y%m%d_%H%M")
     dir_path, filename = os.path.split(file_path)
     name, ext = os.path.splitext(filename)
     backup_filename = f"{name}_{file_timestamp}_{file_owner}{ext}"
     backup_filepath = os.path.join(backup_dir, backup_filename)
     shutil.move(file_path, backup_filepath)
+    return backup_filepath

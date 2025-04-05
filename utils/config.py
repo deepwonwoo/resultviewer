@@ -10,8 +10,11 @@ class Config:
         # self.SCRIPT = "/user/signoff.dev/deepwonwoo/scripts"
         self.USERNAME = "user"
         self.WORKSPACE = "C:/Users/deepw/OneDrive/문서/Python"
-        self.SCRIPT = os.getenv("SCRIPT_PATH", "/user/verifier14/deepwonwoo/Release/scripts")
+        self.SCRIPT = os.getenv(
+            "SCRIPT_PATH", "/user/verifier14/deepwonwoo/Release/scripts"
+        )
         self.USER_RV_DIR, self.APPCACHE = self.get_user_rv_dir(self.USERNAME)
+        self.CP_CFG = "/user/signoff.dev/lsj/CP/.sorv_cp.cfg"
 
     def get_user_rv_dir(self, username=os.getenv("USER")) -> str:
         def make_cache_dir(dir_path: str) -> dc.Cache:
@@ -29,6 +32,31 @@ class Config:
 
         user_dir = os.path.join(tempfile.gettempdir(), f"{base_dir}_{username}")
         return user_dir, make_cache_dir(user_dir)
+
+    def get_QtFileDialog_env(self):
+        env_vars = os.envion.copy()
+        env_vars["LD_LIBRARY_PATH"] = "/appl/LINUX/Signoff/libs:" + env_vars.get(
+            "LD_LIBRARY_PATH"
+        )
+        return env_vars
+
+    def get_applications(self):
+        return [
+            {"value": "DSC", "label": "Driver Size Check"},
+            {"value": "LSC", "label": "Latch Strength Check"},
+            {"value": "LS", "label": "Level Shifter Check"},
+            {"value": "CDA", "label": "Coupling Delay Analyze"},
+            {"value": "PEC", "label": "Power Error Check"},
+            {"value": "CanaTR", "label": "Cana Tr"},
+            {"value": "FANOUT", "label": "Fanout Check"},
+            {"value": "DK", "label": "Driver Keeper"},
+            {"value": "DynamicDCPath", "label": "Dynamic DC Path"},
+            {"value": "PNRatio", "label": "PN Ratio"},
+            {"value": "FNC", "label": "Floating Node Check"},
+            {"value": "GlitchMarginCheck", "label": "Glitch Margin Check"},
+            {"value": "Autopulse", "label": "Autopulse"},
+            {"value": "Etc", "label": "etc"},
+        ]
 
 
 CONFIG = Config()

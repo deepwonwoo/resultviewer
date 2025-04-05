@@ -1,15 +1,21 @@
 import os
+import stat
 
 # import pwd
 import polars as pl
 from filelock import SoftFileLock
 from typing import Dict, Any, List, Optional
+from utils.config import CONFIG
 from utils.file_operations import get_viewers_from_lock_file
 
 
 class DataFrameManager:
     def __init__(self):
-        self._data: Dict[str, Any] = {"df": pl.DataFrame(), "lock": None, "readonly": True}
+        self._data: Dict[str, Any] = {
+            "df": pl.DataFrame(),
+            "lock": None,
+            "readonly": True,
+        }
         self._row_counter: Dict[str, int] = {"filtered": 0, "groupby": 0}
         self._cache: Dict[str, Any] = {
             "REQUEST": {},
@@ -52,22 +58,21 @@ class DataFrameManager:
         """파일에 대한 lock을 획득합니다."""
         lock_path = f"{file_path}.lock"
         lock = SoftFileLock(lock_path, thread_local=False)
-        try:
-            lock.acquire()
-            self._data["lock"] = lock
-            return True
-        except TimeoutError:
-            return False
+        lock.acquire()
+        self._data["lock"] = lock
+        # if os.path.exists(lock_path):
+        #     os.chmod(lock_path, stat.S_IRWXU | stat.S_IRWXG |stat.S_IRWXO)
 
     def release_lock(self) -> None:
         """현재 보유 중인 lock을 해제합니다."""
         lock = self._data.get("lock")
         if lock:
             viewers = get_viewers_from_lock_file(lock.lock_file)
-            current_user = os.getenv("USER")
-            lock_filename = os.path.basename(lock.lock_file)
-            # viewers = [pwd.getpwnam(viewer).pw_uid for viewer in viewers]
-            viewers = []
+            lock_filename = lock.lock_file
+            lock_aliasname = lock_filename.replace(
+                CONFIG.WORKSPACE, "WORKSPACE"
+            ).replce(".lock", "")
+            # if viewer:    # send messages to waiting users
 
             lock.release()
             self._data["lock"] = None

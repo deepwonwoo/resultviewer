@@ -4,7 +4,7 @@ import dash_mantine_components as dmc
 import dash_blueprint_components as dbpc
 from dash import html, Output, Input, State, Patch, no_update, exceptions
 from components.grid.dag.column_definitions import generate_column_definitions
-from components.menu.home.item.workspace_explore import FileExplorer
+from components.menu.home.item.workspace_explorer import WorkspaceExplorer
 from utils.config import CONFIG
 from utils.db_management import SSDF
 from utils.data_processing import file2df
@@ -20,12 +20,30 @@ class Opener:
     def open_menu(self):
         return dmc.Menu(
             [
-                dmc.MenuTarget(dbpc.Button("Open", icon="folder-open", minimal=True, outlined=True)),
+                dmc.MenuTarget(
+                    dbpc.Button("Open", icon="folder-open", minimal=True, outlined=True)
+                ),
                 dmc.MenuDropdown(
                     [
-                        dmc.MenuItem(dbpc.Button("Open from Local", icon="document-open", minimal=True, small=True), n_clicks=0, id="open-local-btn"),
                         dmc.MenuItem(
-                            dbpc.Button("Open from Workspace", icon="cloud-download", minimal=True, small=True), id="open-workspace-btn", n_clicks=0
+                            dbpc.Button(
+                                "Open from Local",
+                                icon="document-open",
+                                minimal=True,
+                                small=True,
+                            ),
+                            n_clicks=0,
+                            id="open-local-btn",
+                        ),
+                        dmc.MenuItem(
+                            dbpc.Button(
+                                "Open from Workspace",
+                                icon="cloud-download",
+                                minimal=True,
+                                small=True,
+                            ),
+                            id="open-workspace-btn",
+                            n_clicks=0,
                         ),
                     ]
                 ),
@@ -49,16 +67,30 @@ class Opener:
                 dbpc.DialogBody(
                     [
                         dmc.TextInput(
-                            value=self.init_csv,
+                            # value=self.init_csv,
+                            value="C:\\Users\\deepw\\OneDrive\\문서\\Python\\olympics.csv",
                             label="Open하려는 파일 경로를 입력하세요.",
-                            leftSection=dbpc.Button(id="open-csv-file-search", icon="search", minimal=True, n_clicks=0),
+                            leftSection=dbpc.Button(
+                                id="open-csv-file-search",
+                                icon="search",
+                                minimal=True,
+                                n_clicks=0,
+                            ),
                             required=True,
                             id="open-csv-path-input",
                         )
                     ]
                 ),
                 dbpc.DialogFooter(
-                    actions=[dbpc.Button("Open", id="open-csv-local-btn", disabled=True, n_clicks=0, intent="primary")],
+                    actions=[
+                        dbpc.Button(
+                            "Open",
+                            id="open-csv-local-btn",
+                            disabled=True,
+                            n_clicks=0,
+                            intent="primary",
+                        )
+                    ],
                     id="open-dialog-file-check-msg",
                 ),
             ],
@@ -81,36 +113,73 @@ class Opener:
             if n_clicks is None:
                 raise exceptions.PreventUpdate
 
-            left_border_index = next((i for i, b in enumerate(current_model["borders"]) if b["location"] == "left"), None)
+            left_border_index = next(
+                (
+                    i
+                    for i, b in enumerate(current_model["borders"])
+                    if b["location"] == "left"
+                ),
+                None,
+            )
             # 이미 workspace-tab 탭이 있는지 확인
             if left_border_index is not None:
-                existing_tabs = current_model["borders"][left_border_index].get("children", [])
-                tab_exists = any(tab.get("id") == "workspace-tab" for tab in existing_tabs)
+                existing_tabs = current_model["borders"][left_border_index].get(
+                    "children", []
+                )
+                tab_exists = any(
+                    tab.get("id") == "workspace-tab" for tab in existing_tabs
+                )
                 if tab_exists:
                     # 이미 탭이 있다면 해당 탭을 선택하도록 함
                     patched_model = Patch()
-                    tab_index = next(i for i, tab in enumerate(existing_tabs) if tab.get("id") == "workspace-tab")
+                    tab_index = next(
+                        i
+                        for i, tab in enumerate(existing_tabs)
+                        if tab.get("id") == "workspace-tab"
+                    )
                     patched_model["borders"][left_border_index]["selected"] = tab_index
-                    return patched_model, [{"icon": "database", "text": "WORKSPACE", "current": "true"}]
+                    return patched_model, [
+                        {"icon": "database", "text": "WORKSPACE", "current": "true"}
+                    ]
 
             # 새로운 탭 정의
-            new_tab = {"type": "tab", "name": "Workspace", "component": "button", "enableClose": True, "id": "workspace-tab"}
+            new_tab = {
+                "type": "tab",
+                "name": "Workspace",
+                "component": "button",
+                "enableClose": True,
+                "id": "workspace-tab",
+            }
 
             patched_model = Patch()
 
             if left_border_index is not None:
                 # 기존 left border 수정
                 patched_model["borders"][left_border_index]["children"].append(new_tab)
-                patched_model["borders"][left_border_index]["selected"] = len(current_model["borders"][left_border_index]["children"])
+                patched_model["borders"][left_border_index]["selected"] = len(
+                    current_model["borders"][left_border_index]["children"]
+                )
             else:
                 # left border가 없으면 새로 추가
-                patched_model["borders"].append({"type": "border", "location": "left", "size": 800, "selected": 0, "children": [new_tab]})
-            return patched_model, [{"icon": "database", "text": "WORKSPACE", "current": "true"}]
+                patched_model["borders"].append(
+                    {
+                        "type": "border",
+                        "location": "left",
+                        "size": 800,
+                        "selected": 0,
+                        "children": [new_tab],
+                    }
+                )
+            return patched_model, [
+                {"icon": "database", "text": "WORKSPACE", "current": "true"}
+            ]
 
     def _register_local_upload_callback(self, app):
 
         @app.callback(
-            Output("open-csv-local-btn", "disabled"), Output("open-dialog-file-check-msg", "children"), Input("open-csv-path-input", "value")
+            Output("open-csv-local-btn", "disabled"),
+            Output("open-dialog-file-check-msg", "children"),
+            Input("open-csv-path-input", "value"),
         )
         def update_open_button_state(file_path):
             if not file_path:
@@ -128,15 +197,23 @@ class Opener:
                 return True, f"{e}"
 
         @app.callback(
-            Output("open-csv-path-input", "value", allow_duplicate=True), Input("open-csv-file-search", "n_clicks"), prevent_initial_call=True
+            Output("open-csv-path-input", "value", allow_duplicate=True),
+            Input("open-csv-file-search", "n_clicks"),
+            prevent_initial_call=True,
         )
         def get_open_file_path(n):
             cmd = f"{CONFIG.SCRIPT}/QFileDialog/file_dialog"
-            result = subprocess.run([cmd], capture_output=True, text=True, env=CONFIG.get_QtFileDialog_env())
+            result = subprocess.run(
+                [cmd], capture_output=True, text=True, env=CONFIG.get_QtFileDialog_env()
+            )
             file_path = result.stdout.strip()
             return file_path if file_path else no_update
 
-        @app.callback(Output("local-file-open-modal", "isOpen", allow_duplicate=True), Input("open-local-btn", "n_clicks"), prevent_initial_call=True)
+        @app.callback(
+            Output("local-file-open-modal", "isOpen", allow_duplicate=True),
+            Input("open-local-btn", "n_clicks"),
+            prevent_initial_call=True,
+        )
         def open_local_modal(open_n):
             return True
 
@@ -195,7 +272,9 @@ class Opener:
                 mod_time = os.path.getmtime(file_path)
 
                 patched_fl_config = Patch()
-                patched_fl_config["layout"]["children"][0]["children"][0]["name"] = file_path.replace(CONFIG.WORKSPACE, "WORKSPACE")
+                patched_fl_config["layout"]["children"][0]["children"][0]["name"] = (
+                    file_path.replace(CONFIG.WORKSPACE, "WORKSPACE")
+                )
 
                 return (
                     generate_column_definitions(df),
@@ -204,7 +283,13 @@ class Opener:
                     1,
                     patched_fl_config,
                     mod_time,
-                    [dbpc.Toast(message=f"Local File '{os.path.basename(file_path)}' Opened", intent="primary", icon="endorsed")],
+                    [
+                        dbpc.Toast(
+                            message=f"Local File '{os.path.basename(file_path)}' Opened",
+                            intent="primary",
+                            icon="endorsed",
+                        )
+                    ],
                     False,
                     False,
                     disable_fileMode_control,
@@ -220,7 +305,11 @@ class Opener:
                     no_update,
                     no_update,
                     no_update,
-                    [dbpc.Toast(message=f"Error: {str(e)}", intent="danger", icon="error")],
+                    [
+                        dbpc.Toast(
+                            message=f"Error: {str(e)}", intent="danger", icon="error"
+                        )
+                    ],
                     no_update,
                     False,
                     no_update,

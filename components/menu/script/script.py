@@ -1,5 +1,6 @@
 import dash_mantine_components as dmc
-from components.menu.script.item.chart_editor import ChartEditor
+
+# from components.menu.script.item.chart_editor import ChartEditor
 from components.menu.script.item.data_comparison import Compare
 from components.menu.script.item.rule_table import RuleTable
 
@@ -7,7 +8,7 @@ from components.menu.script.item.rule_table import RuleTable
 class ScriptMenu:
 
     def __init__(self) -> None:
-        self.chart = ChartEditor()
+        # self.chart = ChartEditor()
         # self.profile = PandasProfile()
         self.compare = Compare()
         # self.masterName = MasterName()
@@ -19,7 +20,7 @@ class ScriptMenu:
     def layout(self):
         return dmc.Group(
             [
-                self.chart.layout(),
+                # self.chart.layout(),
                 dmc.Divider(orientation="vertical"),
                 # self.profile.layout(),
                 dmc.Divider(orientation="vertical"),
@@ -40,7 +41,7 @@ class ScriptMenu:
         )
 
     def register_callbacks(self, app):
-        self.chart.register_callbacks(app)
+        # self.chart.register_callbacks(app)
         # self.profile.register_callbacks(app)
         self.compare.register_callbacks(app)
         self.ruleTable.register_callbacks(app)

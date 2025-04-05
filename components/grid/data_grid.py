@@ -2,15 +2,18 @@ import flask
 import dash_ag_grid as dag
 import dash_mantine_components as dmc
 import dash_blueprint_components as dbpc
-from dash import Input, Output, html, dcc
+from dash import Input, Output, State, html, dcc, no_update
 from components.grid.dag.column_definitions import DEFAULT_COL_DEF
 from components.grid.dag.server_side_operations import extract_rows_from_data
 from dash_extensions import EventListener
-#from utils.component_template import get_icon
+
+# from utils.component_template import get_icon
 from utils.db_management import SSDF
+from utils.logging_utils import logger
 
 
 class DataGrid:
+
     DASH_GRID_OPTIONS = {
         "rowHeight": 24,
         "headerHeight": 30,
@@ -66,6 +69,7 @@ class DataGrid:
 
         return html.Div(
             [
+                dcc.Store("pre-defined-view"),
                 dcc.Store("csv-mod-time"),
                 dcc.Store("refresh-route"),
                 dcc.Store("purge-refresh"),
@@ -82,7 +86,11 @@ class DataGrid:
                         enableEnterpriseModules=True,
                         rowModelType="serverSide",
                         dashGridOptions=self.DASH_GRID_OPTIONS,
-                        style={"height": "calc(100vh - 180px - 25px)", "width": "100%", "overflow": "auto"},
+                        style={
+                            "height": "calc(100vh - 180px - 25px)",
+                            "width": "100%",
+                            "overflow": "auto",
+                        },
                     ),
                     events=events,
                     logging=False,
@@ -94,11 +102,11 @@ class DataGrid:
                         html.Div(id="waiver-counter"),
                         dmc.Tooltip(
                             dbpc.Button(
-                                #get_icon("bx-refresh"),
                                 id="refresh-waiver-counter-btn",
-                                size="xs",
-                                color="black",
-                                variant="transparent",
+                                icon="refresh",
+                                small=True,
+                                minimal=True,
+                                outlined=True,
                                 style={"display": "none"},
                             ),
                             label="Refresh Waiver Counter",
@@ -109,7 +117,10 @@ class DataGrid:
                     justify="flex-end",
                     py=0,
                     my=0,
-                    style={"backgroundColor": "#fcfcfc", "borderBottom": "3px solid #aaaaaa"},
+                    style={
+                        "backgroundColor": "#fcfcfc",
+                        "borderBottom": "3px solid #aaaaaa",
+                    },
                 ),
             ]
         )
@@ -162,6 +173,24 @@ class DataGrid:
             prevent_initial_call=True,
         )
 
+        # middel click
+        app.clientside_callback(
+            """
+            function(gridId) {
+                dash_ag_grid.getApiAsync(gridId).then((grid) => {
+                    grid.addEventListener('cellMouseDown', (e) => {
+                        if (e.event.button == 1) {
+                            e.api.setNodesSelected({nodes: [e.node], newValue: true})
+                        } 
+                    })
+                })
+                return dash_clientside.no_update
+            }
+            """,
+            Output("aggrid-table", "id", allow_duplicate=True),
+            Input("aggrid-table", "id"),
+        )
+
         @app.callback(
             Output("aggrid-table", "selectedRows", allow_duplicate=True),
             Output("cp_selected_rows", "data", allow_duplicate=True),
@@ -173,6 +202,32 @@ class DataGrid:
         def get_selected_row(selected_rows):
             print("get_selected_row", selected_rows)
             return [], selected_rows, selected_rows, selected_rows
+
+        @app.callback(
+            Output("aggrid-table", "columnDefs", allow_duplicate=True),
+            Input("aggrid-table", "columnState"),
+            State("aggrid-table", "columnDefs"),
+            prevent_initial_call=True,
+        )
+        def move_column_order(column_state, col_defs):
+            if SSDF.dataframe is None:
+                return no_update
+
+            state_order = [
+                col["colId"]
+                for col in column_state
+                if col["colId"] != "ag-Grid-AutoColumn"
+            ]
+            def_order = [col["field"] for col in col_defs]
+
+            if state_order == def_order:
+                return no_update
+
+            try:
+                SSDF.dataframe = SSDF.dataframe.select(["uniqid"] + state_order)
+            except Exception as e:
+                logger.error(f"컬럼 상태(순서) 변경 실패: {e}")
+            return no_update
 
     @staticmethod
     def _generate_counter_info() -> str:

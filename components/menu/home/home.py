@@ -1,11 +1,12 @@
 import dash_mantine_components as dmc
+import dash_blueprint_components as dbpc
 from components.menu.home.item.save import Saver
 from components.menu.home.item.open import Opener
 from components.menu.home.item.column_sizing import ColumnSizer
+from components.menu.home.item.file_mode import FileMode
 from components.menu.home.item.group_row import GroupRow
 from components.menu.home.item.filtering import Filter
-from components.menu.home.item.file_mode import FileMode
-from components.menu.home.item.cross_probing import CrossProber
+from components.menu.home.item.workspace_explorer import WorkspaceExplorer
 
 
 class HomeMenu:
@@ -17,26 +18,25 @@ class HomeMenu:
         self.column_sizer = ColumnSizer()
         self.group_row = GroupRow()
         self.filter = Filter()
-        self.cross_prober = CrossProber()
+        self.workspaceExplorer = WorkspaceExplorer()
 
     def layout(self):
-        return dmc.Group(
+        return dbpc.ButtonGroup(
             [
+                dbpc.Divider(),
                 self.filemode.layout(),
-                dmc.Divider(orientation="vertical"),
+                dbpc.Divider(),
                 self.opener.layout(),
                 self.saver.layout(),
-                dmc.Divider(orientation="vertical"),
+                dbpc.Divider(),
                 self.column_sizer.layout(),
-                dmc.Divider(orientation="vertical"),
+                dbpc.Divider(),
                 self.group_row.layout(),
-                dmc.Divider(orientation="vertical"),
+                dbpc.Divider(),
                 self.filter.layout(),
-                dmc.Divider(orientation="vertical"),
-                self.cross_prober.layout(),
+                dbpc.Divider(),
             ],
-            justify="flex-start",
-            gap="xs",
+            style={"height": 35},
         )
 
     def register_callbacks(self, app):
@@ -45,5 +45,5 @@ class HomeMenu:
         self.saver.register_callbacks(app)
         self.column_sizer.register_callbacks(app)
         self.group_row.register_callbacks(app)
-        # self.filter.register_callbacks(app)
-        self.cross_prober.register_callbacks(app)
+        self.filter.register_callbacks(app)
+        self.workspaceExplorer.register_callbacks(app)
