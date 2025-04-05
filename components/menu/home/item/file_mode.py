@@ -19,7 +19,9 @@ def exit_edit_mode(file_path):
 
 
 class FileMode:
-    ENTER_TEXT = "Read Mode에서 수정한 내용은 사라집니다. WorkSpace 원본에 접근하시겠습니까?"
+    ENTER_TEXT = (
+        "Read Mode에서 수정한 내용은 사라집니다. WorkSpace 원본에 접근하시겠습니까?"
+    )
     EXIT_TEXT = "수정한 내용을 WorkSpace 에 직접 저장 후 이용해주세요. 정말 Read Mode 로 전환하시겠습니까?"
 
     def layout(self):
@@ -27,7 +29,10 @@ class FileMode:
             [
                 dmc.SegmentedControl(
                     id="file-mode-control",
-                    data=[{"value": "read", "label": "Read Mode"}, {"value": "edit", "label": "Edit Mode"}],
+                    data=[
+                        {"value": "read", "label": "Read Mode"},
+                        {"value": "edit", "label": "Edit Mode"},
+                    ],
                     value="",
                     size="xs",
                     disabled=True,
@@ -46,7 +51,9 @@ class FileMode:
                             color="red",
                             disabled=True,
                         ),
-                        dmc.Group([dmc.Button("Yes", id="enter-edit-btn")], justify="flex-end"),
+                        dmc.Group(
+                            [dmc.Button("Yes", id="enter-edit-btn")], justify="flex-end"
+                        ),
                     ],
                     size="45%",
                     centered=True,
@@ -58,7 +65,9 @@ class FileMode:
                     children=[
                         dmc.Text(children=[], id="exit-edit-text"),
                         dmc.Space(h=10),
-                        dmc.Group([dmc.Button("Yes", id="exit-edit-btn")], justify="flex-end"),
+                        dmc.Group(
+                            [dmc.Button("Yes", id="exit-edit-btn")], justify="flex-end"
+                        ),
                     ],
                     size="45%",
                     centered=True,
@@ -85,7 +94,9 @@ class FileMode:
             if o1 or o2:
                 return no_update, None, False, False, no_update, no_update
             file_path = model_layout["layout"]["children"][0]["children"][0]["name"]
-            if not file_path or not file_path.startswith("WORKSPACE"):  # if local file open
+            if not file_path or not file_path.startswith(
+                "WORKSPACE"
+            ):  # if local file open
                 return "read", None, False, False, no_update, no_update
             if new_mode == "init":  # read moad
                 return "read", None, False, False, no_update, no_update
@@ -135,7 +146,10 @@ class FileMode:
                         & (pl.col("user_local").str.starts_with(CONFIG.USERNAME))
                         & (
                             (pl.col("user") == CONFIG.USERNAME)
-                            | ((pl.col("waiver_local") != "Result") & (pl.col("waiver") != "Fixed"))
+                            | (
+                                (pl.col("waiver_local") != "Result")
+                                & (pl.col("waiver") != "Fixed")
+                            )
                         )
                     )
                     update_waiver_column = (
@@ -145,10 +159,15 @@ class FileMode:
                         .alias("waiver")
                     )
                     update_user_column = (
-                        pl.when(conditions_expr).then(pl.col("user_local")).otherwise(pl.col("user")).alias("user")
+                        pl.when(conditions_expr)
+                        .then(pl.col("user_local"))
+                        .otherwise(pl.col("user"))
+                        .alias("user")
                     )
                     dff = dff.with_columns(update_waiver_column, update_user_column)
-                    df_workspace = dff.select(pl.exclude(["waiver_local", "user_local"]))
+                    df_workspace = dff.select(
+                        pl.exclude(["waiver_local", "user_local"])
+                    )
 
                 SSDF.dataframe = df_workspace
                 updated_columnDefs = generate_column_definitions(df_workspace)

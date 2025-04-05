@@ -13,12 +13,13 @@ from typing import Dict, List, Optional
 import json
 from datetime import datetime
 
+
 @dataclass
 class FilterInfo:
     name: str
-    description: str 
-    application: str # Signoff Application name
-    columns: List[str] # Required columns for this filter
+    description: str
+    application: str  # Signoff Application name
+    columns: List[str]  # Required columns for this filter
     filter_model: Dict
     created_at: str
     created_by: str
@@ -26,7 +27,7 @@ class FilterInfo:
 
 class Filter:
     def __init__(self) -> None:
-        #self.filter_yaml = os.path.join(CONFIG.USER_RV_DIR, "filters.yaml")
+        # self.filter_yaml = os.path.join(CONFIG.USER_RV_DIR, "filters.yaml")
         self.filter_yaml = "filters.yaml"
 
     def load_filters(self):
@@ -34,38 +35,35 @@ class Filter:
             with open(self.filter_yaml, "r") as file:
                 return yaml.safe_load(file) or {}
         return {}
-    
+
     def save_filters(self, filters):
         with open(self.filter_yaml, "w") as file:
             yaml.dump(filters, file)
-            
+
     def layout(self):
         return dmc.Group(
             [
                 dbpc.OverlayToaster(
-                    id='filter-toaster',
-                    position='top-right',
+                    id="filter-toaster",
+                    position="top-right",
                 ),
                 dmc.Text(f"Filters: ", fw=500, size="sm", c="gray"),
                 dbpc.Button(
-                    icon='filter-keep',
+                    icon="filter-keep",
                     id="save-current-filter",
                 ),
                 dbpc.Button(
-                    icon='filter-list',
+                    icon="filter-list",
                     id="open-filter-manager",
                 ),
                 # 역필터 적용 버튼 추가
                 dbpc.Button(
-                    icon='swap-horizontal',
-                    id="inverse-filter-btn", 
+                    icon="swap-horizontal",
+                    id="inverse-filter-btn",
                 ),
-
                 self.filter_manager(),
-
                 dcc.Store(id="filter-model-store"),
-                dcc.Store(id="selected-filter-store")
-                
+                dcc.Store(id="selected-filter-store"),
             ],
             gap=2,
         )
@@ -80,64 +78,60 @@ class Filter:
                         # Left Panel: Filter Categories
                         dmc.Grid(
                             [
-                            dmc.GridCol([
-                                dbpc.ButtonGroup([
-                                    dbpc.Button(
-                                    "All Filters",
-                                    icon="filter-open",
-                                    active=True,
-                                    ),
-                                    dbpc.Button(
-                                        "My Filters",
-                                        icon="user",
-                                        disabled=True,
-                                    ),
-                                    dbpc.Button(
-                                        "Shared Filters",
-                                        icon="shared-filter",
-                                        disabled=True,
-                                    ),
-                                ], vertical=True)
-
-                            ], span=3),
-                            # Right Panel: Filter List
-                            dmc.GridCol(
-                                [
-                                    dbpc.InputGroup(
-                                        id='input-group-3',
-                                        leftIcon='search-template',
-                                    ),                                
-                                    # Filter Cards
-                                    self._render_filter_cards(),
-                            ], span=9)
-                        ])
+                                dmc.GridCol(
+                                    [
+                                        dbpc.ButtonGroup(
+                                            [
+                                                dbpc.Button(
+                                                    "All Filters",
+                                                    icon="filter-open",
+                                                    active=True,
+                                                ),
+                                                dbpc.Button(
+                                                    "My Filters",
+                                                    icon="user",
+                                                    disabled=True,
+                                                ),
+                                                dbpc.Button(
+                                                    "Shared Filters",
+                                                    icon="shared-filter",
+                                                    disabled=True,
+                                                ),
+                                            ],
+                                            vertical=True,
+                                        )
+                                    ],
+                                    span=3,
+                                ),
+                                # Right Panel: Filter List
+                                dmc.GridCol(
+                                    [
+                                        dbpc.InputGroup(
+                                            id="input-group-3",
+                                            leftIcon="search-template",
+                                        ),
+                                        # Filter Cards
+                                        self._render_filter_cards(),
+                                    ],
+                                    span=9,
+                                ),
+                            ]
+                        )
                     ]
                 ),
                 dbpc.DialogFooter(
-                    actions=[
-                        dbpc.Button(
-                            id='close-filter-modal',
-                            children='Close'
-                        )
-                    ],
+                    actions=[dbpc.Button(id="close-filter-modal", children="Close")],
                     children=dbpc.ButtonGroup(
                         [
-                            dbpc.Button(
-                                "Import",
-                                icon="import"
-                            ),
-                            dbpc.Button(
-                                "Export",
-                                icon="export"
-                            ),
+                            dbpc.Button("Import", icon="import"),
+                            dbpc.Button("Export", icon="export"),
                         ]
-                    )
-                )
+                    ),
+                ),
             ],
-            icon='filter',
-            isCloseButtonShown=True
+            icon="filter",
+            isCloseButtonShown=True,
         )
-
 
     def _render_filter_cards(self):
         filters = self.load_filters()
@@ -149,91 +143,83 @@ class Filter:
             cards.append(
                 dmc.Card(
                     children=[
-                        dmc.Group([
-                            dmc.Group([
-                                dmc.Text(filter_info.name, w=500),
-                                dmc.Badge(
-                                    filter_info.application,
-                                    color="blue", 
-                                    variant="light"
+                        dmc.Group(
+                            [
+                                dmc.Group(
+                                    [
+                                        dmc.Text(filter_info.name, w=500),
+                                        dmc.Badge(
+                                            filter_info.application,
+                                            color="blue",
+                                            variant="light",
+                                        ),
+                                        dmc.Badge(
+                                            (
+                                                "Compatible"
+                                                if is_applicable
+                                                else "Incompatible"
+                                            ),
+                                            color="green" if is_applicable else "red",
+                                            variant="dot",
+                                        ),
+                                    ]
                                 ),
-                                dmc.Badge(
-                                    "Compatible" if is_applicable else "Incompatible",
-                                    color="green" if is_applicable else "red",
-                                    variant="dot"
-                                )
-                            ]),
-                            dbpc.ButtonGroup([
-                                dbpc.Button(
-                                    icon="edit",
-                                    minimal=True,
-                                    id={
-                                        "type": "edit-filter",
-                                        "name": name
-                                    }
+                                dbpc.ButtonGroup(
+                                    [
+                                        dbpc.Button(
+                                            icon="edit",
+                                            minimal=True,
+                                            id={"type": "edit-filter", "name": name},
+                                        ),
+                                        dbpc.Button(
+                                            icon="trash",
+                                            minimal=True,
+                                            intent="danger",
+                                            id={"type": "delete-filter", "name": name},
+                                        ),
+                                    ]
                                 ),
-                                dbpc.Button(
-                                    icon="trash",
-                                    minimal=True, 
-                                    intent="danger",
-                                    id={
-                                        "type": "delete-filter",
-                                        "name": name
-                                    }
-                                )
-                            ])
-                        ], justify="space-around"),
-                        
-                        dmc.Text(
-                            filter_info.description,
-                            c="dimmed",
-                            size="sm",
-                            mb=10
+                            ],
+                            justify="space-around",
                         ),
-                        
-                        dmc.Group([
-                            dmc.Text(
-                                f"Created by {filter_info.created_by}",
-                                size="xs",
-                                c="dimmed"
-                            ),
-                            dmc.Text(
-                                f"Created at {filter_info.created_at}",
-                                size="xs", 
-                                c="dimmed"
-                            )
-                        ], gap="xs"),
-                        
+                        dmc.Text(filter_info.description, c="dimmed", size="sm", mb=10),
+                        dmc.Group(
+                            [
+                                dmc.Text(
+                                    f"Created by {filter_info.created_by}",
+                                    size="xs",
+                                    c="dimmed",
+                                ),
+                                dmc.Text(
+                                    f"Created at {filter_info.created_at}",
+                                    size="xs",
+                                    c="dimmed",
+                                ),
+                            ],
+                            gap="xs",
+                        ),
                         dbpc.Button(
                             "Apply Filter",
-                            id={
-                                "type": "apply-filter",
-                                "name": name
-                            },
+                            id={"type": "apply-filter", "name": name},
                             disabled=not is_applicable,
                             fill=True,
-                        )
+                        ),
                     ],
                     withBorder=True,
                     mb=10,
-                    p="sm"
+                    p="sm",
                 )
             )
-            
-        return dmc.Stack(cards, gap="sm")
 
+        return dmc.Stack(cards, gap="sm")
 
     def _get_current_columns(self) -> List[str]:
         df = displaying_df()
         return list(df.columns) if df is not None else []
-        
+
     def _get_applications(self) -> List[str]:
         # TODO: Implement getting list of Signoff Applications
         return ["ADV", "DSC", "LSC", "CANA"]
-    
-
-
-
 
     def filter_model_to_expression(self, filter_model):
         """Convert filter model to expression string."""
@@ -262,7 +248,9 @@ class Filter:
             else:
                 operator = operator_map.get(condition["type"], condition["type"])
                 filter_value = (
-                    f'"{condition["filter"]}"' if isinstance(condition["filter"], str) else condition["filter"]
+                    f'"{condition["filter"]}"'
+                    if isinstance(condition["filter"], str)
+                    else condition["filter"]
                 )
                 return f"[{condition['colId']}] {operator} {filter_value}"
 
@@ -296,10 +284,30 @@ class Filter:
                 dmc.Space(h=20),
                 dmc.Group(
                     [
-                        dmc.Button("Clear Filters", color="blue", variant="outline", id="clear-filters-btn"),
-                        dmc.Button("Preview", color="green", variant="outline", id="filter-preview-btn"),
-                        dmc.Button("Apply", color="indigo", variant="outline", id="apply-filter-btn"),
-                        dmc.Button("Close", color="red", variant="outline", id="close-filter-storage-btn"),
+                        dmc.Button(
+                            "Clear Filters",
+                            color="blue",
+                            variant="outline",
+                            id="clear-filters-btn",
+                        ),
+                        dmc.Button(
+                            "Preview",
+                            color="green",
+                            variant="outline",
+                            id="filter-preview-btn",
+                        ),
+                        dmc.Button(
+                            "Apply",
+                            color="indigo",
+                            variant="outline",
+                            id="apply-filter-btn",
+                        ),
+                        dmc.Button(
+                            "Close",
+                            color="red",
+                            variant="outline",
+                            id="close-filter-storage-btn",
+                        ),
                     ]
                 ),
                 dmc.Space(h=20),
@@ -307,18 +315,13 @@ class Filter:
             ],
         )
 
-
     def generate_filter_list(self, filters):
         return [dmc.ListItem(name) for name in filters.keys()]
 
-
-
-    
     def register_callbacks(self, app):
 
-
         app.clientside_callback(
-        """
+            """
         function(n_clicks, grid_id) {
             if (!n_clicks) return window.dash_clientside.no_update;
             
@@ -421,11 +424,11 @@ class Filter:
 
         }
         """,
-        Output("inverse-filter-btn", "children"),
-        Input("inverse-filter-btn", "n_clicks"), 
-        State("aggrid-table", "id"),
-        prevent_initial_call=True
-    )
+            Output("inverse-filter-btn", "children"),
+            Input("inverse-filter-btn", "n_clicks"),
+            State("aggrid-table", "id"),
+            prevent_initial_call=True,
+        )
 
         app.clientside_callback(
             """
@@ -450,7 +453,7 @@ class Filter:
             Output("filter-model-store", "data"),
             Input("save-current-filter", "n_clicks"),
             State("aggrid-table", "id"),
-            prevent_initial_call=True
+            prevent_initial_call=True,
         )
 
         @app.callback(

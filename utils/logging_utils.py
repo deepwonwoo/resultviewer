@@ -10,6 +10,7 @@ from utils.config import CONFIG
 
 class ResultViewerLogger:
     _instance: Optional["ResultViewerLogger"] = None
+
     def __init__(self, debug_mode: bool = True):
         self.logger = logging.getLogger("ResultViewer")
         self.logger.setLevel(logging.DEBUG)  # Set to DEBUG to capture all levels
@@ -40,9 +41,15 @@ class ResultViewerLogger:
 
     def _setup_file_handler(self):
         log_file = os.path.join(CONFIG.USER_RV_DIR, "resultviewer.log")
-        file_handler = RotatingFileHandler(log_file, maxBytes=10 * 1024 * 1024, backupCount=5)
-        file_handler.setLevel(logging.DEBUG)  # Set file handler to DEBUG to capture all levels
-        file_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s")
+        file_handler = RotatingFileHandler(
+            log_file, maxBytes=10 * 1024 * 1024, backupCount=5
+        )
+        file_handler.setLevel(
+            logging.DEBUG
+        )  # Set file handler to DEBUG to capture all levels
+        file_formatter = logging.Formatter(
+            "%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s"
+        )
         file_handler.setFormatter(file_formatter)
         self.logger.addHandler(file_handler)
 

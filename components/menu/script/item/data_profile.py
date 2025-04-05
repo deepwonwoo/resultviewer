@@ -21,7 +21,13 @@ class PandasProfile:
                     color="indigo",
                     size="xs",
                 ),
-                dmc.Modal(html.Div(id="profile-body"), id="profile-modal", size="85%", zIndex=1000, opened=False),
+                dmc.Modal(
+                    html.Div(id="profile-body"),
+                    id="profile-modal",
+                    size="85%",
+                    zIndex=1000,
+                    opened=False,
+                ),
             ]
         )
 
@@ -52,7 +58,14 @@ class PandasProfile:
             try:
                 dff = displaying_df(filtred_apply=True)
                 if dff is None:
-                    return (False, None, False, create_notification(message="No Dataframe loaded", position="center"))
+                    return (
+                        False,
+                        None,
+                        False,
+                        create_notification(
+                            message="No Dataframe loaded", position="center"
+                        ),
+                    )
 
                 import pandas as pd
                 import matplotlib
@@ -64,7 +77,10 @@ class PandasProfile:
                 file_path = os.path.dirname(os.path.realpath(__file__))
                 assets_dir = os.path.join(file_path, "../../../../assets")
                 profile.to_file(f"{assets_dir}/profile.html")
-                profile = html.Iframe(src=f"/assets/profile.html", style={"height": "1067px", "width": "100%"})
+                profile = html.Iframe(
+                    src=f"/assets/profile.html",
+                    style={"height": "1067px", "width": "100%"},
+                )
                 return True, profile, False, None
             except Exception as e:
                 False, None, False, create_notification(message=str(e))

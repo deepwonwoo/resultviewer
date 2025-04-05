@@ -64,7 +64,9 @@ class CategorizePart:
                                 ),
                                 dmc.GridCol(
                                     dmc.RadioGroup(
-                                        children=dmc.Group([dmc.Radio(i, value=i) for i in [".", "/"]]),
+                                        children=dmc.Group(
+                                            [dmc.Radio(i, value=i) for i in [".", "/"]]
+                                        ),
                                         id="categorizePart-delimiter-radioGroup",
                                         label="Select delimiter",
                                         size="xs",
@@ -82,10 +84,16 @@ class CategorizePart:
                                 dmc.Group(
                                     [
                                         dmc.Button(
-                                            "Download", id="categorizePart-download-btn", size="xs", variant="outline"
+                                            "Download",
+                                            id="categorizePart-download-btn",
+                                            size="xs",
+                                            variant="outline",
                                         ),
                                         dmc.Button(
-                                            "Upload", id="categorizePart-upload-btn", size="xs", variant="outline"
+                                            "Upload",
+                                            id="categorizePart-upload-btn",
+                                            size="xs",
+                                            variant="outline",
                                         ),
                                     ],
                                     gap="xs",
@@ -97,7 +105,11 @@ class CategorizePart:
                             id="categorizePart-rule-grid",
                             columnDefs=[{"field": col} for col in self.rule_df.columns],
                             rowData=self.rule_df.to_dicts(),
-                            defaultColDef={"resizable": True, "sortable": True, "editable": True},
+                            defaultColDef={
+                                "resizable": True,
+                                "sortable": True,
+                                "editable": True,
+                            },
                         ),
                         dmc.Group(
                             [
@@ -120,7 +132,9 @@ class CategorizePart:
                                 dmc.GridCol(
                                     dmc.Stack(
                                         [
-                                            dmc.Text("Regular Expression", size="xs", fw=500),
+                                            dmc.Text(
+                                                "Regular Expression", size="xs", fw=500
+                                            ),
                                             dmc.Switch(
                                                 labelPosition="left",
                                                 checked=True,
@@ -137,7 +151,9 @@ class CategorizePart:
                                 dmc.GridCol(
                                     dmc.Stack(
                                         [
-                                            dmc.Text("Case Sensitive", size="xs", fw=500),
+                                            dmc.Text(
+                                                "Case Sensitive", size="xs", fw=500
+                                            ),
                                             dmc.Switch(
                                                 labelPosition="left",
                                                 onLabel="On",
@@ -336,12 +352,18 @@ class CategorizePart:
                     if use_regex:
                         if case_sensitive:
                             compiled_rules = [
-                                (re.compile(regex), {col: rules[col][i] for col in column_names})
+                                (
+                                    re.compile(regex),
+                                    {col: rules[col][i] for col in column_names},
+                                )
                                 for i, regex in enumerate(rules[pattern_col])
                             ]
                         else:
                             compiled_rules = [
-                                (re.compile(regex, re.IGNORECASE), {col: rules[col][i] for col in column_names})
+                                (
+                                    re.compile(regex, re.IGNORECASE),
+                                    {col: rules[col][i] for col in column_names},
+                                )
                                 for i, regex in enumerate(rules[pattern_col])
                             ]
                     else:
@@ -352,11 +374,16 @@ class CategorizePart:
                             ]
                         else:
                             compiled_rules = [
-                                (regex.lower(), {col: rules[col][i] for col in column_names})
+                                (
+                                    regex.lower(),
+                                    {col: rules[col][i] for col in column_names},
+                                )
                                 for i, regex in enumerate(rules[pattern_col])
                             ]
 
-                    skip_masters = [s.strip() for s in skip_masters_str.split(",") if s.strip()]
+                    skip_masters = [
+                        s.strip() for s in skip_masters_str.split(",") if s.strip()
+                    ]
 
                     # Categorize and add new columns to the dataframe
                     dff = SSDF.dataframe
@@ -365,16 +392,22 @@ class CategorizePart:
                         if c in dff.columns:
                             dff = dff.drop(c)
 
-                    new_columns = dff[selected_col].map_elements(lambda x: categorize_part(x), return_dtype=pl.Object)
+                    new_columns = dff[selected_col].map_elements(
+                        lambda x: categorize_part(x), return_dtype=pl.Object
+                    )
 
                     for col in column_names + ["Unit Name"]:
-                        dff = dff.with_columns(pl.Series(col, [nc[col] for nc in new_columns]).alias(col))
+                        dff = dff.with_columns(
+                            pl.Series(col, [nc[col] for nc in new_columns]).alias(col)
+                        )
 
                     if basename_col:
                         dff = dff.with_columns(
                             pl.struct([selected_col, basename_col, "Unit Name"])
                             .map_elements(
-                                lambda x: create_basename(x[selected_col], x[basename_col], x["Unit Name"]),
+                                lambda x: create_basename(
+                                    x[selected_col], x[basename_col], x["Unit Name"]
+                                ),
                                 return_dtype=pl.Utf8,
                             )
                             .alias("Base Name")
@@ -389,7 +422,11 @@ class CategorizePart:
                     pattern_col = rule_df.columns[0]
 
                     SSDF.dataframe = dff.join(
-                        rule_df, left_on=selected_col, right_on=pattern_col, how="left", suffix="_cate"
+                        rule_df,
+                        left_on=selected_col,
+                        right_on=pattern_col,
+                        how="left",
+                        suffix="_cate",
                     )
 
                     updated_columnDefs = generate_column_definitions(SSDF.dataframe)
@@ -398,4 +435,9 @@ class CategorizePart:
 
             except Exception as e:
                 logger.error(f"{e}")
-                return (no_update, no_update, False, create_notification(message=f"{e}", position="center"))
+                return (
+                    no_update,
+                    no_update,
+                    False,
+                    create_notification(message=f"{e}", position="center"),
+                )
