@@ -1,4 +1,5 @@
 import dash_mantine_components as dmc
+import dash_blueprint_components as dbpc
 from dash import Input, Output, ctx, no_update, callback
 from utils.logging_utils import logger
 
@@ -26,7 +27,7 @@ class ColumnSizer:
     def register_callbacks(self, app):
         @callback(
             Output("aggrid-table", "columnSize"),
-            Output("notifications", "children", allow_duplicate=True),
+            Output("toaster", "toasts", allow_duplicate=True),
             Input("column-auto", "n_clicks"),
             Input("column-fit", "n_clicks"),
             prevent_initial_call=True,
@@ -35,15 +36,10 @@ class ColumnSizer:
             try:
                 icon_clicked = ctx.triggered_id
                 if icon_clicked in ["column-auto", "column-fit"]:
-                    size_type = (
-                        "autoSize" if icon_clicked == "column-auto" else "sizeToFit"
-                    )
-                    logger.info(
-                        f"{'Auto-sizing' if size_type == 'autoSize' else 'Fitting'} columns"
-                    )
+                    size_type = "autoSize" if icon_clicked == "column-auto" else "sizeToFit"
+                    logger.info(f"{'Auto-sizing' if size_type == 'autoSize' else 'Fitting'} columns")
                     return size_type, None
             except Exception as e:
                 logger.error(f"Error in column_sizing: {str(e)}")
-                return no_update, create_notification(
-                    f"Error: {str(e)}", "Column Sizing Error", "red"
-                )
+                return no_update, dbpc.Toast(message=f"Column Sizing Error",intent="error")
+

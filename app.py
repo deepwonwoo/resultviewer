@@ -11,9 +11,6 @@ from components.RV import ResultViewer
 from utils.config import CONFIG
 from utils.db_management import SSDF
 
-# from utils.options import upload_to_workspace
-# from utils.devworks_api import send_devworks_message
-
 dash._dash_renderer._set_react_version("18.2.0")
 
 

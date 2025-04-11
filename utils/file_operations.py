@@ -83,9 +83,7 @@ def backup_file(dir_path, file_path):
     backup_dir = os.path.join(dir_path, "backup")
     make_dirs_with_permissions(backup_dir)
     file_owner = get_file_owner(file_path)
-    file_timestamp = datetime.datetime.fromtimestamp(
-        os.path.getmtime(file_path)
-    ).strftime("%Y%m%d_%H%M")
+    file_timestamp = datetime.datetime.fromtimestamp(os.path.getmtime(file_path)).strftime("%Y%m%d_%H%M")
     dir_path, filename = os.path.split(file_path)
     name, ext = os.path.splitext(filename)
     backup_filename = f"{name}_{file_timestamp}_{file_owner}{ext}"

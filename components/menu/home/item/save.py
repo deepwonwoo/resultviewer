@@ -12,22 +12,16 @@ from utils.logging_utils import logger
 
 class Saver:
     def layout(self):
-        return html.Div(
-            [self.save_menu(), self.local_saver_modal(), self.workspace_saver_modal()]
-        )
+        return html.Div([self.save_menu(), self.local_saver_modal(), self.workspace_saver_modal()])
 
     def save_menu(self):
         return dmc.Menu(
             [
-                dmc.MenuTarget(
-                    dbpc.Button("Save", icon="floppy-disk", minimal=True, outlined=True)
-                ),
+                dmc.MenuTarget(dbpc.Button("Save", icon="floppy-disk", minimal=True, outlined=True)),
                 dmc.MenuDropdown(
                     [
                         dmc.MenuItem(
-                            dbpc.Button(
-                                "Save to Local", icon="saved", minimal=True, small=True
-                            ),
+                            dbpc.Button("Save to Local", icon="saved", minimal=True, small=True),
                             id="open-save-local-modal-btn",
                             n_clicks=0,
                         ),
@@ -211,9 +205,7 @@ class Saver:
 
                 # 5. 디스크 공간 확인 (옵션)
                 try:
-                    free_space = (
-                        os.statvfs(save_dir).f_frsize * os.statvfs(save_dir).f_bavail
-                    )
+                    free_space = os.statvfs(save_dir).f_frsize * os.statvfs(save_dir).f_bavail
                     if free_space < 1024 * 1024 * 10:  # 10MB 이하면 경고
                         return True, f"디스크 공간이 부족합니다: {save_dir}"
                 except:

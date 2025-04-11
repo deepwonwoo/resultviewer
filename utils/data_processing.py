@@ -51,13 +51,7 @@ def validate_df(filename):
                     df = df.with_columns(pl.col(col).str.strip_chars().alias(col))
 
                 df = df.with_columns(try_convert(df, col).alias(col))
-                df = df.with_columns(
-                    pl.col(col)
-                    .replace(float("inf"), -99999)
-                    .fill_null(-99999)
-                    .fill_nan(-99999)
-                    .alias(col)
-                )
+                df = df.with_columns(pl.col(col).replace(float("inf"), -99999).fill_null(-99999).fill_nan(-99999).alias(col))
 
             except Exception:
                 try:
@@ -98,11 +92,7 @@ def validate_df(filename):
 
 
 def validate_js(json_file):
-    return (
-        pl.read_parquet(json_file)
-        if json_file.endswith(".parquet")
-        else pl.read_json(json_file)
-    )
+    return pl.read_parquet(json_file) if json_file.endswith(".parquet") else pl.read_json(json_file)
 
 
 def displaying_df(filtred_apply=False):
@@ -113,12 +103,7 @@ def displaying_df(filtred_apply=False):
     try:
         if hide_waiver and "waiver" in dff.columns:
             conditions_expr = (dff["waiver"] == "Waiver.") | (dff["waiver"] == "Fixed.")
-            update_waiver_column = (
-                pl.when(conditions_expr)
-                .then(pl.col("waiver").str.strip_chars("."))
-                .otherwise(pl.col("waiver"))
-                .alias("waiver")
-            )
+            update_waiver_column = pl.when(conditions_expr).then(pl.col("waiver").str.strip_chars(".")).otherwise(pl.col("waiver")).alias("waiver")
             dff = dff.with_columns(update_waiver_column)
         if filtred_apply:
             request = SSDF.request

@@ -9,12 +9,8 @@ class GroupRow:
         return dmc.Group(
             [
                 dmc.Text("GroupRows: ", fw=500, size="sm", c="gray"),
-                self._create_tooltip(
-                    "expand-rowGroup", "Expand all groupRows", "unfold"
-                ),
-                self._create_tooltip(
-                    "collapse-rowGroup", "Collapse all groupRows", "fold"
-                ),
+                self._create_tooltip("expand-rowGroup", "Expand all groupRows", "unfold"),
+                self._create_tooltip("collapse-rowGroup", "Collapse all groupRows", "fold"),
             ],
             gap=2,
         )

@@ -7,14 +7,8 @@ def apply_sort(df, request):
     if not sortModel:
         return df
     try:
-        sorting = [
-            sort["colId"] for sort in sortModel if sort["colId"] != "ag-Grid-AutoColumn"
-        ]
-        asc = [
-            sort["sort"] == "asc"
-            for sort in sortModel
-            if sort["colId"] != "ag-Grid-AutoColumn"
-        ]
+        sorting = [sort["colId"] for sort in sortModel if sort["colId"] != "ag-Grid-AutoColumn"]
+        asc = [sort["sort"] == "asc" for sort in sortModel if sort["colId"] != "ag-Grid-AutoColumn"]
         groupBy = [col["id"] for col in request.get("rowGroupCols", [])]
 
         if len(groupBy) and "childCount" in df.columns:  # grouped row 확인

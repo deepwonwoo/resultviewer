@@ -154,11 +154,7 @@ class Filter:
                                             variant="light",
                                         ),
                                         dmc.Badge(
-                                            (
-                                                "Compatible"
-                                                if is_applicable
-                                                else "Incompatible"
-                                            ),
+                                            ("Compatible" if is_applicable else "Incompatible"),
                                             color="green" if is_applicable else "red",
                                             variant="dot",
                                         ),
@@ -247,11 +243,7 @@ class Filter:
                 return f"({join_type.join(expressions)})"
             else:
                 operator = operator_map.get(condition["type"], condition["type"])
-                filter_value = (
-                    f'"{condition["filter"]}"'
-                    if isinstance(condition["filter"], str)
-                    else condition["filter"]
-                )
+                filter_value = f'"{condition["filter"]}"' if isinstance(condition["filter"], str) else condition["filter"]
                 return f"[{condition['colId']}] {operator} {filter_value}"
 
         return build_expression(filter_model)

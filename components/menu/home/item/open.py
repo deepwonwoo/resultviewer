@@ -20,9 +20,7 @@ class Opener:
     def open_menu(self):
         return dmc.Menu(
             [
-                dmc.MenuTarget(
-                    dbpc.Button("Open", icon="folder-open", minimal=True, outlined=True)
-                ),
+                dmc.MenuTarget(dbpc.Button("Open", icon="folder-open", minimal=True, outlined=True)),
                 dmc.MenuDropdown(
                     [
                         dmc.MenuItem(
@@ -114,33 +112,19 @@ class Opener:
                 raise exceptions.PreventUpdate
 
             left_border_index = next(
-                (
-                    i
-                    for i, b in enumerate(current_model["borders"])
-                    if b["location"] == "left"
-                ),
+                (i for i, b in enumerate(current_model["borders"]) if b["location"] == "left"),
                 None,
             )
             # 이미 workspace-tab 탭이 있는지 확인
             if left_border_index is not None:
-                existing_tabs = current_model["borders"][left_border_index].get(
-                    "children", []
-                )
-                tab_exists = any(
-                    tab.get("id") == "workspace-tab" for tab in existing_tabs
-                )
+                existing_tabs = current_model["borders"][left_border_index].get("children", [])
+                tab_exists = any(tab.get("id") == "workspace-tab" for tab in existing_tabs)
                 if tab_exists:
                     # 이미 탭이 있다면 해당 탭을 선택하도록 함
                     patched_model = Patch()
-                    tab_index = next(
-                        i
-                        for i, tab in enumerate(existing_tabs)
-                        if tab.get("id") == "workspace-tab"
-                    )
+                    tab_index = next(i for i, tab in enumerate(existing_tabs) if tab.get("id") == "workspace-tab")
                     patched_model["borders"][left_border_index]["selected"] = tab_index
-                    return patched_model, [
-                        {"icon": "database", "text": "WORKSPACE", "current": "true"}
-                    ]
+                    return patched_model, [{"icon": "database", "text": "WORKSPACE", "current": "true"}]
 
             # 새로운 탭 정의
             new_tab = {
@@ -156,9 +140,7 @@ class Opener:
             if left_border_index is not None:
                 # 기존 left border 수정
                 patched_model["borders"][left_border_index]["children"].append(new_tab)
-                patched_model["borders"][left_border_index]["selected"] = len(
-                    current_model["borders"][left_border_index]["children"]
-                )
+                patched_model["borders"][left_border_index]["selected"] = len(current_model["borders"][left_border_index]["children"])
             else:
                 # left border가 없으면 새로 추가
                 patched_model["borders"].append(
@@ -170,9 +152,7 @@ class Opener:
                         "children": [new_tab],
                     }
                 )
-            return patched_model, [
-                {"icon": "database", "text": "WORKSPACE", "current": "true"}
-            ]
+            return patched_model, [{"icon": "database", "text": "WORKSPACE", "current": "true"}]
 
     def _register_local_upload_callback(self, app):
 
@@ -203,9 +183,7 @@ class Opener:
         )
         def get_open_file_path(n):
             cmd = f"{CONFIG.SCRIPT}/QFileDialog/file_dialog"
-            result = subprocess.run(
-                [cmd], capture_output=True, text=True, env=CONFIG.get_QtFileDialog_env()
-            )
+            result = subprocess.run([cmd], capture_output=True, text=True, env=CONFIG.get_QtFileDialog_env())
             file_path = result.stdout.strip()
             return file_path if file_path else no_update
 
@@ -272,9 +250,7 @@ class Opener:
                 mod_time = os.path.getmtime(file_path)
 
                 patched_fl_config = Patch()
-                patched_fl_config["layout"]["children"][0]["children"][0]["name"] = (
-                    file_path.replace(CONFIG.WORKSPACE, "WORKSPACE")
-                )
+                patched_fl_config["layout"]["children"][0]["children"][0]["name"] = file_path.replace(CONFIG.WORKSPACE, "WORKSPACE")
 
                 return (
                     generate_column_definitions(df),
@@ -305,11 +281,7 @@ class Opener:
                     no_update,
                     no_update,
                     no_update,
-                    [
-                        dbpc.Toast(
-                            message=f"Error: {str(e)}", intent="danger", icon="error"
-                        )
-                    ],
+                    [dbpc.Toast(message=f"Error: {str(e)}", intent="danger", icon="error")],
                     no_update,
                     False,
                     no_update,

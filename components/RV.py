@@ -9,8 +9,8 @@ from components.menu.home.home import HomeMenu
 from components.menu.edit.edit import EditMenu
 
 # from components.menu.waive.waive import WaiveMenu
-from components.menu.script.script import ScriptMenu
-from components.menu.crossprobe.crossprobe import CrossProbeMenu
+# from components.menu.script.script import ScriptMenu
+# from components.menu.crossprobe.crossprobe import CrossProbeMenu
 from utils.logging_utils import logger
 
 
@@ -21,8 +21,8 @@ class ResultViewer:
         # self.view_menu = ViewMenu()
         self.edit_menu = EditMenu()
         # self.waive_menu = WaiveMenu()
-        self.script_menu = ScriptMenu()
-        self.crossprobe_menu = CrossProbeMenu()
+        # self.script_menu = ScriptMenu()
+        # self.crossprobe_menu = CrossProbeMenu()
         self.data_grid = DataGrid()
         self.register_callbacks(app)
 
@@ -102,28 +102,24 @@ class ResultViewer:
             # dfl.Tab(id="view-item", children=[self.view_menu.layout()]),
             dfl.Tab(id="edit-item", children=[self.edit_menu.layout()]),
             # dfl.Tab(id="waive-item", children=[self.waive_menu.layout()]),
-            dfl.Tab(id="script-item", children=[self.script_menu.layout()]),
-            dfl.Tab(id="crossprobe-item", children=[self.crossprobe_menu.layout()]),
+            # dfl.Tab(id="script-item", children=[self.script_menu.layout()]),
+            # dfl.Tab(id="crossprobe-item", children=[self.crossprobe_menu.layout()]),
             dfl.Tab(id="grid-tab", children=[self.data_grid.layout()]),
             # dfl.Tab(id="workspace-tab", children=[self.home_menu.workspaceExplorer.workspace_tab()]),
-            # dfl.Tab(id="col-add-tab", children=[self.edit_menu.cols.add_tab()]),
-            # dfl.Tab(id="col-remove-tab", children=[self.edit_menu.cols.remove_tab()]),
-            # dfl.Tab(id="col-concat-tab", children=[self.edit_menu.cols.concat_tab()]),
-            # dfl.Tab(id="col-edit-tab", children=[self.edit_menu.cols.edit_tab()]),
+            dfl.Tab(id="col-add-tab", children=[self.edit_menu.cols.add_tab()]),
+            dfl.Tab(id="col-remove-tab", children=[self.edit_menu.cols.remove_tab()]),
+            dfl.Tab(id="col-concat-tab", children=[self.edit_menu.cols.concat_tab()]),
+            dfl.Tab(id="col-edit-tab", children=[self.edit_menu.cols.edit_tab()]),
             dfl.Tab(id="col-modify-tab", children=[self.edit_menu.cols.modify_tab()]),
-            # dfl.Tab(id="col-rename-tab", children=[self.edit_menu.cols.rename_tab()]),
-            dfl.Tab(
-                id="col-find-replace-tab",
-                children=[self.edit_menu.cols.find_replace_tab()],
-            ),
-            # dfl.Tab(id="col-hier-count-tab", children=[self.edit_menu.cols.hier_count_tab()]),
+            dfl.Tab(id="col-rename-tab", children=[self.edit_menu.cols.rename_tab()]),
+            dfl.Tab(id="col-find-replace-tab", children=[self.edit_menu.cols.find_replace_tab()]),
+            dfl.Tab(id="col-hier-count-tab", children=[self.edit_menu.cols.hier_count_tab()]),
             # dfl.Tab(id="currentAnalyzer-tab", children=[self.view_menu.currentAnalyzer.tab()]),
             # dfl.Tab(id="dynamicDCPath-tab", children=[self.view_menu.dynamicDCPath.tab()]),
         ]
 
         return dmc.MantineProvider(
             [
-                dmc.NotificationProvider(),
                 dbpc.OverlayToaster(id="toaster", position="top-right", usePortal=True),
                 dfl.FlexLayout(
                     id="flex-layout",
@@ -140,8 +136,8 @@ class ResultViewer:
         # self.view_menu.register_callbacks(app)
         self.edit_menu.register_callbacks(app)
         # self.waive_menu.register_callbacks(app)
-        self.script_menu.register_callbacks(app)
-        self.crossprobe_menu.register_callbacks(app)
+        # self.script_menu.register_callbacks(app)
+        # self.crossprobe_menu.register_callbacks(app)
         self.data_grid.register_callbacks(app)
 
         @app.callback(Output("aggrid-table", "style"), Input("flex-layout", "model"))
@@ -150,26 +146,11 @@ class ResultViewer:
             if layout_config["borders"][0].get("selected", None) is None:
                 top_size = 0
             else:
-                top_borders = [
-                    bl for bl in layout_config["borders"] if bl.get("location") == "top"
-                ]
+                top_borders = [bl for bl in layout_config["borders"] if bl.get("location") == "top"]
                 top_size = top_borders[0].get("size", 0)
 
-            bottom_borders = [
-                bl for bl in layout_config["borders"] if bl.get("location") == "bottom"
-            ]
-            bottom_size = (
-                next(
-                    (
-                        bl.get("size", 50)
-                        for bl in bottom_borders
-                        if bl.get("selected", -1) == 0
-                    ),
-                    0,
-                )
-                if bottom_borders
-                else -30
-            )
+            bottom_borders = [bl for bl in layout_config["borders"] if bl.get("location") == "bottom"]
+            bottom_size = next((bl.get("size", 50) for bl in bottom_borders if bl.get("selected", -1) == 0), 0) if bottom_borders else -30
 
             return {
                 "height": f"calc(100vh - 150px - {top_size}px - {bottom_size}px)",

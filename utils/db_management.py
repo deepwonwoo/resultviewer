@@ -69,9 +69,7 @@ class DataFrameManager:
         if lock:
             viewers = get_viewers_from_lock_file(lock.lock_file)
             lock_filename = lock.lock_file
-            lock_aliasname = lock_filename.replace(
-                CONFIG.WORKSPACE, "WORKSPACE"
-            ).replce(".lock", "")
+            lock_aliasname = lock_filename.replace(CONFIG.WORKSPACE, "WORKSPACE").replce(".lock", "")
             # if viewer:    # send messages to waiting users
 
             lock.release()

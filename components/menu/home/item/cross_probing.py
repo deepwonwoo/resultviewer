@@ -31,11 +31,7 @@ class CrossProber:
         return dmc.Group(
             [
                 dbpc.Tooltip(
-                    [
-                        dbpc.Button(
-                            icon="link", minimal=True, outlined=True, disabled=True
-                        )
-                    ],
+                    [dbpc.Button(icon="link", minimal=True, outlined=True, disabled=True)],
                     placement="bottom",
                     content="Select Net/Instance and Column, Middle click on a row to CrossProbe",
                     compact=True,
@@ -85,11 +81,7 @@ class CrossProber:
 
     def layout(self):
         return dbpc.FormGroup(
-            children=(
-                self.cp_connected_layout()
-                if self.CP_socket
-                else self.cp_disconnected_layout()
-            ),
+            children=(self.cp_connected_layout() if self.CP_socket else self.cp_disconnected_layout()),
             label=dmc.Text("CrossProbe: ", fw=500, size="sm", c="gray"),
             inline=True,
         )
@@ -142,9 +134,7 @@ class CrossProber:
         elif len(paths) == 1:
             s = self.remove_initial_x(s)
         try:
-            hier_path, name = s.rsplit(
-                delimiter, 1
-            )  # 오른쪽에서부터 문자열을 '.'으로 분리
+            hier_path, name = s.rsplit(delimiter, 1)  # 오른쪽에서부터 문자열을 '.'으로 분리
         except ValueError:  # '.'이 없어서 분리할 수 없는 경우
             hier_path = ""  # hier_path를 빈 문자열로 설정
             name = s  # name에 입력받은 문자열을 그대로 반환

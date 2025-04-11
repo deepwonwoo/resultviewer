@@ -60,9 +60,7 @@ class WorkspaceExplorer:
                         "overflow": "scroll",
                     },
                 ),
-                dmc.Pagination(
-                    id=f"pagination", total=1, value=1, siblings=1, boundaries=1
-                ),
+                dmc.Pagination(id=f"pagination", total=1, value=1, siblings=1, boundaries=1),
             ]
         )
 
@@ -125,11 +123,7 @@ class WorkspaceExplorer:
                                     n_clicks=0,
                                     disabled=not has_permission,
                                 ),
-                                label=(
-                                    "Rename"
-                                    if has_permission
-                                    else "No permission to rename"
-                                ),
+                                label=("Rename" if has_permission else "No permission to rename"),
                                 openDelay=500,
                             )
                         ),
@@ -184,9 +178,7 @@ class WorkspaceExplorer:
             "locked": locked_by if is_locked and not self.id_prefix else "",
             "size": size,
             "owner": owner,
-            "created": datetime.datetime.fromtimestamp("%b %d, %Y %H:%M").strftime(
-                self.datetime_format
-            ),
+            "created": datetime.datetime.fromtimestamp("%b %d, %Y %H:%M").strftime(self.datetime_format),
         }
 
     def _format_size(self, size: int) -> str:
@@ -228,12 +220,7 @@ class WorkspaceExplorer:
             prevent_initial_call=True,
         )
         def list_cwd_files(cwd, n_clicks, page, refresh_ns, search_pattern):
-            if (
-                ctx.triggered_id
-                and isinstance(ctx.triggered_id, dict)
-                and ctx.triggered_id.get("type") == f"refresh-flag"
-                and sum(refresh_ns) == 0
-            ):
+            if ctx.triggered_id and isinstance(ctx.triggered_id, dict) and ctx.triggered_id.get("type") == f"refresh-flag" and sum(refresh_ns) == 0:
                 return no_update
 
             if cwd and cwd.startswith("WORKSPACE"):
@@ -254,9 +241,7 @@ class WorkspaceExplorer:
                         filepath = Path(file)
                         full_path = os.path.join(cwd, filepath.as_posix())
 
-                        self.files.append(
-                            full_path.replace(CONFIG.WORKSPACE, "WORKSPACE")
-                        )
+                        self.files.append(full_path.replace(CONFIG.WORKSPACE, "WORKSPACE"))
                         if file.endswith(".lock"):
                             continue
 
@@ -401,9 +386,7 @@ class WorkspaceExplorer:
                 for details in paginated_files
             ]
 
-            table = dmc.Table(
-                table_header + table_body, striped=True, highlightOnHover=True
-            )
+            table = dmc.Table(table_header + table_body, striped=True, highlightOnHover=True)
             total_pages = -(-len(all_file_details) // items_per_page)  # 올림 나눗셈
 
             return table, total_pages

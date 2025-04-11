@@ -35,10 +35,7 @@ def apply_filters(df, request):
                 dff = dff.filter(pl.col(col) == "")
             elif filter_model["type"] == "notBlank":
                 dff = dff.filter(pl.col(col) != "")
-            elif (
-                filter_model["filterType"] == "number"
-                and filter_model["type"] == "inRange"
-            ):
+            elif filter_model["filterType"] == "number" and filter_model["type"] == "inRange":
                 if "filterTo" in filter_model:
                     crit2 = filter_model["filterTo"]
                     dff = dff.filter(pl.col(col).is_between(crit1, crit2))
@@ -65,18 +62,14 @@ def apply_filters(df, request):
         if operator == "AND":
             for condition in conditions:
                 if "conditions" in condition:  # 중첩된 조건 처리
-                    df = process_conditions(
-                        df, condition["conditions"], condition["type"]
-                    )
+                    df = process_conditions(df, condition["conditions"], condition["type"])
                 else:
                     df = apply_filter_condition(df, condition)
         elif operator == "OR":
             expressions = []
             for condition in conditions:
                 if "conditions" in condition:
-                    temp_df = process_conditions(
-                        df.clone(), condition["conditions"], condition["type"]
-                    )
+                    temp_df = process_conditions(df.clone(), condition["conditions"], condition["type"])
                     expressions.append(temp_df)
                 else:
                     temp_df = apply_filter_condition(df.clone(), condition)

@@ -82,11 +82,7 @@ class Columns:
         return dmc.Paper(
             children=[
                 dmc.Group(
-                    [
-                        dbpc.EntityTitle(
-                            title="Add Column", heading="H5", icon="add-column-left"
-                        )
-                    ],
+                    [dbpc.EntityTitle(title="Add Column", heading="H5", icon="add-column-left")],
                     grow=True,
                 ),
                 dmc.Space(h=10),
@@ -146,11 +142,7 @@ class Columns:
         return dmc.Paper(
             children=[
                 dmc.Group(
-                    [
-                        dbpc.EntityTitle(
-                            title="Remove Column", heading="H5", icon="remove-column"
-                        )
-                    ],
+                    [dbpc.EntityTitle(title="Remove Column", heading="H5", icon="remove-column")],
                     grow=True,
                 ),
                 dmc.Space(h=10),
@@ -170,20 +162,14 @@ class Columns:
                 dmc.Space(h=10),
                 dbpc.Popover(
                     id="remove-popover",
-                    children=dbpc.Button(
-                        "Apply", intent="danger", outlined=True, minimal=True, fill=True
-                    ),
+                    children=dbpc.Button("Apply", intent="danger", outlined=True, minimal=True, fill=True),
                     content=html.Div(
                         children=[
                             html.Div("Confirm deletion", className="bp5-heading"),
-                            html.P(
-                                "Are you sure you want to delete these items? You won't be able to recover them."
-                            ),
+                            html.P("Are you sure you want to delete these items? You won't be able to recover them."),
                             html.Div(
                                 children=[
-                                    dbpc.Button(
-                                        children="Cancel", style={"margin-right": 10}
-                                    ),
+                                    dbpc.Button(children="Cancel", style={"margin-right": 10}),
                                     dbpc.Button(
                                         children="Delete",
                                         id="remove-column-apply-btn",
@@ -211,11 +197,7 @@ class Columns:
         return dmc.Paper(
             children=[
                 dmc.Group(
-                    [
-                        dbpc.EntityTitle(
-                            title="Concat Column", heading="H5", icon="merge-columns"
-                        )
-                    ],
+                    [dbpc.EntityTitle(title="Concat Column", heading="H5", icon="merge-columns")],
                     grow=True,
                 ),
                 dmc.Space(h=10),
@@ -291,11 +273,7 @@ class Columns:
         return dmc.Paper(
             children=[
                 dmc.Group(
-                    [
-                        dbpc.EntityTitle(
-                            title="Modify Column", heading="H5", icon="derive-column"
-                        )
-                    ],
+                    [dbpc.EntityTitle(title="Modify Column", heading="H5", icon="derive-column")],
                     grow=True,
                 ),
                 dmc.Space(h=10),
@@ -319,9 +297,7 @@ class Columns:
                                         {"label": "Round to", "value": "round"},
                                     ],
                                 ),
-                                dmc.NumberInput(
-                                    label="Value", id="modify-numeric-value", mb=10
-                                ),
+                                dmc.NumberInput(label="Value", id="modify-numeric-value", mb=10),
                                 dmc.Checkbox(
                                     id="modify-numeric-inplace",
                                     label="Modify in-place (otherwise create new column)",
@@ -333,9 +309,7 @@ class Columns:
                         ),
                         html.Div(
                             [
-                                dmc.TextInput(
-                                    label="Find", id="modify-text-find", mb=10
-                                ),
+                                dmc.TextInput(label="Find", id="modify-text-find", mb=10),
                                 dmc.TextInput(
                                     label="Replace with",
                                     id="modify-text-replace",
@@ -389,11 +363,7 @@ class Columns:
         return dmc.Paper(
             children=[
                 dmc.Group(
-                    [
-                        dbpc.EntityTitle(
-                            title="Find & Replace", heading="H5", icon="exchange"
-                        )
-                    ],
+                    [dbpc.EntityTitle(title="Find & Replace", heading="H5", icon="exchange")],
                     grow=True,
                 ),
                 dmc.Space(h=10),
@@ -446,11 +416,7 @@ class Columns:
         return dmc.Paper(
             children=[
                 dmc.Group(
-                    [
-                        dbpc.EntityTitle(
-                            title="Rename Column", heading="H5", icon="text-highlight"
-                        )
-                    ],
+                    [dbpc.EntityTitle(title="Rename Column", heading="H5", icon="text-highlight")],
                     grow=True,
                 ),
                 dmc.Stack(
@@ -570,27 +536,15 @@ class Columns:
                 ]
 
             right_border_index = next(
-                (
-                    i
-                    for i, b in enumerate(current_model["borders"])
-                    if b["location"] == "right"
-                ),
+                (i for i, b in enumerate(current_model["borders"]) if b["location"] == "right"),
                 None,
             )
             if right_border_index is not None:
-                existing_tabs = current_model["borders"][right_border_index].get(
-                    "children", []
-                )
-                tab_exists = any(
-                    tab.get("id") == "col-add-tab" for tab in existing_tabs
-                )
+                existing_tabs = current_model["borders"][right_border_index].get("children", [])
+                tab_exists = any(tab.get("id") == "col-add-tab" for tab in existing_tabs)
                 if tab_exists:
                     patched_model = Patch()
-                    tab_index = next(
-                        i
-                        for i, tab in enumerate(existing_tabs)
-                        if tab.get("id") == "col-add-tab"
-                    )
+                    tab_index = next(i for i, tab in enumerate(existing_tabs) if tab.get("id") == "col-add-tab")
                     patched_model["borders"][right_border_index]["selected"] = tab_index
                     return patched_model, no_update
 
@@ -606,9 +560,7 @@ class Columns:
 
             if right_border_index is not None:
                 patched_model["borders"][right_border_index]["children"].append(new_tab)
-                patched_model["borders"][right_border_index]["selected"] = len(
-                    current_model["borders"][right_border_index]["children"]
-                )
+                patched_model["borders"][right_border_index]["selected"] = len(current_model["borders"][right_border_index]["children"])
             else:
                 patched_model["borders"].append(
                     {
@@ -629,11 +581,7 @@ class Columns:
             State("aggrid-table", "columnDefs"),
         )
         def handle_value_type_change(value_type, columnDefs):
-            column_data = [
-                {"label": col["field"], "value": col["field"]}
-                for col in columnDefs
-                if col["field"] != "waiver"
-            ]
+            column_data = [{"label": col["field"], "value": col["field"]} for col in columnDefs if col["field"] != "waiver"]
             if value_type == "default":
                 return False, True, column_data
             else:
@@ -651,9 +599,7 @@ class Columns:
             State("add-column-copy-select", "value"),
             prevent_initial_call=True,
         )
-        def handle_add_column_submission(
-            n1, mode, add_column_header, add_column_value, copy_select_val
-        ):
+        def handle_add_column_submission(n1, mode, add_column_header, add_column_value, copy_select_val):
 
             if not add_column_header:
                 return (
@@ -710,9 +656,7 @@ class Columns:
                             [float(add_column_value)] * len(SSDF.dataframe),
                         )
                     elif add_column_value is None:
-                        new_column = pl.Series(
-                            add_column_header, [str("")] * len(SSDF.dataframe)
-                        )
+                        new_column = pl.Series(add_column_header, [str("")] * len(SSDF.dataframe))
                     else:
                         new_column = pl.Series(
                             add_column_header,
@@ -721,9 +665,7 @@ class Columns:
                     SSDF.dataframe = SSDF.dataframe.with_columns([new_column])
 
                 else:
-                    SSDF.dataframe = SSDF.dataframe.with_columns(
-                        pl.col(copy_select_val).alias(add_column_header)
-                    )
+                    SSDF.dataframe = SSDF.dataframe.with_columns(pl.col(copy_select_val).alias(add_column_header))
 
                 updated_columnDefs = generate_column_definitions(SSDF.dataframe)
                 return no_update, updated_columnDefs, "", ""
@@ -765,29 +707,17 @@ class Columns:
                     [],
                 )
             right_border_index = next(
-                (
-                    i
-                    for i, b in enumerate(current_model["borders"])
-                    if b["location"] == "right"
-                ),
+                (i for i, b in enumerate(current_model["borders"]) if b["location"] == "right"),
                 None,
             )
             # 이미 col-modify-tab 탭이 있는지 확인
             if right_border_index is not None:
-                existing_tabs = current_model["borders"][right_border_index].get(
-                    "children", []
-                )
-                tab_exists = any(
-                    tab.get("id") == "col-modify-tab" for tab in existing_tabs
-                )
+                existing_tabs = current_model["borders"][right_border_index].get("children", [])
+                tab_exists = any(tab.get("id") == "col-modify-tab" for tab in existing_tabs)
                 if tab_exists:
                     # 이미 탭이 있다면 해당 탭을 선택하도록 함
                     patched_model = Patch()
-                    tab_index = next(
-                        i
-                        for i, tab in enumerate(existing_tabs)
-                        if tab.get("id") == "col-modify-tab"
-                    )
+                    tab_index = next(i for i, tab in enumerate(existing_tabs) if tab.get("id") == "col-modify-tab")
                     patched_model["borders"][right_border_index]["selected"] = tab_index
                     return patched_model, no_update, dff.columns, None
             # 새로운 탭 정의
@@ -803,9 +733,7 @@ class Columns:
             if right_border_index is not None:
                 # 기존 right border 수정
                 patched_model["borders"][right_border_index]["children"].append(new_tab)
-                patched_model["borders"][right_border_index]["selected"] = len(
-                    current_model["borders"][right_border_index]["children"]
-                )
+                patched_model["borders"][right_border_index]["selected"] = len(current_model["borders"][right_border_index]["children"])
             else:
                 # right border가 없으면 새로 추가
                 patched_model["borders"].append(
@@ -848,39 +776,21 @@ class Columns:
                         [],
                     )
 
-                columns = [
-                    {"label": col["field"], "value": col["field"]}
-                    for col in columnDefs
-                    if col["field"] != "waiver"
-                ]
+                columns = [{"label": col["field"], "value": col["field"]} for col in columnDefs if col["field"] != "waiver"]
 
                 right_border_index = next(
-                    (
-                        i
-                        for i, b in enumerate(current_model["borders"])
-                        if b["location"] == "right"
-                    ),
+                    (i for i, b in enumerate(current_model["borders"]) if b["location"] == "right"),
                     None,
                 )
                 # 이미 col-find_replace-tab 탭이 있는지 확인
                 if right_border_index is not None:
-                    existing_tabs = current_model["borders"][right_border_index].get(
-                        "children", []
-                    )
-                    tab_exists = any(
-                        tab.get("id") == "col-find-replace-tab" for tab in existing_tabs
-                    )
+                    existing_tabs = current_model["borders"][right_border_index].get("children", [])
+                    tab_exists = any(tab.get("id") == "col-find-replace-tab" for tab in existing_tabs)
                     if tab_exists:
                         # 이미 탭이 있다면 해당 탭을 선택하도록 함
                         patched_model = Patch()
-                        tab_index = next(
-                            i
-                            for i, tab in enumerate(existing_tabs)
-                            if tab.get("id") == "col-find-replace-tab"
-                        )
-                        patched_model["borders"][right_border_index][
-                            "selected"
-                        ] = tab_index
+                        tab_index = next(i for i, tab in enumerate(existing_tabs) if tab.get("id") == "col-find-replace-tab")
+                        patched_model["borders"][right_border_index]["selected"] = tab_index
                         return patched_model, no_update, columns
 
                 # 새로운 탭 정의
@@ -896,12 +806,8 @@ class Columns:
 
                 if right_border_index is not None:
                     # 기존 right border 수정
-                    patched_model["borders"][right_border_index]["children"].append(
-                        new_tab
-                    )
-                    patched_model["borders"][right_border_index]["selected"] = len(
-                        current_model["borders"][right_border_index]["children"]
-                    )
+                    patched_model["borders"][right_border_index]["children"].append(new_tab)
+                    patched_model["borders"][right_border_index]["selected"] = len(current_model["borders"][right_border_index]["children"])
                 else:
                     # right border가 없으면 새로 추가
                     patched_model["borders"].append(
@@ -937,40 +843,20 @@ class Columns:
                 State("find-replace-regex-checkbox", "checked"),
                 prevent_initial_call=True,
             )
-            def handle_apply_find_replace(
-                n_clicks, column, find_value, replace_value, use_regex
-            ):
-                if (
-                    n_clicks is None
-                    or not column
-                    or find_value is None
-                    or replace_value is None
-                ):
+            def handle_apply_find_replace(n_clicks, column, find_value, replace_value, use_regex):
+                if n_clicks is None or not column or find_value is None or replace_value is None:
                     raise exceptions.PreventUpdate
                 try:
                     if isinstance(SSDF.dataframe[column].dtype, pl.Utf8):
                         if use_regex:
-                            SSDF.dataframe = SSDF.dataframe.with_columns(
-                                pl.col(column)
-                                .str.replace_all(find_value, replace_value)
-                                .alias(column)
-                            )
+                            SSDF.dataframe = SSDF.dataframe.with_columns(pl.col(column).str.replace_all(find_value, replace_value).alias(column))
                         else:
-                            SSDF.dataframe = SSDF.dataframe.with_columns(
-                                pl.col(column)
-                                .str.replace(find_value, replace_value)
-                                .alias(column)
-                            )
+                            SSDF.dataframe = SSDF.dataframe.with_columns(pl.col(column).str.replace(find_value, replace_value).alias(column))
                     else:
                         # For numeric columns, we use a when-then-otherwise expression
                         SSDF.dataframe = SSDF.dataframe.with_columns(
-                            pl.when(
-                                pl.col(column)
-                                == pl.lit(find_value).cast(SSDF.dataframe[column].dtype)
-                            )
-                            .then(
-                                pl.lit(replace_value).cast(SSDF.dataframe[column].dtype)
-                            )
+                            pl.when(pl.col(column) == pl.lit(find_value).cast(SSDF.dataframe[column].dtype))
+                            .then(pl.lit(replace_value).cast(SSDF.dataframe[column].dtype))
                             .otherwise(pl.col(column))
                             .alias(column)
                         )
@@ -979,11 +865,7 @@ class Columns:
                     return no_update, updated_columnDefs
 
                 except Exception as e:
-                    return [
-                        dbpc.Toast(
-                            message=f"Error: {str(e)}", intent="danger", icon="error"
-                        )
-                    ], no_update
+                    return [dbpc.Toast(message=f"Error: {str(e)}", intent="danger", icon="error")], no_update
 
             @app.callback(
                 Output("modify-numeric-options", "style"),
@@ -1073,9 +955,7 @@ class Columns:
                     pl.UInt64,
                 ]:
                     if numeric_operation is None or numeric_value is None:
-                        raise ValueError(
-                            "Numeric operation and value must be provided for numeric columns."
-                        )
+                        raise ValueError("Numeric operation and value must be provided for numeric columns.")
 
                     if numeric_inplace:
                         new_column_name = selected_column
@@ -1084,66 +964,40 @@ class Columns:
 
                     # filtered_only에 따라 조건부 수정
                     if filtered_only:
-                        modified_values = apply_numeric_operation(
-                            df_to_modify[selected_column]
-                        )
+                        modified_values = apply_numeric_operation(df_to_modify[selected_column])
                         df_to_modify = df_to_modify.with_columns(
-                            [
-                                pl.when(pl.col("uniqid").is_in(filtered_ids))
-                                .then(modified_values)
-                                .otherwise(pl.col(selected_column))
-                                .alias(new_column_name)
-                            ]
+                            [pl.when(pl.col("uniqid").is_in(filtered_ids)).then(modified_values).otherwise(pl.col(selected_column)).alias(new_column_name)]
                         )
                     else:
-                        modified_values = apply_numeric_operation(
-                            df_to_modify[selected_column]
-                        )
-                        df_to_modify = df_to_modify.with_columns(
-                            modified_values.alias(new_column_name)
-                        )
+                        modified_values = apply_numeric_operation(df_to_modify[selected_column])
+                        df_to_modify = df_to_modify.with_columns(modified_values.alias(new_column_name))
 
                 # 텍스트형 컬럼 처리
                 else:
                     if text_find is None:
-                        raise ValueError(
-                            "Find value must be provided for text columns."
-                        )
+                        raise ValueError("Find value must be provided for text columns.")
 
                     if text_regex:
-                        replace_func = lambda x: x.str.replace_all(
-                            text_find, text_replace or ""
-                        )
+                        replace_func = lambda x: x.str.replace_all(text_find, text_replace or "")
                     else:
-                        replace_func = lambda x: x.str.replace(
-                            text_find, text_replace or "", literal=True
-                        )
+                        replace_func = lambda x: x.str.replace(text_find, text_replace or "", literal=True)
 
                     # filtered_only에 따라 조건부 수정
                     if filtered_only:
                         modified_values = replace_func(df_to_modify[selected_column])
                         df_to_modify = df_to_modify.with_columns(
-                            [
-                                pl.when(pl.col("uniqid").is_in(filtered_ids))
-                                .then(modified_values)
-                                .otherwise(pl.col(selected_column))
-                                .alias(selected_column)
-                            ]
+                            [pl.when(pl.col("uniqid").is_in(filtered_ids)).then(modified_values).otherwise(pl.col(selected_column)).alias(selected_column)]
                         )
                     else:
                         modified_values = replace_func(df_to_modify[selected_column])
-                        df_to_modify = df_to_modify.with_columns(
-                            modified_values.alias(selected_column)
-                        )
+                        df_to_modify = df_to_modify.with_columns(modified_values.alias(selected_column))
 
                 # 수정된 데이터프레임을 SSDF에 저장
                 SSDF.dataframe = df_to_modify
 
                 updated_columnDefs = generate_column_definitions(SSDF.dataframe)
 
-                return updated_columnDefs, [
-                    dbpc.Toast(message=f"Column modified successfully", icon="endorsed")
-                ]
+                return updated_columnDefs, [dbpc.Toast(message=f"Column modified successfully", icon="endorsed")]
 
     def _register_concat_column_callback(self, app):
         @app.callback(
@@ -1171,27 +1025,15 @@ class Columns:
                     [],
                 )
             right_border_index = next(
-                (
-                    i
-                    for i, b in enumerate(current_model["borders"])
-                    if b["location"] == "right"
-                ),
+                (i for i, b in enumerate(current_model["borders"]) if b["location"] == "right"),
                 None,
             )
             if right_border_index is not None:
-                existing_tabs = current_model["borders"][right_border_index].get(
-                    "children", []
-                )
-                tab_exists = any(
-                    tab.get("id") == "col-concat-tab" for tab in existing_tabs
-                )
+                existing_tabs = current_model["borders"][right_border_index].get("children", [])
+                tab_exists = any(tab.get("id") == "col-concat-tab" for tab in existing_tabs)
                 if tab_exists:
                     patched_model = Patch()
-                    tab_index = next(
-                        i
-                        for i, tab in enumerate(existing_tabs)
-                        if tab.get("id") == "col-concat-tab"
-                    )
+                    tab_index = next(i for i, tab in enumerate(existing_tabs) if tab.get("id") == "col-concat-tab")
                     patched_model["borders"][right_border_index]["selected"] = tab_index
                     return patched_model, no_update, no_update
             new_tab = {
@@ -1204,9 +1046,7 @@ class Columns:
             patched_model = Patch()
             if right_border_index is not None:
                 patched_model["borders"][right_border_index]["children"].append(new_tab)
-                patched_model["borders"][right_border_index]["selected"] = len(
-                    current_model["borders"][right_border_index]["children"]
-                )
+                patched_model["borders"][right_border_index]["selected"] = len(current_model["borders"][right_border_index]["children"])
             else:
                 patched_model["borders"].append(
                     {
@@ -1305,27 +1145,15 @@ class Columns:
                 )
 
             right_border_index = next(
-                (
-                    i
-                    for i, b in enumerate(current_model["borders"])
-                    if b["location"] == "right"
-                ),
+                (i for i, b in enumerate(current_model["borders"]) if b["location"] == "right"),
                 None,
             )
             if right_border_index is not None:
-                existing_tabs = current_model["borders"][right_border_index].get(
-                    "children", []
-                )
-                tab_exists = any(
-                    tab.get("id") == "col-remove-tab" for tab in existing_tabs
-                )
+                existing_tabs = current_model["borders"][right_border_index].get("children", [])
+                tab_exists = any(tab.get("id") == "col-remove-tab" for tab in existing_tabs)
                 if tab_exists:
                     patched_model = Patch()
-                    tab_index = next(
-                        i
-                        for i, tab in enumerate(existing_tabs)
-                        if tab.get("id") == "col-remove-tab"
-                    )
+                    tab_index = next(i for i, tab in enumerate(existing_tabs) if tab.get("id") == "col-remove-tab")
                     patched_model["borders"][right_border_index]["selected"] = tab_index
                     return patched_model, no_update, no_update
 
@@ -1341,9 +1169,7 @@ class Columns:
 
             if right_border_index is not None:
                 patched_model["borders"][right_border_index]["children"].append(new_tab)
-                patched_model["borders"][right_border_index]["selected"] = len(
-                    current_model["borders"][right_border_index]["children"]
-                )
+                patched_model["borders"][right_border_index]["selected"] = len(current_model["borders"][right_border_index]["children"])
             else:
                 patched_model["borders"].append(
                     {
@@ -1408,9 +1234,7 @@ class Columns:
             State("aggrid-table", "columnDefs"),
             prevent_initial_call=True,
         )
-        def handle_edit_column_button_click(
-            n_clicks, current_model, current_columnDefs
-        ):
+        def handle_edit_column_button_click(n_clicks, current_model, current_columnDefs):
             if n_clicks is None:
                 raise exceptions.PreventUpdate
 
@@ -1430,27 +1254,15 @@ class Columns:
                 )
 
             right_border_index = next(
-                (
-                    i
-                    for i, b in enumerate(current_model["borders"])
-                    if b["location"] == "right"
-                ),
+                (i for i, b in enumerate(current_model["borders"]) if b["location"] == "right"),
                 None,
             )
             if right_border_index is not None:
-                existing_tabs = current_model["borders"][right_border_index].get(
-                    "children", []
-                )
-                tab_exists = any(
-                    tab.get("id") == "col-edit-tab" for tab in existing_tabs
-                )
+                existing_tabs = current_model["borders"][right_border_index].get("children", [])
+                tab_exists = any(tab.get("id") == "col-edit-tab" for tab in existing_tabs)
                 if tab_exists:
                     patched_model = Patch()
-                    tab_index = next(
-                        i
-                        for i, tab in enumerate(existing_tabs)
-                        if tab.get("id") == "col-edit-tab"
-                    )
+                    tab_index = next(i for i, tab in enumerate(existing_tabs) if tab.get("id") == "col-edit-tab")
                     patched_model["borders"][right_border_index]["selected"] = tab_index
                     return patched_model, no_update, no_update, no_update
 
@@ -1466,9 +1278,7 @@ class Columns:
 
             if right_border_index is not None:
                 patched_model["borders"][right_border_index]["children"].append(new_tab)
-                patched_model["borders"][right_border_index]["selected"] = len(
-                    current_model["borders"][right_border_index]["children"]
-                )
+                patched_model["borders"][right_border_index]["selected"] = len(current_model["borders"][right_border_index]["children"])
             else:
                 patched_model["borders"].append(
                     {
@@ -1483,11 +1293,7 @@ class Columns:
                 patched_model,
                 no_update,
                 [col for col in dff.columns if col != "waiver"],
-                [
-                    col_def["field"]
-                    for col_def in current_columnDefs
-                    if col_def["editable"]
-                ],
+                [col_def["field"] for col_def in current_columnDefs if col_def["editable"]],
             )
 
         @app.callback(
@@ -1508,18 +1314,12 @@ class Columns:
                         continue
                     elif col in selected_columns:
                         logger.debug(f"is_editable: {col}")
-                        patched_columnDefs[i] = generate_column_definition(
-                            col, SSDF.dataframe[col], is_editable=True
-                        )
+                        patched_columnDefs[i] = generate_column_definition(col, SSDF.dataframe[col], is_editable=True)
                     else:
-                        patched_columnDefs[i] = generate_column_definition(
-                            col, SSDF.dataframe[col], is_editable=False
-                        )
+                        patched_columnDefs[i] = generate_column_definition(col, SSDF.dataframe[col], is_editable=False)
                 return no_update, patched_columnDefs
             except Exception as e:
-                return [
-                    dbpc.Toast(message=f"{str(e)}", intent="danger", icon="error")
-                ], no_update
+                return [dbpc.Toast(message=f"{str(e)}", intent="danger", icon="error")], no_update
 
     def _register_rename_column_callback(self, app):
         @app.callback(
@@ -1548,27 +1348,15 @@ class Columns:
                     [],
                 )
             right_border_index = next(
-                (
-                    i
-                    for i, b in enumerate(current_model["borders"])
-                    if b["location"] == "right"
-                ),
+                (i for i, b in enumerate(current_model["borders"]) if b["location"] == "right"),
                 None,
             )
             if right_border_index is not None:
-                existing_tabs = current_model["borders"][right_border_index].get(
-                    "children", []
-                )
-                tab_exists = any(
-                    tab.get("id") == "col-concat-tab" for tab in existing_tabs
-                )
+                existing_tabs = current_model["borders"][right_border_index].get("children", [])
+                tab_exists = any(tab.get("id") == "col-concat-tab" for tab in existing_tabs)
                 if tab_exists:
                     patched_model = Patch()
-                    tab_index = next(
-                        i
-                        for i, tab in enumerate(existing_tabs)
-                        if tab.get("id") == "col-concat-tab"
-                    )
+                    tab_index = next(i for i, tab in enumerate(existing_tabs) if tab.get("id") == "col-concat-tab")
                     patched_model["borders"][right_border_index]["selected"] = tab_index
                     return patched_model, no_update, no_update
             new_tab = {
@@ -1581,9 +1369,7 @@ class Columns:
             patched_model = Patch()
             if right_border_index is not None:
                 patched_model["borders"][right_border_index]["children"].append(new_tab)
-                patched_model["borders"][right_border_index]["selected"] = len(
-                    current_model["borders"][right_border_index]["children"]
-                )
+                patched_model["borders"][right_border_index]["selected"] = len(current_model["borders"][right_border_index]["children"])
             else:
                 patched_model["borders"].append(
                     {
@@ -1615,14 +1401,10 @@ class Columns:
                 patched_columnDefs = Patch()
                 for i, columnDef in enumerate(columnDefs):
                     if columnDef["field"] == old_name:
-                        patched_columnDefs[i] = generate_column_definition(
-                            new_name, SSDF.dataframe[new_name]
-                        )
+                        patched_columnDefs[i] = generate_column_definition(new_name, SSDF.dataframe[new_name])
                 return no_update, patched_columnDefs
             except Exception as e:
-                return [
-                    dbpc.Toast(message=f"{str(e)}", intent="danger", icon="error")
-                ], no_update
+                return [dbpc.Toast(message=f"{str(e)}", intent="danger", icon="error")], no_update
 
     def _register_find_and_replace_callback(self, app):
         @app.callback(
@@ -1651,27 +1433,15 @@ class Columns:
                     [],
                 )
             right_border_index = next(
-                (
-                    i
-                    for i, b in enumerate(current_model["borders"])
-                    if b["location"] == "right"
-                ),
+                (i for i, b in enumerate(current_model["borders"]) if b["location"] == "right"),
                 None,
             )
             if right_border_index is not None:
-                existing_tabs = current_model["borders"][right_border_index].get(
-                    "children", []
-                )
-                tab_exists = any(
-                    tab.get("id") == "col-concat-tab" for tab in existing_tabs
-                )
+                existing_tabs = current_model["borders"][right_border_index].get("children", [])
+                tab_exists = any(tab.get("id") == "col-concat-tab" for tab in existing_tabs)
                 if tab_exists:
                     patched_model = Patch()
-                    tab_index = next(
-                        i
-                        for i, tab in enumerate(existing_tabs)
-                        if tab.get("id") == "col-concat-tab"
-                    )
+                    tab_index = next(i for i, tab in enumerate(existing_tabs) if tab.get("id") == "col-concat-tab")
                     patched_model["borders"][right_border_index]["selected"] = tab_index
                     return patched_model, no_update, no_update
             new_tab = {
@@ -1684,9 +1454,7 @@ class Columns:
             patched_model = Patch()
             if right_border_index is not None:
                 patched_model["borders"][right_border_index]["children"].append(new_tab)
-                patched_model["borders"][right_border_index]["selected"] = len(
-                    current_model["borders"][right_border_index]["children"]
-                )
+                patched_model["borders"][right_border_index]["selected"] = len(current_model["borders"][right_border_index]["children"])
             else:
                 patched_model["borders"].append(
                     {
@@ -1720,16 +1488,12 @@ class Columns:
             State("find-replace-regex-checkbox", "checked"),
             prevent_initial_call=True,
         )
-        def handle_apply_find_replace(
-            n_clicks, column, find_value, replace_value, use_regex
-        ):
+        def handle_apply_find_replace(n_clicks, column, find_value, replace_value, use_regex):
             if n_clicks is None or not column:
                 raise exceptions.PreventUpdate
 
             if find_value is None or find_value.strip() == "":
-                return [
-                    dbpc.Toast(message=f"Find value empty", intent="warning")
-                ], no_update
+                return [dbpc.Toast(message=f"Find value empty", intent="warning")], no_update
 
             replace_value = "" if replace_value is None else replace_value
             try:
@@ -1737,23 +1501,12 @@ class Columns:
 
                 if is_string_column:
                     if use_regex:
-                        SSDF.dataframe = SSDF.dataframe.with_columns(
-                            pl.col(column)
-                            .str.replace_all(rf"{find_value}", replace_value)
-                            .alias(column)
-                        )
+                        SSDF.dataframe = SSDF.dataframe.with_columns(pl.col(column).str.replace_all(rf"{find_value}", replace_value).alias(column))
                     else:
-                        SSDF.dataframe = SSDF.dataframe.with_columns(
-                            pl.col(column)
-                            .str.replace_all(find_value, replace_value)
-                            .alias(column)
-                        )
+                        SSDF.dataframe = SSDF.dataframe.with_columns(pl.col(column).str.replace_all(find_value, replace_value).alias(column))
                 else:
                     SSDF.dataframe = SSDF.dataframe.with_columns(
-                        pl.when(
-                            pl.col(column)
-                            == pl.lit(find_value).cast(SSDF.dataframe[column].dtype)
-                        )
+                        pl.when(pl.col(column) == pl.lit(find_value).cast(SSDF.dataframe[column].dtype))
                         .then(pl.lit(replace_value).cast(SSDF.dataframe[column].dtype))
                         .otherwise(pl.col(column))
                         .alias(column)
@@ -1761,9 +1514,7 @@ class Columns:
                 updated_columnDefs = generate_column_definitions(SSDF.dataframe)
                 return no_update, updated_columnDefs
             except Exception as e:
-                return [
-                    dbpc.Toast(message=f"{str(e)}", intent="danger", icon="error")
-                ], no_update
+                return [dbpc.Toast(message=f"{str(e)}", intent="danger", icon="error")], no_update
 
     def _register_hier_count_callback(self, app):
         @app.callback(
@@ -1779,12 +1530,7 @@ class Columns:
                 return no_update, no_update
             try:
                 df = SSDF.dataframe
-                df = df.with_columns(
-                    pl.col(selected_column)
-                    .str.split(delimiter)
-                    .list.len()
-                    .alias("hier_count")
-                )
+                df = df.with_columns(pl.col(selected_column).str.split(delimiter).list.len().alias("hier_count"))
                 SSDF.dataframe = df
                 updated_columnDefs = generate_column_definitions(df)
                 return [dbpc.Toast(message=f"Hier column added ")], updated_columnDefs

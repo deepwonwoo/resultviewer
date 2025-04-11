@@ -10,9 +10,7 @@ class Config:
         # self.SCRIPT = "/user/signoff.dev/deepwonwoo/scripts"
         self.USERNAME = "user"
         self.WORKSPACE = "C:/Users/deepw/OneDrive/문서/Python"
-        self.SCRIPT = os.getenv(
-            "SCRIPT_PATH", "/user/verifier14/deepwonwoo/Release/scripts"
-        )
+        self.SCRIPT = os.getenv("SCRIPT_PATH", "/user/verifier14/deepwonwoo/Release/scripts")
         self.USER_RV_DIR, self.APPCACHE = self.get_user_rv_dir(self.USERNAME)
         self.CP_CFG = "/user/signoff.dev/lsj/CP/.sorv_cp.cfg"
 
@@ -35,9 +33,7 @@ class Config:
 
     def get_QtFileDialog_env(self):
         env_vars = os.envion.copy()
-        env_vars["LD_LIBRARY_PATH"] = "/appl/LINUX/Signoff/libs:" + env_vars.get(
-            "LD_LIBRARY_PATH"
-        )
+        env_vars["LD_LIBRARY_PATH"] = "/appl/LINUX/Signoff/libs:" + env_vars.get("LD_LIBRARY_PATH")
         return env_vars
 
     def get_applications(self):

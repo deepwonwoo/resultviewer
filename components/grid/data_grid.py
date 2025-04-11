@@ -213,11 +213,7 @@ class DataGrid:
             if SSDF.dataframe is None:
                 return no_update
 
-            state_order = [
-                col["colId"]
-                for col in column_state
-                if col["colId"] != "ag-Grid-AutoColumn"
-            ]
+            state_order = [col["colId"] for col in column_state if col["colId"] != "ag-Grid-AutoColumn"]
             def_order = [col["field"] for col in col_defs]
 
             if state_order == def_order:
