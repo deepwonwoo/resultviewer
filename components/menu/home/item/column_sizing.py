@@ -26,7 +26,7 @@ class ColumnSizer:
 
     def register_callbacks(self, app):
         @callback(
-            Output("aggrid-table", "columnSize"),
+            Output("aggrid-table", "columnSize", allow_duplicate=True),
             Output("toaster", "toasts", allow_duplicate=True),
             Input("column-auto", "n_clicks"),
             Input("column-fit", "n_clicks"),

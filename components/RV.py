@@ -31,11 +31,13 @@ class ResultViewer:
         fl_config = {
             "global": {
                 "enableSingleTabStretch": True,
-                "tabEnableClose": False,
-                "tabEnableFloat": False,
-                "tabEnableDrag": False,
-                "tabSetEnableDrop": False,
-                "tabEnableRename": False,
+                "tabEnableClose": True,      # 탭 닫기 기능 전역 활성화
+                "tabEnableFloat": False,      # 탭 플로팅 기능 전역 활성화
+                "tabEnableDrag": True,       # 탭 드래그 기능 전역 활성화
+                "tabSetEnableDrop": True,    # 탭 드롭 기능 전역 활성화
+                "tabEnableRename": False,    # 탭 이름 변경 비활성화
+                "splitterSize": 4,           # 스플리터 크기 설정
+                "tabSetHeaderHeight": 32     # 탭 헤더 높이 설정
             },
             "borders": [
                 {
@@ -47,53 +49,100 @@ class ResultViewer:
                         {
                             "type": "tab",
                             "name": "Home",
-                            "component": "button",
                             "id": "home-item",
+                            "enableDrop": False,
+                            "enableDrag": False,
+                            "enableClose": False,
+                            "enableFloating": False
                         },
-                        {"type": "tab", "name": "View", "id": "view-item"},
+                        {
+                            "type": "tab", 
+                            "name": "View", 
+                            "id": "view-item",
+                            "enableDrop": False,
+                            "enableDrag": False,
+                            "enableClose": False,
+                            "enableFloating": False
+                         },
                         {
                             "type": "tab",
                             "name": "Edit",
-                            "component": "text",
                             "id": "edit-item",
+                            "enableDrop": False,
+                            "enableDrag": False,
+                            "enableClose": False,
+                            "enableFloating": False
                         },
                         {
                             "type": "tab",
                             "name": "Waive",
-                            "component": "text",
                             "id": "waive-item",
+                            "enableDrop": False,
+                            "enableDrag": False,
+                            "enableClose": False,
+                            "enableFloating": False
                         },
                         {
                             "type": "tab",
                             "name": "Script",
-                            "component": "text",
                             "id": "script-item",
+                            "enableDrop": False,
+                            "enableDrag": False,
+                            "enableClose": False,
+                            "enableFloating": False
                         },
                         {
                             "type": "tab",
                             "name": "Crossprobe",
-                            "component": "text",
                             "id": "crossprobe-item",
+                            "enableDrop": False,
+                            "enableDrag": False,
+                            "enableClose": False,
+                            "enableFloating": False
                         },
                     ],
+                    
+                },
+                {
+                    "type": "border",
+                    "location": "left",
+                    # "location": "bottom",
+                    "selected": 0,
+                    "size": 200,
+                    "children": [
+                        {"type": "tab", "name": "Console", "component": "text", "id": "console-tab"},
+                        {"type": "tab", "name": "Log", "component": "text", "id": "log-tab"}
+                    ],
+                    "show": False  # 초기에는 숨김 상태
                 }
+
             ],
             "layout": {
                 "type": "row",
                 "weight": 100,
                 "children": [
-                    {
-                        "type": "tabset",
-                        "children": [
-                            {
-                                "type": "text",
-                                "name": "DataGrid",
-                                "component": "grid",
-                                "id": "grid-tab",
-                            }
-                        ],
-                    }
-                ],
+                {
+                    "type": "tabset",
+                    "weight": 80,
+                    "children": [
+                        {"type": "tab", "name": "DataGrid", "component": "grid", "id": "grid-tab",
+                         "enableClose": False, "enableDrag": False, "enableFloat": False}
+                    ],
+                    "enableDrop": False,     # 메인 그리드 탭셋에 드롭 불가능
+                    "enableSplit": False,    # 메인 그리드 탭셋 분할 불가능
+                    "enableMaximize": True   # 최대화는 가능
+                    
+                },
+                # {
+                #     "type": "tabset",
+                #     "weight": 20,
+                #     "children": [
+                #     {"type": "tab", "name": "Formula", "component": "text", "id": "formula-tab"},
+                #     {"type": "tab", "name": "Statistics", "component": "text", "id": "statistics-tab"}
+                #     ],
+                #     # "show": False  # 초기에는 숨김 상태
+                # }
+                ]
             },
         }
 
@@ -106,14 +155,18 @@ class ResultViewer:
             # dfl.Tab(id="crossprobe-item", children=[self.crossprobe_menu.layout()]),
             dfl.Tab(id="grid-tab", children=[self.data_grid.layout()]),
             # dfl.Tab(id="workspace-tab", children=[self.home_menu.workspaceExplorer.workspace_tab()]),
-            dfl.Tab(id="col-add-tab", children=[self.edit_menu.cols.add_tab()]),
-            dfl.Tab(id="col-remove-tab", children=[self.edit_menu.cols.remove_tab()]),
-            dfl.Tab(id="col-concat-tab", children=[self.edit_menu.cols.concat_tab()]),
-            dfl.Tab(id="col-edit-tab", children=[self.edit_menu.cols.edit_tab()]),
-            dfl.Tab(id="col-modify-tab", children=[self.edit_menu.cols.modify_tab()]),
-            dfl.Tab(id="col-rename-tab", children=[self.edit_menu.cols.rename_tab()]),
-            dfl.Tab(id="col-find-replace-tab", children=[self.edit_menu.cols.find_replace_tab()]),
-            dfl.Tab(id="col-hier-count-tab", children=[self.edit_menu.cols.hier_count_tab()]),
+            dfl.Tab(id="col-add-tab", children=[self.edit_menu.add_column.tab_layout()]),
+            dfl.Tab(id="col-del-tab", children=[self.edit_menu.del_column.tab_layout()]),
+            dfl.Tab(id="row-add-tab", children=[self.edit_menu.add_row.tab_layout()]),
+            dfl.Tab(id="row-del-tab", children=[self.edit_menu.del_row.tab_layout()]),
+
+            # dfl.Tab(id="col-remove-tab", children=[self.edit_menu.cols.remove_tab()]),
+            # dfl.Tab(id="col-concat-tab", children=[self.edit_menu.cols.concat_tab()]),
+            # dfl.Tab(id="col-edit-tab", children=[self.edit_menu.cols.edit_tab()]),
+            # dfl.Tab(id="col-modify-tab", children=[self.edit_menu.cols.modify_tab()]),
+            # dfl.Tab(id="col-rename-tab", children=[self.edit_menu.cols.rename_tab()]),
+            # dfl.Tab(id="col-find-replace-tab", children=[self.edit_menu.cols.find_replace_tab()]),
+            # dfl.Tab(id="col-hier-count-tab", children=[self.edit_menu.cols.hier_count_tab()]),
             # dfl.Tab(id="currentAnalyzer-tab", children=[self.view_menu.currentAnalyzer.tab()]),
             # dfl.Tab(id="dynamicDCPath-tab", children=[self.view_menu.dynamicDCPath.tab()]),
         ]
@@ -164,3 +217,10 @@ class ResultViewer:
                 logger.info(f"SORV Alert: {toast[0]['props']['message']}")
             except:
                 logger.info(f"SORV Alert: {toast}")
+
+
+
+
+
+
+
