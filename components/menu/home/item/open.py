@@ -66,7 +66,7 @@ class Opener:
                     [
                         dmc.TextInput(
                             # value=self.init_csv,
-                            value="C:\\Users\\deepw\\OneDrive\\문서\\Python\\olympics.csv",
+                            value="C:\\Users\\wonwo\\OneDrive\\문서\\PYTHON\\olympics.csv",
                             label="Open하려는 파일 경로를 입력하세요.",
                             leftSection=dbpc.Button(
                                 id="open-csv-file-search",

@@ -7,12 +7,12 @@ from components.menu.home.home import HomeMenu
 
 # from components.menu.view.view import ViewMenu
 from components.menu.edit.edit import EditMenu
+from components.menu.analyze.analyze import AnalyzeMenu
 
 # from components.menu.waive.waive import WaiveMenu
 # from components.menu.script.script import ScriptMenu
 # from components.menu.crossprobe.crossprobe import CrossProbeMenu
 from utils.logging_utils import logger
-
 
 class ResultViewer:
 
@@ -20,6 +20,7 @@ class ResultViewer:
         self.home_menu = HomeMenu()
         # self.view_menu = ViewMenu()
         self.edit_menu = EditMenu()
+        self.analyze_menu = AnalyzeMenu()
         # self.waive_menu = WaiveMenu()
         # self.script_menu = ScriptMenu()
         # self.crossprobe_menu = CrossProbeMenu()
@@ -100,6 +101,16 @@ class ResultViewer:
                             "enableClose": False,
                             "enableFloating": False
                         },
+                        {
+                            "type": "tab",
+                            "name": "Analyze",
+                            "id": "analyze-item",
+                            "enableDrop": False,
+                            "enableDrag": False,
+                            "enableClose": False,
+                            "enableFloating": False
+                        },
+
                     ],
                     
                 },
@@ -150,6 +161,10 @@ class ResultViewer:
             dfl.Tab(id="home-item", children=[self.home_menu.layout()]),
             # dfl.Tab(id="view-item", children=[self.view_menu.layout()]),
             dfl.Tab(id="edit-item", children=[self.edit_menu.layout()]),
+
+            dfl.Tab(id="analyze-item", children=[self.analyze_menu.layout()]),
+            dfl.Tab(id="ai-assistant-tab", children=[self.analyze_menu.ai.tab_layout()]),
+
             # dfl.Tab(id="waive-item", children=[self.waive_menu.layout()]),
             # dfl.Tab(id="script-item", children=[self.script_menu.layout()]),
             # dfl.Tab(id="crossprobe-item", children=[self.crossprobe_menu.layout()]),
@@ -188,6 +203,9 @@ class ResultViewer:
         self.home_menu.register_callbacks(app)
         # self.view_menu.register_callbacks(app)
         self.edit_menu.register_callbacks(app)
+
+        self.analyze_menu.register_callbacks(app)
+
         # self.waive_menu.register_callbacks(app)
         # self.script_menu.register_callbacks(app)
         # self.crossprobe_menu.register_callbacks(app)
