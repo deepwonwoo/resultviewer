@@ -5,13 +5,9 @@ from dash import Input, Output, html
 from components.grid.data_grid import DataGrid
 from components.menu.home.home import HomeMenu
 
-# from components.menu.view.view import ViewMenu
 from components.menu.edit.edit import EditMenu
 from components.menu.analyze.analyze import AnalyzeMenu
 
-# from components.menu.waive.waive import WaiveMenu
-# from components.menu.script.script import ScriptMenu
-# from components.menu.crossprobe.crossprobe import CrossProbeMenu
 from utils.logging_utils import logger
 
 class ResultViewer:
@@ -110,27 +106,19 @@ class ResultViewer:
 
         fl_nodes = [
             dfl.Tab(id="home-item", children=[self.home_menu.layout()]),
-            # dfl.Tab(id="view-item", children=[self.view_menu.layout()]),
+            
             dfl.Tab(id="edit-item", children=[self.edit_menu.layout()]),
-
-            dfl.Tab(id="analyze-item", children=[self.analyze_menu.layout()]),
-            dfl.Tab(id="ai-assistant-tab", children=[self.analyze_menu.ai.tab_layout()]),
-
-            # dfl.Tab(id="waive-item", children=[self.waive_menu.layout()]),
-            # dfl.Tab(id="script-item", children=[self.script_menu.layout()]),
-            # dfl.Tab(id="crossprobe-item", children=[self.crossprobe_menu.layout()]),
+            
             dfl.Tab(id="grid-tab", children=[self.data_grid.layout()]),
-            # dfl.Tab(id="workspace-tab", children=[self.home_menu.workspaceExplorer.workspace_tab()]),
-            dfl.Tab(id="col-add-tab", children=[self.edit_menu.cols.add_tab()]),
-            dfl.Tab(id="col-remove-tab", children=[self.edit_menu.cols.remove_tab()]),
-            dfl.Tab(id="col-concat-tab", children=[self.edit_menu.cols.concat_tab()]),
-            dfl.Tab(id="col-edit-tab", children=[self.edit_menu.cols.edit_tab()]),
-            dfl.Tab(id="col-modify-tab", children=[self.edit_menu.cols.modify_tab()]),
-            dfl.Tab(id="col-rename-tab", children=[self.edit_menu.cols.rename_tab()]),
-            dfl.Tab(id="col-find-replace-tab", children=[self.edit_menu.cols.find_replace_tab()]),
-            dfl.Tab(id="col-hier-count-tab", children=[self.edit_menu.cols.hier_count_tab()]),
-            # dfl.Tab(id="currentAnalyzer-tab", children=[self.view_menu.currentAnalyzer.tab()]),
-            # dfl.Tab(id="dynamicDCPath-tab", children=[self.view_menu.dynamicDCPath.tab()]),
+            
+            dfl.Tab(id="col-add-tab", children=[self.edit_menu.add_column.tab_layout()]),
+            dfl.Tab(id="col-del-tab", children=[self.edit_menu.del_column.tab_layout()]),
+            dfl.Tab(id="row-add-tab", children=[self.edit_menu.add_row.tab_layout()]),
+            dfl.Tab(id="type-changes-tab", children=[self.edit_menu.type_changes.tab_layout()]),
+            dfl.Tab(id="formula-tab", children=[self.edit_menu.formula.tab_layout()]), 
+            dfl.Tab(id="combine-dataframes-tab", children=[self.edit_menu.combining_dataframes.tab_layout()]),
+            dfl.Tab(id="split-column-tab", children=[self.edit_menu.split_column.tab_layout()]),
+
         ]
 
         return dmc.MantineProvider(
@@ -140,7 +128,7 @@ class ResultViewer:
                     id="flex-layout",
                     model=fl_config,
                     children=fl_nodes,
-                    useStateForModel=False,
+                    useStateForModel=False
                 ),
             ]
         )
@@ -148,14 +136,7 @@ class ResultViewer:
     def register_callbacks(self, app):
         """컴포넌트별 콜백 함수 등록."""
         self.home_menu.register_callbacks(app)
-        # self.view_menu.register_callbacks(app)
         self.edit_menu.register_callbacks(app)
-
-        self.analyze_menu.register_callbacks(app)
-
-        # self.waive_menu.register_callbacks(app)
-        # self.script_menu.register_callbacks(app)
-        # self.crossprobe_menu.register_callbacks(app)
         self.data_grid.register_callbacks(app)
 
         @app.callback(Output("aggrid-table", "style"), Input("flex-layout", "model"))
@@ -173,7 +154,7 @@ class ResultViewer:
             return {
                 "height": f"calc(100vh - 150px - {top_size}px - {bottom_size}px)",
                 "width": "100%",
-                "overflow": "auto",
+                "overflow": "auto"
             }
 
         @app.callback(Input("toaster", "toasts"), prevent_initial_call=True)

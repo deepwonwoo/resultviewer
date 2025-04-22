@@ -44,14 +44,6 @@ class Config:
             {"value": "CDA", "label": "Coupling Delay Analyze"},
             {"value": "PEC", "label": "Power Error Check"},
             {"value": "CanaTR", "label": "Cana Tr"},
-            {"value": "FANOUT", "label": "Fanout Check"},
-            {"value": "DK", "label": "Driver Keeper"},
-            {"value": "DynamicDCPath", "label": "Dynamic DC Path"},
-            {"value": "PNRatio", "label": "PN Ratio"},
-            {"value": "FNC", "label": "Floating Node Check"},
-            {"value": "GlitchMarginCheck", "label": "Glitch Margin Check"},
-            {"value": "Autopulse", "label": "Autopulse"},
-            {"value": "Etc", "label": "etc"},
         ]
 
 

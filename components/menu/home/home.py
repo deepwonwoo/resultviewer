@@ -36,7 +36,7 @@ class HomeMenu:
                 self.filter.layout(),
                 dbpc.Divider(),
             ],
-            style={"height": 35},
+            style={"height": 35}
         )
 
     def register_callbacks(self, app):
