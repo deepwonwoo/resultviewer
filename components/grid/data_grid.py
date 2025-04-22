@@ -76,6 +76,10 @@ class DataGrid:
                 dcc.Store("cp_selected_rows"),
                 dcc.Store("waiver_selected_rows"),
                 dcc.Store("sub_info_selected_rows"),
+
+                # CSS 파일 로드
+                html.Link(rel='stylesheet', href='/assets/custom.css'),
+
                 EventListener(
                     id="el",
                     children=dag.AgGrid(
@@ -225,6 +229,38 @@ class DataGrid:
                 logger.error(f"컬럼 상태(순서) 변경 실패: {e}")
             return no_update
 
+
+
+
+        # 컬럼 editable 속성 변경 처리를 위한 콜백 추가
+        @app.callback(
+            Output("aggrid-table", "columnDefs", allow_duplicate=True),
+            Input("aggrid-table", "cellRendererData"),
+            State("aggrid-table", "columnDefs"),
+            prevent_initial_call=True
+        )
+        def update_column_editable(cell_data, column_defs):
+            """cellRendererData를 통해 headerComponent에서 전송된 editable 변경 처리"""
+            if not cell_data or "action" not in cell_data or cell_data["action"] != "toggle_editable":
+                return no_update
+            
+            col_id = cell_data.get("colId")
+            editable = cell_data.get("value", False)
+            
+            if not col_id:
+                return no_update
+            
+            # 해당 컬럼 정의 찾기 및 업데이트
+            for col in column_defs:
+                if col["field"] == col_id:
+                    col["editable"] = editable
+                    col["cellClass"] = "text-dark editable-column" if editable else "text-secondary"
+                    break
+                
+            return column_defs
+
+
+
     @staticmethod
     def _generate_counter_info() -> str:
         counter_names = ["filtered", "groupby"]
@@ -234,3 +270,11 @@ class DataGrid:
             if row_count:
                 counter_info += f"{name.capitalize()}: {row_count}    "
         return counter_info.rstrip()
+
+
+
+
+
+
+
+

@@ -6,7 +6,7 @@ from dash import Output, Input, State, Patch, html, no_update, exceptions, ctx
 from utils.data_processing import displaying_df
 from utils.db_management import SSDF
 from utils.logging_utils import logger
-from components.grid.dag.column_definitions import generate_column_definitions
+from components.grid.dag.column_definitions import generate_column_definitions, SYSTEM_COLUMNS
 from components.menu.edit.utils import find_tab_in_layout
 
 
@@ -187,14 +187,10 @@ class DelColumn:
             """Delete Column 버튼 클릭 시 컬럼 목록 로드"""
             if n_clicks is None or not columnDefs:
                 return []
-                
-            # 보호할 컬럼 리스트 (시스템 컬럼)
-            protected_columns = ["uniqid", "group", "childCount"]
             
-            # 컬럼 필터링 (보호할 컬럼 제외)
             column_data = [
                 {"label": col["field"], "value": col["field"]} 
-                for col in columnDefs if col["field"] not in protected_columns
+                for col in columnDefs if col["field"] not in SYSTEM_COLUMNS
             ]
             
             return column_data
@@ -226,12 +222,8 @@ class DelColumn:
             if not n_clicks or not selected_columns:
                 raise exceptions.PreventUpdate
                 
-            try:
-                # 보호할 컬럼 리스트 (시스템 컬럼)
-                protected_columns = ["uniqid", "group", "childCount"]
-                
-                # 선택된 컬럼 중 보호된 컬럼이 있는지 확인
-                protected_selected = [col for col in selected_columns if col in protected_columns]
+            try:                
+                protected_selected = [col for col in selected_columns if col in SYSTEM_COLUMNS]
                 if protected_selected:
                     return ([dbpc.Toast(
                         message=f"다음 시스템 컬럼은 삭제할 수 없습니다: {', '.join(protected_selected)}",

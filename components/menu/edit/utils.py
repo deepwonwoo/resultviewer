@@ -1,7 +1,6 @@
-
-# 전체 레이아웃에서 col-tab ID를 가진 탭이 있는지 검색하는 함수
+# Function to search for a tab with specific ID in the entire layout
 def find_tab_in_layout(model, tab_id):
-    # borders 검색
+    # Search in borders section
     for border in model.get("borders", []):
         children = border.get("children", [])
         for i, child in enumerate(children):
@@ -13,13 +12,13 @@ def find_tab_in_layout(model, tab_id):
                     "tab_index": i
                 }
     
-    # 메인 레이아웃 검색 (재귀적으로)
+    # Search in main layout (recursively)
     def search_in_layout(layout_item):
         if isinstance(layout_item, dict):
             if layout_item.get("id") == tab_id:
                 return True
             
-            # children이 있는 경우 재귀적으로 검색
+            # Recursively search through children if they exist
             children = layout_item.get("children", [])
             if isinstance(children, list):
                 for child in children:

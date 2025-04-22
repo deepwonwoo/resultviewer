@@ -1,4 +1,4 @@
-import os
+import re
 import polars as pl
 import dash_mantine_components as dmc
 import dash_blueprint_components as dbpc
@@ -6,7 +6,7 @@ from dash import Output, Input, State, Patch, html, no_update, exceptions, ctx
 
 from utils.data_processing import displaying_df
 from utils.db_management import SSDF
-from components.grid.dag.column_definitions import generate_column_definitions
+from components.grid.dag.column_definitions import generate_column_definitions, SYSTEM_COLUMNS
 from components.menu.edit.utils import find_tab_in_layout
 
 class AddColumn:
@@ -416,14 +416,14 @@ class AddColumn:
                 )], no_update, no_update, no_update, no_update, no_update)
                 
             # 특수문자 및 공백 검증 (언더스코어는 허용)
-            import re
+            
             if not re.match(r'^[a-zA-Z0-9_]+$', header):
                 return ([dbpc.Toast(
                     message="컬럼 이름은 영문자, 숫자, 언더스코어(_)만 사용 가능합니다",
                     intent="warning",
                     icon="warning-sign"
                 )], no_update, no_update, no_update, no_update, no_update)
-                
+
             # 중복 이름 검증
             if header in SSDF.dataframe.columns:
                 return ([dbpc.Toast(
@@ -431,7 +431,17 @@ class AddColumn:
                     intent="warning",
                     icon="warning-sign"
                 )], no_update, no_update, no_update, no_update, no_update)
-                
+
+            # 보호된 컬럼 검증
+            if header in SYSTEM_COLUMNS:
+                if header in ["waiver", "user"]:
+                    pass  # 추가 가능하므로 계속 진행
+                else:
+                    return ([dbpc.Toast(message=f"'{header}'는 시스템 예약 컬럼입니다. 다른 이름을 사용해주세요.", 
+                            intent="warning", icon="warning-sign")], 
+                            no_update, no_update, no_update, no_update, no_update)
+
+
             try:
                 rows_count = len(SSDF.dataframe)
                 

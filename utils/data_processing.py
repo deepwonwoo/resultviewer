@@ -109,15 +109,6 @@ def displaying_df(filtred_apply=False):
             request = SSDF.request
             request["groupKeys"] = []
             dff = apply_filters(dff, request)
-
-            # if SSDF.tree_mode == "no-label-tree":
-            #     dff = apply_tree(dff, request)
-            # elif SSDF.tree_mode == "labeled-tree":
-            #     dff = apply_labeled_tree(dff, request)
-            #     dff = apply_sort(dff, request)
-            # else:
-            #     dff = apply_sort(dff, request)
-            #     dff = apply_group(dff, request)
             dff = apply_sort(dff, request)
             dff = apply_group(dff, request)
 
