@@ -8,7 +8,7 @@ from components.menu.edit.item.type_change import TypeChanges
 from components.menu.edit.item.formula import Formula
 from components.menu.edit.item.combining_dataframes import CombiningDataframes
 from components.menu.edit.item.split_column import SplitColumn
-
+from components.menu.edit.item.rename_headers import RenameHeaders
 
 class EditMenu:
     def __init__(self) -> None:
@@ -19,6 +19,7 @@ class EditMenu:
         self.formula = Formula()  
         self.combining_dataframes = CombiningDataframes()
         self.split_column = SplitColumn()
+        self.rename_headers = RenameHeaders() 
 
     def layout(self):
         return dmc.Group([
@@ -26,6 +27,7 @@ class EditMenu:
             dmc.Group([
                 self.add_column.button_layout(),
                 self.del_column.button_layout(),
+                self.rename_headers.button_layout()
             ], gap=2),
             dbpc.Divider(),
             self.add_row.button_layout(),
@@ -47,5 +49,6 @@ class EditMenu:
         self.formula.register_callbacks(app)
         self.combining_dataframes.register_callbacks(app)
         self.split_column.register_callbacks(app)
+        self.rename_headers.register_callbacks(app)
 
 

@@ -118,6 +118,7 @@ class ResultViewer:
             dfl.Tab(id="formula-tab", children=[self.edit_menu.formula.tab_layout()]), 
             dfl.Tab(id="combine-dataframes-tab", children=[self.edit_menu.combining_dataframes.tab_layout()]),
             dfl.Tab(id="split-column-tab", children=[self.edit_menu.split_column.tab_layout()]),
+            dfl.Tab(id="rename-headers-tab", children=[self.edit_menu.rename_headers.tab_layout()]),
 
         ]
 

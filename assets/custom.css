@@ -4,13 +4,6 @@ background-color: rgba(46, 100, 254, 0.05) !important; /* 밝은 파란색 배�
 border-left: 2px solid #2E64FE !important; /* 파란색 왼쪽 테두리 */
 }
 
-.editable-column {
-background-color: rgba(46, 100, 254, 0.05) !important;
-border-left: 2px solid #2E64FE !important;
-transition: all 0.2s ease-in-out;
-}
-
-
 .text-dark {
 color: #000 !important;
 }

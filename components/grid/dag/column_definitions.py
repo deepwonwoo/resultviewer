@@ -2,7 +2,7 @@ import polars as pl
 from typing import Dict, Any, List
 from enum import Enum
 
-SYSTEM_COLUMNS = ["uniqid", "waiver", "user", "group", "childCount"]
+SYSTEM_COLUMNS = ["uniqid", "waiver", "user", "group", "childCount", "tree_group"]
 
 class ColumnType(Enum):
     NUMERIC = "numeric"
@@ -75,7 +75,6 @@ def generate_column_definition(
     "cellDataType": ("text" if determine_column_type(column_expr) == ColumnType.STRING else "number"),
     "hide": column_name in col_hide,
     "editable": is_editable,
-    "cellClass": "text-dark" if is_editable else "text-secondary",
     "headerComponent": "EditableHeaderComponent",
     "sortable": enable_sorting,  # 정렬 가능 여부 설정
   }
