@@ -211,11 +211,11 @@ class SplitColumn:
         @app.callback(
             Output("flex-layout", "model", allow_duplicate=True),
             Output("toaster", "toasts", allow_duplicate=True),
-            Input("add-row-btn", "n_clicks"),
+            Input("split-column-btn", "n_clicks"),
             State("flex-layout", "model"),
             prevent_initial_call=True
         )
-        def handle_add_row_button_click(n_clicks, current_model):
+        def handle_split_column_button_click(n_clicks, current_model):
             """Add Row 버튼 클릭 시 우측 패널에 탭 추가"""
             return handle_tab_button_click(n_clicks, current_model, "split-column-tab", "Split Column")
 

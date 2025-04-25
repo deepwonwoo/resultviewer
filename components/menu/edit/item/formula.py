@@ -4,6 +4,7 @@ import dash_blueprint_components as dbpc
 from dash import Output, Input, State, Patch, html, no_update, exceptions, ctx, dcc, ALL
 import re
 
+
 from utils.data_processing import displaying_df
 from utils.db_management import SSDF
 from utils.logging_utils import logger
@@ -48,7 +49,10 @@ class Formula:
             "텍스트 함수": [
                 {"value": "concat", "label": "문자 연결 (CONCATENATE)"},
                 {"value": "left", "label": "왼쪽 문자 추출 (LEFT)"},
-                {"value": "right", "label": "오른쪽 문자 추출 (RIGHT)"}
+                {"value": "right", "label": "오른쪽 문자 추출 (RIGHT)"},
+                {"value": "length", "label": "문자열 길이 (LENGTH)"},
+                {"value": "count_char", "label": "특정 문자 개수 (COUNT CHAR)"},
+                {"value": "count_substring", "label": "특정 문자열 개수 (COUNT SUBSTRING)"}
             ]
         }
         
@@ -176,7 +180,7 @@ class Formula:
             State("flex-layout", "model"),
             prevent_initial_call=True
         )
-        def handle_add_row_button_click(n_clicks, current_model):
+        def handle_formula_button_click(n_clicks, current_model):
             """Add Row 버튼 클릭 시 우측 패널에 탭 추가"""
             return handle_tab_button_click(n_clicks, current_model, "formula-tab", "Formula")
 
@@ -422,7 +426,51 @@ class Formula:
                     
             # 텍스트 함수
             elif operation_type == "text":
-                if operation == "concat":
+
+                if operation == "count_char":
+                    inputs.append(
+                        dmc.Select(
+                            id={"type": "formula-input", "index": 0},
+                            label="대상 컬럼",
+                            data=columns_data,
+                            required=True,
+                            clearable=False,
+                            mb=10
+                        )
+                    )
+                    inputs.append(
+                        dmc.TextInput(
+                            id={"type": "formula-input", "index": 1},
+                            label="찾을 문자",
+                            description="개수를 셀 문자를 입력하세요 (예: '.')",
+                            placeholder="예: .",
+                            required=True,
+                            mb=10
+                        )
+                    )
+                elif operation == "count_substring":
+                    inputs.append(
+                        dmc.Select(
+                            id={"type": "formula-input", "index": 0},
+                            label="대상 컬럼",
+                            data=columns_data,
+                            required=True,
+                            clearable=False,
+                            mb=10
+                        )
+                    )
+                    inputs.append(
+                        dmc.TextInput(
+                            id={"type": "formula-input", "index": 1},
+                            label="찾을 문자열",
+                            description="개수를 셀 문자열을 입력하세요",
+                            placeholder="예: .com",
+                            required=True,
+                            mb=10
+                        )
+                    )
+
+                elif operation == "concat":
                     inputs.append(
                         dmc.MultiSelect(
                             id={"type": "formula-input", "index": 0},
@@ -742,10 +790,20 @@ class Formula:
             return "텍스트 함수"
         return ""
     
+    def _safe_cast_value(self, value, value_type):
+        """값의 안전한 타입 변환"""
+        try:
+            if value_type == "number":
+                return pl.lit(float(value))
+            else:
+                return pl.lit(str(value))
+        except Exception:
+            # 변환 실패 시 문자열로 처리
+            return pl.lit(str(value))
+
     def _create_polars_expression(self, operation_type, operation, input_values):
         """입력값에 따라 Polars 표현식 생성"""
         try:
-
             # 산술 연산
             if operation_type == "arithmetic":
                 col1 = input_values[0]
@@ -756,10 +814,7 @@ class Formula:
                 expr = pl.col(col1)
                 
                 # 두 번째 값 (컬럼 또는 상수)
-                if input_type == "column":
-                    second_expr = pl.col(second_value)
-                else:
-                    second_expr = pl.lit(second_value)
+                second_expr = pl.col(second_value) if input_type == "column" else pl.lit(second_value)
                 
                 # 연산 적용
                 if operation == "add":
@@ -768,28 +823,21 @@ class Formula:
                     return expr - second_expr
                 elif operation == "multiply":
                     return expr * second_expr
+                
                 elif operation == "divide":
-                    # return expr / second_expr
-                    # 0으로 나누기 방지 및 Infinity 값 처리
-                    return (
+                    # 안전한 나누기 - 0과 infinity 처리
+                    safe_division = (
                         pl.when(second_expr == 0)
-                        .then(None)  # 0으로 나눌 경우 null 반환
-                        .otherwise(
-                            # 결과가 Infinity인 경우도 null로 처리
-                            pl.when(expr / second_expr == float('inf'))
-                            .then(None)
-                            .when(expr / second_expr == float('-inf'))
-                            .then(None)
-                            .otherwise(expr / second_expr)
-                        )
+                        .then(None)
+                        .otherwise(expr / second_expr)
                     )
-
-                    # # 나누기 연산 수행 후 Infinity 값을 null로 대체
-                    # division_result = expr / second_expr
-                    # return pl.when(
-                    #     (division_result.is_infinite()) | (second_expr == 0)
-                    # ).then(None).otherwise(division_result)
-
+                    
+                    # 결과가 infinity인 경우 처리
+                    return (
+                        pl.when(safe_division.is_infinite())
+                        .then(None)
+                        .otherwise(safe_division)
+                    )
 
                 elif operation == "power":
                     return expr.pow(second_expr)
@@ -817,133 +865,72 @@ class Formula:
             # 조건 함수
             elif operation_type == "conditional":
 
-
-                # 파라미터 추출
-                column = input_values[0]  # 조건을 확인할 컬럼
-                compare_type = input_values[1]  # 비교 값 타입 (number 또는 text)
-                compare_value = input_values[2]  # 비교할 값
-                true_type = input_values[3]  # 참일 때 값 타입
-                true_value = input_values[4]  # 참일 때 값
-                false_type = input_values[5]  # 거짓일 때 값 타입
-                false_value = input_values[6]  # 거짓일 때 값
                 
-                # 컬럼 표현식
+
+                column = input_values[0]
                 expr = pl.col(column)
                 
-                # 비교값 처리
-                if compare_type == "number":
-                    try:
-                        compare_value = float(compare_value)
-                    except (ValueError, TypeError):
-                        raise ValueError(f"비교 값 '{compare_value}'은(는) 유효한 숫자가 아닙니다.")
-                else:
-                    compare_value = str(compare_value)
-                
-                # 참일 때 값 처리
-                if true_type == "number":
-                    try:
-                        true_value = float(true_value)
-                    except (ValueError, TypeError):
-                        raise ValueError(f"참일 때 값 '{true_value}'은(는) 유효한 숫자가 아닙니다.")
-                else:
-                    true_value = str(true_value)
-                
-                # 거짓일 때 값 처리
-                if false_type == "number":
-                    try:
-                        false_value = float(false_value)
-                    except (ValueError, TypeError):
-                        raise ValueError(f"거짓일 때 값 '{false_value}'은(는) 유효한 숫자가 아닙니다.")
-                else:
-                    false_value = str(false_value)
-                
-                # 결과 데이터 타입 추론 및 일치
-                result_type = pl.Float64 if true_type == "number" and false_type == "number" else pl.Utf8
-                
-                # 결과 캐스팅 함수
-                def cast_result(val):
-                    if result_type == pl.Float64:
-                        return pl.lit(val)
-                    return pl.lit(str(val))
-                
-                # 연산 적용
-                if operation == "if_greater":
-                    condition = expr > compare_value
-                elif operation == "if_less":
-                    condition = expr < compare_value
-                elif operation == "if_equal":
-                    condition = expr == compare_value
-                elif operation == "if_not_equal":
-                    condition = expr != compare_value
-                elif operation == "if_greater_equal":
-                    condition = expr >= compare_value
-                elif operation == "if_less_equal":
-                    condition = expr <= compare_value
-                elif operation == "if_null":
-                    condition = expr.is_null()
-                    # NULL 검사의 경우 비교값은 무시됨
-                elif operation == "if_not_null":
-                    condition = ~expr.is_null()
-                    # NULL 검사의 경우 비교값은 무시됨
-                elif operation == "if_contains":
-                    # 문자열 처리
-                    condition = expr.cast(pl.Utf8).str.contains(str(compare_value))
-                elif operation == "if_not_contains":
-                    # 문자열 처리
-                    condition = ~expr.cast(pl.Utf8).str.contains(str(compare_value))
-                else:
-                    raise ValueError(f"지원하지 않는 조건 연산입니다: {operation}")
-
-
-
-                # 조건식에 NULL 값이 포함된 경우의 처리 방식 설정
-                null_handling_strategy = "false"  # NULL 값을 거짓으로 처리
-
-                if null_handling_strategy == "false":
-                    # NULL 값을 거짓으로 처리
-                    final_condition = condition.fill_null(False)
-                elif null_handling_strategy == "true":
-                    # NULL 값을 참으로 처리
-                    final_condition = condition.fill_null(True)
-                else:
-                    # NULL 값을 그대로 유지
-                    final_condition = condition
-
-                # NULL 처리가 적용된 조건으로 최종 결과 생성
-                result = pl.when(final_condition).then(cast_result(true_value)).otherwise(cast_result(false_value))
-
-
-
-                # 결과 데이터 타입 추론 기능 개선
-                def infer_result_type(true_type, false_type, true_val, false_val):
-                    """결과 데이터 타입 추론"""
-                    if true_type == "number" and false_type == "number":
-                        return pl.Float64
+                # NULL 관련 연산인 경우 특별 처리
+                if operation in ["if_null", "if_not_null"]:
+                    true_type = input_values[1]
+                    true_value = input_values[2]
+                    false_type = input_values[3]
+                    false_value = input_values[4]
                     
-                    # 모두 숫자 타입인지 시도
-                    try:
-                        float(true_val)
-                        float(false_val)
-                        return pl.Float64
-                    except (ValueError, TypeError):
-                        return pl.Utf8
+                    condition = expr.is_null() if operation == "if_null" else ~expr.is_null()
+                else:
+                    # 일반 조건 연산
+                    compare_type = input_values[1]
+                    compare_value = input_values[2]
+                    true_type = input_values[3]
+                    true_value = input_values[4]
+                    false_type = input_values[5]
+                    false_value = input_values[6]
+                    
+                    # 비교값 타입 변환
+                    if compare_type == "number":
+                        compare_value = float(compare_value)
+                    else:
+                        compare_value = str(compare_value)
 
-                # 타입 변환 함수
-                def safe_cast(expr, target_type):
-                    """안전한 타입 변환"""
-                    if target_type == pl.Float64:
-                        # 숫자로 변환 가능한 경우만 변환, 나머지는 NULL
-                        return pl.when(expr.cast(pl.Utf8).str.contains(r"^[+-]?\d+(\.\d+)?$")).\
-                            then(expr.cast(pl.Float64)).\
-                            otherwise(None)
-                    # 문자열로 변환
-                    return expr.cast(pl.Utf8)
 
-                # 결과 타입 추론 및 변환 적용
-                result_type = infer_result_type(true_type, false_type, true_value, false_value)
-                result = safe_cast(result, result_type)
+                    # 연산 적용
+                    if operation == "if_greater":
+                        condition = expr > compare_value
+                    elif operation == "if_less":
+                        condition = expr < compare_value
+                    elif operation == "if_equal":
+                        condition = expr == compare_value
+                    elif operation == "if_not_equal":
+                        condition = expr != compare_value
+                    elif operation == "if_greater_equal":
+                        condition = expr >= compare_value
+                    elif operation == "if_less_equal":
+                        condition = expr <= compare_value
+                    elif operation == "if_null":
+                        condition = expr.is_null()
+                        # NULL 검사의 경우 비교값은 무시됨
+                    elif operation == "if_not_null":
+                        condition = ~expr.is_null()
+                        # NULL 검사의 경우 비교값은 무시됨
+                    elif operation == "if_contains":
+                        # 문자열 처리
+                        condition = expr.cast(pl.Utf8).str.contains(str(compare_value))
+                    elif operation == "if_not_contains":
+                        # 문자열 처리
+                        condition = ~expr.cast(pl.Utf8).str.contains(str(compare_value))
+                    else:
+                        raise ValueError(f"지원하지 않는 조건 연산입니다: {operation}")
 
-                return result
+                # 결과값 처리 - 타입 안전성 강화
+                true_result = self._safe_cast_value(true_value, true_type)
+                false_result = self._safe_cast_value(false_value, false_type)
+                
+                # NULL 안전 처리
+                safe_condition = condition.fill_null(False)
+                
+                return pl.when(safe_condition).then(true_result).otherwise(false_result)
+
 
             # 변환 함수
             elif operation_type == "transform":
@@ -963,7 +950,32 @@ class Formula:
                     
             # 텍스트 함수
             elif operation_type == "text":
-                if operation == "concat":
+
+                if operation == "count_char":
+                    column = input_values[0]
+                    char_to_count = input_values[1]
+                    
+                    if not char_to_count:
+                        raise ValueError("찾을 문자를 입력해주세요.")
+                    
+                    # Polars의 str.count_matches 사용
+                    return pl.col(column).cast(pl.Utf8).str.count_matches(pl.lit(re.escape(char_to_count)))
+                    
+                elif operation == "count_substring":
+                    column = input_values[0]
+                    substring = input_values[1]
+                    
+                    if not substring:
+                        raise ValueError("찾을 문자열을 입력해주세요.")
+                    
+                    # 문자열 카운트
+                    return pl.col(column).cast(pl.Utf8).str.count_matches(pl.lit(re.escape(substring)))
+                    
+                elif operation == "length":
+                    column = input_values[0]
+                    return pl.col(column).cast(pl.Utf8).str.len_chars()
+
+                elif operation == "concat":
                     columns = input_values[0]
                     separator = input_values[1] if len(input_values) > 1 else " "
                     

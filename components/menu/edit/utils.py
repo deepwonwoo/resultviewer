@@ -1,6 +1,6 @@
 import dash_mantine_components as dmc
 import dash_blueprint_components as dbpc
-from dash import no_update, exceptions
+from dash import no_update, exceptions, Patch
 from utils.data_processing import displaying_df
 
 
@@ -55,7 +55,7 @@ def handle_tab_button_click(n_clicks, current_model, tab_id, tab_name, tab_compo
     if tab_search_result["found"]:
         # borders에 있을 경우 해당 탭으로 이동
         if tab_search_result["location"] == "borders":
-            from dash import Patch
+            
             patched_model = Patch()
             border_index = tab_search_result["border_index"]
             tab_index = tab_search_result["tab_index"]
@@ -80,7 +80,6 @@ def handle_tab_button_click(n_clicks, current_model, tab_id, tab_name, tab_compo
         "id": tab_id
     }
 
-    from dash import Patch
     patched_model = Patch()
 
     if right_border_index is not None:
