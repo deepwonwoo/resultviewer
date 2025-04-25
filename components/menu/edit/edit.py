@@ -10,6 +10,9 @@ from components.menu.edit.item.formula import Formula
 from components.menu.edit.item.combining_dataframes import CombiningDataframes
 from components.menu.edit.item.split_column import SplitColumn
 from components.menu.edit.item.rename_headers import RenameHeaders
+from components.menu.edit.item.fill_nan_values import FillNanValues
+from components.menu.edit.item.find_and_replace import FindAndReplace
+
 
 class EditMenu:
     def __init__(self) -> None:
@@ -21,27 +24,23 @@ class EditMenu:
         self.combining_dataframes = CombiningDataframes()
         self.split_column = SplitColumn()
         self.rename_headers = RenameHeaders() 
+        self.fill_nan_values = FillNanValues()
+        self.find_and_replace = FindAndReplace()
 
     def layout(self):
         return dmc.Group([
-            dbpc.Divider(),
-            dmc.Group([
-                self.add_column.button_layout(),
-                self.del_column.button_layout(),
-                self.rename_headers.button_layout()
-            ], gap=2),
-            dbpc.Divider(),
+            self.add_column.button_layout(),
+            self.del_column.button_layout(),
+            self.rename_headers.button_layout(),
             self.add_row.button_layout(),
-            dbpc.Divider(),
             self.type_changes.button_layout(),
-            dbpc.Divider(),
             self.formula.button_layout(),
-            dbpc.Divider(),
             self.combining_dataframes.button_layout(),
-            dbpc.Divider(),
             self.split_column.button_layout(),
-
+            self.fill_nan_values.button_layout(), 
+            self.find_and_replace.button_layout()
         ], gap=2)
+    
     def register_callbacks(self, app):
         self.add_column.register_callbacks(app)
         self.del_column.register_callbacks(app) 
@@ -51,5 +50,7 @@ class EditMenu:
         self.combining_dataframes.register_callbacks(app)
         self.split_column.register_callbacks(app)
         self.rename_headers.register_callbacks(app)
+        self.fill_nan_values.register_callbacks(app)
+        self.find_and_replace.register_callbacks(app)
 
 

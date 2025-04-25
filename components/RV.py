@@ -144,11 +144,11 @@ class ResultViewer:
 
         fl_nodes = [
             dfl.Tab(id="home-item", children=[self.home_menu.layout()]),
-            
+
             dfl.Tab(id="edit-item", children=[self.edit_menu.layout()]),
-            
+
             dfl.Tab(id="grid-tab", children=[self.data_grid.layout()]),
-            
+
             dfl.Tab(id="col-add-tab", children=[self.edit_menu.add_column.tab_layout()]),
             dfl.Tab(id="col-del-tab", children=[self.edit_menu.del_column.tab_layout()]),
             dfl.Tab(id="row-add-tab", children=[self.edit_menu.add_row.tab_layout()]),
@@ -157,6 +157,8 @@ class ResultViewer:
             dfl.Tab(id="combine-dataframes-tab", children=[self.edit_menu.combining_dataframes.tab_layout()]),
             dfl.Tab(id="split-column-tab", children=[self.edit_menu.split_column.tab_layout()]),
             dfl.Tab(id="rename-headers-tab", children=[self.edit_menu.rename_headers.tab_layout()]),
+            dfl.Tab(id="fill-nan-tab", children=[self.edit_menu.fill_nan_values.tab_layout()]), 
+            dfl.Tab(id="find-replace-tab", children=[self.edit_menu.find_and_replace.tab_layout()]),
 
         ]
 
