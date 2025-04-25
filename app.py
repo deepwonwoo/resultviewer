@@ -25,13 +25,7 @@ def parse_arguments():
 
     args = parser.parse_args()
     SSDF.init_csv = args.csv
-    SSDF.cp = {
-        "host": args.host,
-        "port": args.port,
-        "lib": args.lib,
-        "cell": args.cell,
-        "tool": args.tool,
-    }
+    SSDF.cp = {"host": args.host,"port": args.port,"lib": args.lib,"cell": args.cell,"tool": args.tool}
 
 
 def create_dash_app():

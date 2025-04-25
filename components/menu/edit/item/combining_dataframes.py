@@ -21,7 +21,11 @@ class CombiningDataframes:
             {"value": "outer", "label": "Outer Join (합집합)"},
             {"value": "cross", "label": "Cross Join (카테시안 곱)"}
         ]
-        
+        self.system_columns = ['uniqid', 'group', 'childCount']
+        self.default_current_suffix = "_current"
+        self.default_new_suffix = "_new"
+
+
     def button_layout(self):
         return dbpc.Button(
             "Combine Dataframes", 
@@ -129,26 +133,35 @@ class CombiningDataframes:
                                         style={"width": "48%"}
                                     )
                                 ], grow=True, mb=15),
-                                
+
                                 dmc.Group([
                                     dmc.TextInput(
                                         id="combine-merge-left-suffix",
-                                        label="왼쪽 서픽스",
-                                        description="중복 컬럼명에 추가할 왼쪽 서픽스",
-                                        placeholder="_left",
-                                        value="_left",
+                                        label="현재 데이터 중복 컬럼 서픽스",
+                                        description="현재 로드된 데이터의 중복 컬럼에 추가될 서픽스",
+                                        placeholder="_current",
+                                        value="_current",
                                         style={"width": "48%"}
                                     ),
                                     dmc.TextInput(
                                         id="combine-merge-right-suffix",
-                                        label="오른쪽 서픽스",
-                                        description="중복 컬럼명에 추가할 오른쪽 서픽스",
-                                        placeholder="_right",
-                                        value="_right",
+                                        label="새 데이터 중복 컬럼 서픽스",
+                                        description="새로 로드한 데이터의 중복 컬럼에 추가될 서픽스",
+                                        placeholder="_new",
+                                        value="_new",
                                         style={"width": "48%"}
                                     )
                                 ], grow=True, mb=15),
-                                
+
+                                # 설명 추가
+                                dmc.Text(
+                                    "* 동일한 컬럼명이 양쪽 데이터에 있을 경우에만 서픽스가 적용됩니다.",
+                                    size="sm",
+                                    c="dimmed",
+                                    style={"fontStyle": "italic"},
+                                    mb=10
+                                ),
+
                                 # 미리보기 섹션
                                 dmc.Button(
                                     "미리보기",
@@ -311,11 +324,15 @@ class CombiningDataframes:
                                 dmc.AccordionPanel([
                                     dmc.Text("1. Merge (Join): 공통 키를 기준으로 두 데이터프레임을 수평으로 결합합니다."),
                                     dmc.Text("   - Inner Join: 양쪽 데이터에 모두 있는 키만 유지"),
-                                    dmc.Text("   - Left Join: 왼쪽(현재) 데이터의 모든 행 유지"),
-                                    dmc.Text("   - Right Join: 오른쪽(새) 데이터의 모든 행 유지"),
+                                    dmc.Text("   - Left Join: 현재 데이터의 모든 행 유지"),
+                                    dmc.Text("   - Right Join: 새 데이터의 모든 행 유지"),
                                     dmc.Text("   - Outer Join: 모든 키 유지 (합집합)"),
                                     dmc.Space(h=5),
-                                    dmc.Text("2. Concatenate: 두 데이터프레임을 수직으로 쌓아 결합합니다."),
+                                    dmc.Text("2. 중복 컬럼 처리: 양쪽 데이터에 동일한 이름의 컬럼이 있을 경우"),
+                                    dmc.Text("   - 현재 데이터의 컬럼에는 '_current' 서픽스 추가"),
+                                    dmc.Text("   - 새 데이터의 컬럼에는 '_new' 서픽스 추가"),
+                                    dmc.Space(h=5),
+                                    dmc.Text("3. Concatenate: 두 데이터프레임을 수직으로 쌓아 결합합니다."),
                                     dmc.Text("   - 인덱스 리셋: 결합 후 인덱스를 처음부터 다시 부여"),
                                     dmc.Text("   - 소스 표시: 각 행이 어떤 데이터프레임에서 온 것인지 구분하는 컬럼 추가")
                                 ])
@@ -331,6 +348,35 @@ class CombiningDataframes:
             withBorder=True
         )
     
+    def _remove_system_columns(self, df):
+            """시스템 컬럼 제거 유틸리티 함수"""
+            return df.drop([col for col in self.system_columns if col in df.columns], errors='ignore')
+
+    def _prepare_join_dataframes(self, df1, df2):
+        """Join을 위한 데이터프레임 준비"""
+        # uniqid 백업 및 제거
+        if 'uniqid' in df1.columns:
+            df1_uniqid = df1['uniqid']
+            df1 = df1.drop('uniqid')
+        else:
+            df1_uniqid = None
+            
+        if 'uniqid' in df2.columns:
+            df2 = df2.drop('uniqid')
+            
+        return df1, df2, df1_uniqid
+    
+    def _restore_uniqid(self, df, uniqid_column=None):
+        """Join 후 uniqid 복원 또는 재생성"""
+        if uniqid_column is not None and len(uniqid_column) == df.height:
+            # 원본 uniqid 복원 가능한 경우
+            return df.with_columns(uniqid_column.alias('uniqid'))
+        else:
+            # 새로운 uniqid 생성
+            return df.with_row_index('uniqid')
+
+
+
     def register_callbacks(self, app):
         """콜백 함수들 등록"""
         
@@ -428,21 +474,26 @@ class CombiningDataframes:
                 
                 # 임시 저장
                 app.server.config['COMBINE_MERGE_DF'] = new_df
+
+                # 파일 정보 생성 (시스템 컬럼 제외)
+                visible_cols_current = [col for col in current_df.columns if col not in self.system_columns]
+                visible_cols_new = [col for col in new_df.columns if col not in self.system_columns]
                 
-                # 파일 정보 생성
                 stats = [
                     dmc.Text(f"파일명: {os.path.basename(file_path)}", size="sm"),
                     dmc.Text(f"행 수: {new_df.shape[0]:,}", size="sm"),
-                    dmc.Text(f"열 수: {new_df.shape[1] - 1:,}", size="sm"),  # uniqid 제외
+                    dmc.Text(f"열 수: {len(visible_cols_new):,}", size="sm"),
                 ]
+
                 
                 # 컬럼 목록 생성 (uniqid 제외)
-                current_cols = [{"label": col, "value": col} for col in current_df.columns if col != "uniqid" and col != "group" and col != "childCount"]
-                new_cols = [{"label": col, "value": col} for col in new_df.columns if col != "uniqid" and col != "group" and col != "childCount"]
+                current_cols = [{"label": col, "value": col} for col in visible_cols_current]
+                new_cols = [{"label": col, "value": col} for col in visible_cols_new]
                 
                 return {"display": "block"}, stats, current_cols, new_cols, [
                     dbpc.Toast(message=f"파일을 성공적으로 로드했습니다: {os.path.basename(file_path)}", intent="success", icon="endorsed")
                 ]
+
                 
             except Exception as e:
                 logger.error(f"파일 로드 오류 (Merge): {str(e)}")
@@ -557,67 +608,21 @@ class CombiningDataframes:
                         dbpc.Toast(message="데이터가 로드되지 않았습니다", intent="warning", icon="warning-sign")
                     ]
                 
-                # JOIN 수행 (미리보기용 - 최대 5행)
+                # JOIN 수행 (미리보기용)
                 try:
                     # 복사본 생성하여 작업
                     current_sample = current_df.head(100).clone()
                     new_sample = new_df.head(100).clone()
                     
-                    # Join 수행
-                    if join_type == "inner":
-                        result_df = current_sample.join(
-                            new_sample, 
-                            left_on=left_key,
-                            right_on=right_key,
-                            how="inner",
-                            suffix=f"{left_suffix}_{right_suffix}"
-                        )
-                    elif join_type == "left":
-                        result_df = current_sample.join(
-                            new_sample, 
-                            left_on=left_key,
-                            right_on=right_key,
-                            how="left",
-                            suffix=f"{left_suffix}_{right_suffix}"
-                        )
-                    elif join_type == "right":
-                        result_df = current_sample.join(
-                            new_sample, 
-                            left_on=left_key,
-                            right_on=right_key,
-                            how="right",
-                            suffix=f"{left_suffix}_{right_suffix}"
-                        )
-                    elif join_type == "outer":
-                        result_df = current_sample.join(
-                            new_sample, 
-                            left_on=left_key,
-                            right_on=right_key,
-                            how="outer",
-                            suffix=f"{left_suffix}_{right_suffix}"
-                        )
-                    elif join_type == "cross":
-                        # Cross join은 row 수가 두 DF의 곱으로 증가하므로 아주 작은 샘플만 사용
-                        current_tiny = current_sample.head(3)
-                        new_tiny = new_sample.head(3)
-                        # Polars에서는 cross_join이 없으므로 key를 상수값으로 만들고 inner join
-                        current_tiny = current_tiny.with_columns(pl.lit(1).alias("__key"))
-                        new_tiny = new_tiny.with_columns(pl.lit(1).alias("__key"))
-                        result_df = current_tiny.join(
-                            new_tiny,
-                            left_on="__key",
-                            right_on="__key",
-                            how="inner",
-                            suffix=f"{left_suffix}_{right_suffix}"
-                        ).drop("__key")
+                    # Join 전 시스템 컬럼 제거
+                    current_sample, new_sample, _ = self._prepare_join_dataframes(current_sample, new_sample)
                     
-                    # 최대 5행만 표시
+                    # Join 수행
+                    result_df = self._perform_join(current_sample, new_sample, left_key, right_key, join_type, left_suffix, right_suffix)
+                    
+                    # 미리보기용 샘플 행 추출
                     result_df = result_df.head(5)
                     
-                    if "uniqid" in result_df.columns:
-                        result_df = result_df.drop("uniqid")
-                    
-
                     if result_df.is_empty():
                         return {"display": "block"}, dmc.Alert(
                             "결과가 없습니다. 선택한 키로 매칭되는 데이터가 없습니다.",
@@ -625,31 +630,36 @@ class CombiningDataframes:
                             variant="light"
                         ), no_update
                     
+                    # 중복 컬럼 및 suffix 적용 예시 표시
+                    current_cols = set(current_sample.columns)
+                    new_cols = set(new_sample.columns)
+                    duplicate_cols = (current_cols & new_cols) - {left_key, right_key}
+
+
+                    info_text = []
+                    if duplicate_cols:
+                        info_text.append(
+                            dmc.Alert(
+                                title="중복 컬럼 발견",
+                                children=[
+                                    dmc.Text(f"양쪽 데이터에 존재하는 컬럼: {', '.join(duplicate_cols)}", mb=5),
+                                    dmc.Text(f"현재 데이터의 중복 컬럼 → '{left_suffix}' 추가", mb=2),
+                                    dmc.Text(f"새 데이터의 중복 컬럼 → '{right_suffix}' 추가", mb=2),
+                                    dmc.Text("예: 'Score' → 'Score_current', 'Score_new'", c="dimmed", size="sm")
+                                ],
+                                color="blue",
+                                variant="light",
+                                mb=10
+                            )
+                        )
+                    
                     # 테이블로 변환
-                    result_table = dmc.Table(
-                        [
-                            dmc.TableThead(
-                                dmc.TableTr([
-                                    dmc.TableTh(col) for col in result_df.columns
-                                ])
-                            ),
-                            dmc.TableTbody([
-                                dmc.TableTr([
-                                    dmc.TableTd(str(cell)) for cell in row
-                                ]) for row in result_df.rows()
-                            ])
-                        ],
-                        striped=True,
-                        highlightOnHover=True,
-                        withTableBorder=True,
-                        withColumnBorders=True,
-                    )
+                    result_table = self._create_preview_table(result_df)
                     
                     # 행 수 정보 추가
                     preview_content = [
                         dmc.Text(f"결과 예상 행 수: 약 {result_df.height:,} 행", c="dimmed", size="sm", mb=5),
-                        result_table
-                    ]
+                    ] + info_text + [result_table]
                     
                     return {"display": "block"}, preview_content, no_update
                     
@@ -664,7 +674,8 @@ class CombiningDataframes:
                 return no_update, no_update, [
                     dbpc.Toast(message=f"미리보기 생성 오류: {str(e)}", intent="danger", icon="error")
                 ]
-        
+
+
         # Concat 미리보기 콜백
         @app.callback(
             Output("combine-concat-preview-container", "style"),
@@ -752,7 +763,7 @@ class CombiningDataframes:
                         ],
                         striped=True,
                         highlightOnHover=True,
-                        withBorder=True,
+                        withTableBorder=True,
                         withColumnBorders=True,
                         fontSize="xs"
                     )
@@ -814,43 +825,13 @@ class CombiningDataframes:
                 # JOIN 수행
                 try:
                     start_time = time.time()
+
+                    # Join 전 준비
+                    current_df_prep, new_df_prep, original_uniqid = self._prepare_join_dataframes(current_df, new_df)
                     
-                    # Join 수행
-                    if join_type == "inner":
-                        result_df = current_df.join(
-                            new_df, 
-                            left_on=left_key,
-                            right_on=right_key,
-                            how="inner",
-                            suffix=f"{left_suffix}_{right_suffix}"
-                        )
-                    elif join_type == "left":
-                        result_df = current_df.join(
-                            new_df, 
-                            left_on=left_key,
-                            right_on=right_key,
-                            how="left",
-                            suffix=f"{left_suffix}_{right_suffix}"
-                        )
-                    elif join_type == "right":
-                        result_df = current_df.join(
-                            new_df, 
-                            left_on=left_key,
-                            right_on=right_key,
-                            how="right",
-                            suffix=f"{left_suffix}_{right_suffix}"
-                        )
-                    elif join_type == "outer":
-                        result_df = current_df.join(
-                            new_df, 
-                            left_on=left_key,
-                            right_on=right_key,
-                            how="outer",
-                            suffix=f"{left_suffix}_{right_suffix}"
-                        )
-                    elif join_type == "cross":
-                        # Cross join은 행 수가 폭발적으로 증가할 수 있으므로 경고
-                        max_result_rows = current_df.height * new_df.height
+                    # Cross join 행 수 체크
+                    if join_type == "cross":
+                        max_result_rows = current_df_prep.height * new_df_prep.height
                         if max_result_rows > 1000000:  # 백만 행 이상이면 경고
                             return no_update, [
                                 dbpc.Toast(
@@ -859,20 +840,12 @@ class CombiningDataframes:
                                     icon="error"
                                 )
                             ]
-                        
-                        # Polars에서는 cross_join이 없으므로 key를 상수값으로 만들고 inner join
-                        current_df = current_df.with_columns(pl.lit(1).alias("__key"))
-                        new_df = new_df.with_columns(pl.lit(1).alias("__key"))
-                        result_df = current_df.join(
-                            new_df,
-                            left_on="__key",
-                            right_on="__key",
-                            how="inner",
-                            suffix=f"{left_suffix}_{right_suffix}"
-                        ).drop("__key")
+
+                    # Join 수행
+                    result_df = self._perform_join(current_df_prep, new_df_prep, left_key, right_key, join_type, left_suffix, right_suffix)
                     
-                    # uniqid 재생성
-                    result_df = result_df.drop("uniqid").with_row_index("uniqid")
+                    # uniqid 복원 또는 재생성
+                    result_df = self._restore_uniqid(result_df, original_uniqid)
                     
                     elapsed_time = time.time() - start_time
                     
@@ -881,7 +854,7 @@ class CombiningDataframes:
                     
                     # 컬럼 정의 업데이트
                     updated_columnDefs = generate_column_definitions(result_df)
-                    
+
                     join_type_name = {
                         "inner": "Inner Join (교집합)", 
                         "left": "Left Join (왼쪽 유지)", 
@@ -910,6 +883,7 @@ class CombiningDataframes:
                 return no_update, [
                     dbpc.Toast(message=f"Join 적용 오류: {str(e)}", intent="danger", icon="error")
                 ]
+
         
         # Concat 적용 콜백
         @app.callback(
@@ -934,52 +908,37 @@ class CombiningDataframes:
                     return no_update, [
                         dbpc.Toast(message="데이터가 로드되지 않았습니다", intent="warning", icon="warning-sign")
                     ]
-                
                 # 연결 수행
                 try:
-                    
                     start_time = time.time()
                     
-                    # 소스 컬럼 추가 옵션
+                    # uniqid 백업 (필요한 경우)
+                    current_uniqid = current_df.get('uniqid') if 'uniqid' in current_df.columns and not reset_index else None
+                    
+                    # uniqid 제거
+                    current_df_prep = self._remove_system_columns(current_df.clone())
+                    new_df_prep = self._remove_system_columns(new_df.clone())
+                    
+                    # 소스 컬럼 추가
                     if add_source and source_col:
-                        current_df = current_df.with_columns(
-                            pl.lit("현재 데이터").alias(source_col)
-                        )
-                        new_df = new_df.with_columns(
-                            pl.lit("새 데이터").alias(source_col)
-                        )
+                        current_df_prep = current_df_prep.with_columns(pl.lit("현재 데이터").alias(source_col))
+                        new_df_prep = new_df_prep.with_columns(pl.lit("새 데이터").alias(source_col))
                     
                     # 컬럼 일치시키기
-                    current_cols = set(current_df.columns)
-                    new_cols = set(new_df.columns)
-                    
-                    # 양쪽에 없는 컬럼 추가
-                    for col in current_cols - new_cols:
-                        if col != "uniqid":  # uniqid는 제외
-                            new_df = new_df.with_columns(
-                                pl.lit(None).alias(col)
-                            )
-                    
-                    for col in new_cols - current_cols:
-                        if col != "uniqid":  # uniqid는 제외
-                            current_df = current_df.with_columns(
-                                pl.lit(None).alias(col)
-                            )
-                    
-                    # 컬럼 순서 일치시키기
-                    ordered_cols = [col for col in current_df.columns if col != "uniqid"]
-                    if "uniqid" in current_df.columns:
-                        ordered_cols.insert(0, "uniqid")
-                    
-                    current_df = current_df.select(ordered_cols)
-                    new_df = new_df.select(ordered_cols)
+                    current_df_prep, new_df_prep = self._align_columns(current_df_prep, new_df_prep)
                     
                     # 연결
-                    result_df = pl.concat([current_df, new_df], how="vertical")
+                    result_df = pl.concat([current_df_prep, new_df_prep], how="vertical")
                     
-                    # 인덱스 리셋
-                    if reset_index:
-                        result_df = result_df.drop("uniqid").with_row_index("uniqid")
+                    # uniqid 처리
+                    if reset_index or current_uniqid is None:
+                        result_df = result_df.with_row_index("uniqid")
+                    else:
+                        # 기존 uniqid 사용 및 새 행에 대해 연속된 값 할당
+                        new_uniqid_start = current_df.height
+                        new_uniqid = pl.Series(range(new_uniqid_start, new_uniqid_start + new_df.height))
+                        combined_uniqid = pl.concat([current_uniqid, new_uniqid])
+                        result_df = result_df.with_columns(combined_uniqid.alias("uniqid"))
                     
                     elapsed_time = time.time() - start_time
                     
@@ -1009,7 +968,8 @@ class CombiningDataframes:
                 return no_update, [
                     dbpc.Toast(message=f"데이터 연결 오류: {str(e)}", intent="danger", icon="error")
                 ]
-        
+
+
         # 조건에 따라 소스 컬럼명 입력 필드 표시/숨김
         @app.callback(
             Output("combine-concat-source-col", "disabled"),
@@ -1020,3 +980,93 @@ class CombiningDataframes:
             """소스 컬럼 추가 체크박스에 따라 입력 필드 활성화/비활성화"""
             return not add_source
 
+    def _perform_join(self, df1, df2, left_key, right_key, join_type, left_suffix, right_suffix):
+        """Join 수행 유틸리티 함수"""
+        if join_type == "cross":
+            # Cross join을 위한 임시 키 생성
+            df1 = df1.with_columns(pl.lit(1).alias("__cross_key"))
+            df2 = df2.with_columns(pl.lit(1).alias("__cross_key"))
+            result = df1.join(
+                df2,
+                left_on="__cross_key",
+                right_on="__cross_key",
+                how="inner",
+                suffix=right_suffix  # polars join에서는 오른쪽 dataframe의 중복 컬럼에만 suffix 적용
+            ).drop("__cross_key")
+        else:
+            # 일반 join
+            # 중복 컬럼 확인
+            df1_cols = set(df1.columns)
+            df2_cols = set(df2.columns)
+            
+            # join 키를 제외한 중복 컬럼 찾기
+            duplicate_cols = (df1_cols & df2_cols) - {left_key, right_key}
+            
+            if duplicate_cols:
+                # 중복 컬럼이 있는 경우: 왼쪽 데이터프레임의 중복 컬럼에 left_suffix 추가
+                for col in duplicate_cols:
+                    df1 = df1.rename({col: f"{col}{left_suffix}"})
+                
+                # join 수행 (오른쪽 중복 컬럼에 right_suffix 적용)
+                result = df1.join(
+                    df2,
+                    left_on=left_key,
+                    right_on=right_key,
+                    how=join_type,
+                    suffix=right_suffix
+                )
+            else:
+                # 중복 컬럼이 없는 경우: 일반 join
+                result = df1.join(
+                    df2,
+                    left_on=left_key,
+                    right_on=right_key,
+                    how=join_type
+                )
+            
+            # join 키가 다른 경우, 오른쪽 키 컬럼 제거 (이미 왼쪽 키 컬럼에 데이터가 있음)
+            if left_key != right_key and right_key in result.columns:
+                result = result.drop(right_key)
+        
+        return result
+
+    
+    def _align_columns(self, df1, df2):
+        """두 데이터프레임의 컬럼 일치시키기"""
+        df1_cols = set(df1.columns)
+        df2_cols = set(df2.columns)
+        
+        # 양쪽에 없는 컬럼 추가
+        for col in df1_cols - df2_cols:
+            df2 = df2.with_columns(pl.lit(None).alias(col))
+        
+        for col in df2_cols - df1_cols:
+            df1 = df1.with_columns(pl.lit(None).alias(col))
+        
+        # 컬럼 순서 일치시키기
+        common_columns = sorted(df1_cols.union(df2_cols))
+        df1 = df1.select(common_columns)
+        df2 = df2.select(common_columns)
+        
+        return df1, df2
+    
+    def _create_preview_table(self, df):
+        """미리보기 테이블 생성"""
+        return dmc.Table(
+            [
+                dmc.TableThead(
+                    dmc.TableTr([
+                        dmc.TableTh(col) for col in df.columns
+                    ])
+                ),
+                dmc.TableTbody([
+                    dmc.TableTr([
+                        dmc.TableTd(str(cell)) for cell in row
+                    ]) for row in df.rows()
+                ])
+            ],
+            striped=True,
+            highlightOnHover=True,
+            withTableBorder=True,
+            withColumnBorders=True,
+        )
