@@ -7,7 +7,7 @@ from utils.data_processing import displaying_df
 from utils.db_management import SSDF
 from utils.logging_utils import logger
 from components.grid.dag.column_definitions import generate_column_definitions, SYSTEM_COLUMNS
-from components.menu.edit.utils import find_tab_in_layout
+from components.menu.edit.utils import find_tab_in_layout, handle_tab_button_click
 
 
 class DelColumn:
@@ -125,63 +125,9 @@ class DelColumn:
         )
         def handle_delete_column_button_click(n_clicks, current_model):
             """Delete Column 버튼 클릭 시 우측 패널에 탭 추가"""
-            if n_clicks is None:
-                raise exceptions.PreventUpdate
-            dff = displaying_df()
-            if dff is None:
-                return no_update, [dbpc.Toast(message=f"데이터가 로드되지 않았습니다", intent="warning", icon="warning-sign")]
-
-            # 기존 탭 검색
-            tab_search_result = find_tab_in_layout(current_model, "col-del-tab")
-            
-            # 이미 탭이 존재한다면
-            if tab_search_result["found"]:
-                # borders에 있을 경우 해당 탭으로 이동
-                if tab_search_result["location"] == "borders":
-                    patched_model = Patch()
-                    border_index = tab_search_result["border_index"]
-                    tab_index = tab_search_result["tab_index"]
-                    patched_model["borders"][border_index]["selected"] = tab_index
-                    return patched_model, no_update
-                else:
-                    # 메인 레이아웃에 있다면 경고 메시지 출력하고 새 탭 생성 시 고유 ID 사용
-                    return no_update, [dbpc.Toast(message=f"기존 탭이 레이아웃에 있습니다.", intent="warning", icon="info-sign")]
-            
-            # 탭이 존재하지 않으면 정상적으로 진행
-            right_border_index = next(
-                (i for i, b in enumerate(current_model["borders"]) if b["location"] == "right"), 
-                None
-            )
-            
-            # 새로운 탭 정의
-            new_tab = {
-                "type": "tab",
-                "name": "Delete Column",
-                "component": "button",
-                "enableClose": True,
-                "id": "col-del-tab"
-            }
-
-            patched_model = Patch()
-
-            if right_border_index is not None:
-                # 기존 right border 수정
-                patched_model["borders"][right_border_index]["children"].append(new_tab)
-                patched_model["borders"][right_border_index]["selected"] = len(current_model["borders"][right_border_index]["children"])
-            else:
-                # right border가 없으면 새로 추가
-                patched_model["borders"].append({
-                    "type": "border", 
-                    "location": "right", 
-                    "size": 400, 
-                    "selected": 0, 
-                    "children": [new_tab]
-                })
-                    
-            return patched_model, no_update
+            return handle_tab_button_click(n_clicks, current_model, "col-del-tab", "Delete Column")
 
 
-            
         @app.callback(
             Output("delete-column-select", "data"),
             Input("delete-column-btn", "n_clicks"),
