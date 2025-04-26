@@ -1,16 +1,18 @@
 import flask
+import polars as pl
 import dash_ag_grid as dag
 import dash_mantine_components as dmc
 import dash_blueprint_components as dbpc
-from dash import Input, Output, State, html, dcc, no_update
+from dash import Input, Output, State, html, dcc, no_update, exceptions
 from components.grid.dag.column_definitions import DEFAULT_COL_DEF
 from components.grid.dag.server_side_operations import extract_rows_from_data
+from components.grid.dag.column_definitions import determine_column_type
 from dash_extensions import EventListener
 
 # from utils.component_template import get_icon
 from utils.db_management import SSDF
 from utils.logging_utils import logger
-
+from utils.config import CONFIG
 
 class DataGrid:
 
@@ -76,6 +78,10 @@ class DataGrid:
                 dcc.Store("cp_selected_rows"),
                 dcc.Store("waiver_selected_rows"),
                 dcc.Store("sub_info_selected_rows"),
+
+                # CSS 파일 로드
+                html.Link(rel='stylesheet', href='/assets/custom.css'),
+
                 EventListener(
                     id="el",
                     children=dag.AgGrid(
@@ -225,6 +231,117 @@ class DataGrid:
                 logger.error(f"컬럼 상태(순서) 변경 실패: {e}")
             return no_update
 
+
+
+
+        # 컬럼 editable 속성 변경 처리를 위한 콜백 추가
+        @app.callback(
+            Output("aggrid-table", "columnDefs", allow_duplicate=True),
+            Input("aggrid-table", "cellRendererData"),
+            State("aggrid-table", "columnDefs"),
+            prevent_initial_call=True
+        )
+        def update_column_editable(cell_data, column_defs):
+            """cellRendererData를 통해 headerComponent에서 전송된 editable 변경 처리"""
+            if not cell_data or "action" not in cell_data or cell_data["action"] != "toggle_editable":
+                return no_update
+            
+            col_id = cell_data.get("colId")
+            editable = cell_data.get("value", False)
+            
+            if not col_id:
+                return no_update
+            
+            # 해당 컬럼 정의 찾기 및 업데이트
+            for col in column_defs:
+                if col["field"] == col_id:
+                    col["editable"] = editable
+                    col["cellClass"] = "text-dark editable-column" if editable else "text-secondary"
+                    break
+                
+            return column_defs
+
+
+        @app.callback(
+            Output("toaster", "toasts", allow_duplicate=True),
+            Output("refresh-route", "data", allow_duplicate=True),
+            Output("refresh-waiver-counter-btn", "n_clicks", allow_duplicate=True),
+            Input("aggrid-table", "cellValueChanged"),
+            prevent_initial_call=True,
+        )
+        def apply_edit(cell_changed):
+            if not cell_changed:
+                raise exceptions.PreventUpdate
+            dff = SSDF.dataframe
+            route = []
+            propagate_same_columns = ["uniqid"] if SSDF.propa_rule is None else SSDF.propa_rule
+
+            count = 0
+            for cell in cell_changed:
+                target_col = cell["colId"]
+                new_value = cell["value"]
+                uid = cell["data"]["uniqid"]
+                propa_rule = ["uniqid"] if target_col != "waiver" else propagate_same_columns
+
+                if not cell["data"].get("group"):
+                    if count == 0:
+                        for rule in propa_rule:
+                            if not rule in dff.columns:
+                                return [dbpc.Toast(message=f"No '{rule}' in data. Please re-define propagation rule.",intent="warning",icon="warning-sign")],[],no_update
+                        request = SSDF.request
+                        if SSDF.tree_mode:
+                            route = cell["data"].get(SSDF.tree_col).split(".")
+                        elif request.get("rowGroupCols"):
+                            groupBy = [col["id"] for col in request.get("rowGroupCols", [])]
+                            route = [cell["data"].get(group) for group in groupBy]
+                        else:
+                            route = []
+                        count = 1
+
+                    conditions_expr = pl.lit(True)
+                    for col in propa_rule:
+                        colType = determine_column_type(dff[col])
+                        if colType == "numeric":
+                            conditions_expr = conditions_expr & (dff[col].round(3) == round(cell["data"][col] + 0.0000001, 3))
+                        else:
+                            conditions_expr = conditions_expr & (dff[col] == cell["data"][col])
+
+                    update_target_column = (pl.when(conditions_expr).then(pl.lit(new_value)).otherwise(pl.col(target_col)).alias(target_col))
+                    dff = dff.with_columns(update_target_column)
+                    if (target_col == "waiver") and ("user" in dff.columns):
+                        update_user_column = (pl.when(conditions_expr).then(pl.lit(CONFIG.USERNAME + "(propagated)")).otherwise(pl.col("user")).alias("user"))
+                        dff = dff.with_columns(update_user_column)
+                        dff = dff.with_columns((pl.when(pl.col("uniqid") == uid).then(pl.lit(CONFIG.USERNAME)).otherwise(pl.col("user"))).alias("user"))
+                else:
+                    continue
+
+            SSDF.dataframe = dff
+
+            return no_update, route, 1
+            
+            
+            
+
+        app.clientside_callback(
+        """
+        function (data, grid_id) {
+            for (; data.length > 0; ) {
+                dash_ag_grid.getApi(grid_id).refreshServerSide({route: data});
+                data.pop();
+            }
+            dash_ag_grid.getApi(grid_id).refreshServerSide({route: data});
+        }
+        """,
+        Input("refresh-route", "data"),
+        State("aggrid-table", "id"),
+        prevent_initial_call=True,
+        )
+
+
+
+
+
+
     @staticmethod
     def _generate_counter_info() -> str:
         counter_names = ["filtered", "groupby"]
@@ -234,3 +351,11 @@ class DataGrid:
             if row_count:
                 counter_info += f"{name.capitalize()}: {row_count}    "
         return counter_info.rstrip()
+
+
+
+
+
+
+
+

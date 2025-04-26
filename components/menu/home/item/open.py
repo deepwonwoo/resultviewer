@@ -124,59 +124,6 @@ class Opener:
             return patched_model
 
 
-        # @app.callback(
-        #     Output("flex-layout", "model", allow_duplicate=True),
-        #     Output("cwd-breadcrum", "items", allow_duplicate=True),
-        #     Input("open-workspace-btn", "n_clicks"),
-        #     State("flex-layout", "model"),
-        #     prevent_initial_call=True,
-        # )
-        # def open_workspace_tab(n_clicks, current_model):
-        #     if n_clicks is None:
-        #         raise exceptions.PreventUpdate
-
-        #     left_border_index = next(
-        #         (i for i, b in enumerate(current_model["borders"]) if b["location"] == "left"),
-        #         None,
-        #     )
-        #     # 이미 workspace-tab 탭이 있는지 확인
-        #     if left_border_index is not None:
-        #         existing_tabs = current_model["borders"][left_border_index].get("children", [])
-        #         tab_exists = any(tab.get("id") == "workspace-tab" for tab in existing_tabs)
-        #         if tab_exists:
-        #             # 이미 탭이 있다면 해당 탭을 선택하도록 함
-        #             patched_model = Patch()
-        #             tab_index = next(i for i, tab in enumerate(existing_tabs) if tab.get("id") == "workspace-tab")
-        #             patched_model["borders"][left_border_index]["selected"] = tab_index
-        #             return patched_model, [{"icon": "database", "text": "WORKSPACE", "current": "true"}]
-
-        #     # 새로운 탭 정의
-        #     new_tab = {
-        #         "type": "tab",
-        #         "name": "Workspace",
-        #         "component": "button",
-        #         "enableClose": True,
-        #         "id": "workspace-tab",
-        #     }
-
-        #     patched_model = Patch()
-
-        #     if left_border_index is not None:
-        #         # 기존 left border 수정
-        #         patched_model["borders"][left_border_index]["children"].append(new_tab)
-        #         patched_model["borders"][left_border_index]["selected"] = len(current_model["borders"][left_border_index]["children"])
-        #     else:
-        #         # left border가 없으면 새로 추가
-        #         patched_model["borders"].append(
-        #             {
-        #                 "type": "border",
-        #                 "location": "left",
-        #                 "size": 800,
-        #                 "selected": 0,
-        #                 "children": [new_tab],
-        #             }
-        #         )
-        #     return patched_model, [{"icon": "database", "text": "WORKSPACE", "current": "true"}]
 
     def _register_local_upload_callback(self, app):
 
@@ -240,8 +187,6 @@ class Opener:
             Output("toaster", "toasts", allow_duplicate=True),
             Output("local-file-open-modal", "isOpen", allow_duplicate=True),
             Output("open-csv-local-btn", "loading"),
-            # Output("file-mode-control", "disabled", allow_duplicate=True),
-            # Output("file-mode-control", "value", allow_duplicate=True),
             Output("pre-defined-view", "data", allow_duplicate=True),
             Input("open-csv-local-btn", "n_clicks"),
             State("open-csv-path-input", "value"),
@@ -292,9 +237,8 @@ class Opener:
                     ],
                     False,
                     False,
-                    # disable_fileMode_control,
-                    # value_fileMode_control,
-                    ret_pre_defined_value,
+
+                    ret_pre_defined_value
                 )
 
             except Exception as e:
@@ -308,7 +252,5 @@ class Opener:
                     [dbpc.Toast(message=f"Error: {str(e)}", intent="danger", icon="error")],
                     no_update,
                     False,
-                    # no_update,
-                    # no_update,
-                    no_update,
+                    no_update
                 )
