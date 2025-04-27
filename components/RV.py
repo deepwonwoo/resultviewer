@@ -159,7 +159,7 @@ class ResultViewer:
             dfl.Tab(id="edit-item", children=[self.edit_menu.layout()]),
 
             dfl.Tab(id="analyze-item", children=[self.analyze_menu.layout()]),
-            dfl.Tab(id="ai-assistant-tab", children=[self.analyze_menu.ai.tab_layout()]),
+            dfl.Tab(id="llm-tab", children=[self.analyze_menu.ai.tab_layout()]),
 
             # dfl.Tab(id="waive-item", children=[self.waive_menu.layout()]),
             # dfl.Tab(id="script-item", children=[self.script_menu.layout()]),
@@ -176,6 +176,7 @@ class ResultViewer:
             dfl.Tab(id="rename-headers-tab", children=[self.edit_menu.rename_headers.tab_layout()]),
             dfl.Tab(id="fill-nan-tab", children=[self.edit_menu.fill_nan_values.tab_layout()]), 
             dfl.Tab(id="find-replace-tab", children=[self.edit_menu.find_and_replace.tab_layout()]),
+
 
         ]
 
