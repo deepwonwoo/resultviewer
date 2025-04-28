@@ -89,7 +89,7 @@ class LLMAnalysis:
                                 id="llm-session-badge",
                                 color="blue",
                                 variant="outline",
-                                style={"display": "none"}
+                                # style={"display": "none"}
                             )
                         ], gap="xs")
                     ],
@@ -372,7 +372,7 @@ class LLMAnalysis:
                         id="llm-session-badge",
                         color="blue",
                         variant="outline",
-                        style={"display": "inline-block" if self.is_session_active else "none"}
+                        style={"display": "block" if self.is_session_active else "none"}
                     )
                     
                     # 모델 정보 업데이트
@@ -425,7 +425,7 @@ class LLMAnalysis:
                             intent="success",
                             icon="tick"
                         )
-                    ], {"display": "none"}
+                    ], {"display": "block"}
                 else:
                     return [
                         dbpc.Toast(
@@ -487,10 +487,8 @@ class LLMAnalysis:
             ],
             background=True,
             running=[
-                (Output("llm-generate-btn", "disabled"), True, False),
+                (Output("llm-generate-btn", "loading"), True, False),
                 (Output("llm-cancel-btn", "disabled"), False, True),
-                (Output("llm-session-badge", "style"), {"display": "none"}, 
-                 {"display": "inline-block" if self.is_session_active else "none"})
             ],
             cancel=[Input("llm-cancel-btn", "n_clicks")],
             prevent_initial_call=True,
@@ -550,35 +548,7 @@ class LLMAnalysis:
                 # AI 응답 메시지 추가
                 assistant_message = self._format_chat_message("assistant", result, current_time)
                 final_chat = updated_chat + [assistant_message]
-                
-                # # 비동기 작업 완료 표시
-                # app.clientside_callback(
-                #     """
-                #     function update_badge() {
-                #         return {"display": "inline-block"};
-                #     }
-                #     """,
-                #     Output("llm-session-badge", "style", allow_duplicate=True),
-                #     Input("llm-chat-history-container", "children"),
-                #     prevent_initial_call=True,
-                # )
-                
-                # # 성공 토스트 표시
-                # app.clientside_callback(
-                #     """
-                #     function show_success_toast() {
-                #         return [{
-                #             message: "Analysis completed successfully",
-                #             intent: "success",
-                #             icon: "tick"
-                #         }];
-                #     }
-                #     """,
-                #     Output("toaster", "toasts", allow_duplicate=True),
-                #     Input("llm-chat-history-container", "children"),
-                #     prevent_initial_call=True,
-                # )
-                
+
                 # 결과 반환
                 return final_chat
                 
@@ -595,24 +565,7 @@ class LLMAnalysis:
                 # 세션이 끊어진 경우 초기화
                 self.is_session_active = False
                 self.smart_df = None
-                
-                # # 에러 상태 표시
-                # app.clientside_callback(
-                #     """
-                #     function show_error_toast(error) {
-                #         return [{
-                #             message: "Analysis failed: " + error,
-                #             intent: "danger",
-                #             icon: "error"
-                #         }];
-                #     }
-                #     """,
-                #     Output("toaster", "toasts", allow_duplicate=True),
-                #     Input("llm-chat-history-container", "children"),
-                #     State("llm-chat-history-container", "children"),
-                #     prevent_initial_call=True,
-                # )
-                
+
                 return updated_chat + [error_message]
         
         # 입력 후 입력창 초기화
