@@ -9,10 +9,10 @@ import io
 import matplotlib.pyplot as plt
 from datetime import datetime
 import uuid
+import os
 
-# from pandasai import SmartDataframe
-# from pandasai.llm.local_llm import LocalLLM
-# from pandasai.helpers.chat_history import ChatHistory
+from pandasai import Agent
+from pandasai.llm.local_llm import LocalLLM
 
 from utils.data_processing import displaying_df
 from utils.db_management import SSDF
@@ -30,16 +30,15 @@ class LLMAnalysis:
         ]
         self.default_model = "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B"
         
-        # LLM 및 SmartDataframe 객체 초기화 (실제 연결은 나중에)
+        # LLM 및 Agent 객체 초기화 (실제 연결은 나중에)
         self.llm_model = None
-        self.smart_df = None
-        self.chat_history = None
+        self.agent = None
+        self.pandas_df = None  # Pandas DataFrame 저장 변수 추가
         self.session_id = None
         
         # 기능 플래그
         self.is_initialized = False
         self.is_session_active = False
-
 
     def button_layout(self):
         """LLM 분석 버튼 레이아웃"""
@@ -89,7 +88,7 @@ class LLMAnalysis:
                                 id="llm-session-badge",
                                 color="blue",
                                 variant="outline",
-                                # style={"display": "none"}
+                                style={"display": "none"}
                             )
                         ], gap="xs")
                     ],
@@ -136,14 +135,26 @@ class LLMAnalysis:
                 
                 # 버튼 그룹
                 dmc.Group([
-                    dbpc.Button(
-                        "Clear Chat",
-                        id="llm-clear-btn",
-                        icon="trash",
-                        minimal=True,
-                        outlined=True,
-                        small=True
-                    ),
+                    dmc.Group([
+                        dbpc.Button(
+                            "Clear Chat",
+                            id="llm-clear-btn",
+                            icon="trash",
+                            minimal=True,
+                            outlined=True,
+                            small=True
+                        ),
+                        dbpc.Button(
+                            "Explain",
+                            id="llm-explain-btn",
+                            icon="info-sign",
+                            intent="primary",
+                            minimal=True,
+                            outlined=True,
+                            small=True,
+                            disabled=True
+                        ),
+                    ]),
                     dbpc.Button(
                         "Cancel Request",
                         id="llm-cancel-btn",
@@ -158,6 +169,8 @@ class LLMAnalysis:
                 # 상태 및 히든 데이터 저장용 스토어
                 dcc.Store(id="llm-session-id", data=None),
                 dcc.Store(id="llm-current-model", data=self.default_model),
+                dcc.Store(id="llm-can-explain", data=False),
+                dcc.Store(id="llm-initialize", data=None),
                 
                 # 도움말 섹션
                 dmc.Space(h=20),
@@ -170,6 +183,7 @@ class LLMAnalysis:
                                 dmc.Text("• AI will analyze filtered data from your current view.", w=500, mb="xs"),
                                 dmc.Text("• Ask questions about your data, request visualizations, or get statistics.", size="sm"),
                                 dmc.Text("• Your conversation history is maintained within a session.", size="sm"),
+                                dmc.Text("• Use 'Explain' to get details on how results were calculated.", size="sm"),
                                 dmc.Text("• You can change the AI model from the settings menu.", size="sm"),
                                 dmc.Text("• Use 'Reset Session' to start a fresh conversation.", size="sm"),
                                 dmc.Text("• Long-running queries can be cancelled with the cancel button.", size="sm")
@@ -184,62 +198,97 @@ class LLMAnalysis:
             withBorder=True
         )
 
-    def _initialize_llm(self, model_name=None):
-        """LLM 모델 초기화"""
+    def initialize_system(self, model_name=None):
+        """LLM 및 Agent 초기화 (메인 스레드에서 호출)"""
         try:
             # 모델 이름이 지정되지 않으면 현재 설정된 모델 사용
             model_name = model_name or self.default_model
             
+            # LLM 모델 초기화
             logger.info(f"Initializing LLM model: {model_name}")
-            # self.llm_model = LocalLLM(
-            #     api_base=self.api_base,
-            #     model=model_name
-            # )
+            self.llm_model = LocalLLM(
+                api_base=self.api_base,
+                model=model_name
+            )
             logger.info("LLM model initialized successfully")
-            self.is_initialized = True
-            return True
-        except Exception as e:
-            logger.error(f"Failed to initialize LLM: {str(e)}")
-            self.is_initialized = False
-            return False
-
-    def _create_smart_dataframe(self, df, session_id=None):
-        """SmartDataframe 생성"""
-        try:
-            # Polars DataFrame을 Pandas DataFrame으로 변환
+            
+            # 필터링된 데이터프레임 가져오기
+            df = displaying_df(filtred_apply=True)
+            
+            if df is None or df.is_empty():
+                logger.warning("No data available for analysis")
+                self.is_initialized = True
+                self.is_session_active = False
+                return False, "No data available for analysis"
+            
+            # Polars DataFrame을 Pandas DataFrame으로 변환 (메인 스레드에서)
             logger.info("Converting Polars DataFrame to Pandas DataFrame")
-            pandas_df = df.to_pandas()
+            self.pandas_df = df.to_pandas()
             
-            # 세션 설정
-            if session_id:
-                self.session_id = session_id
-            else:
-                self.session_id = str(uuid.uuid4())
+            # 세션 ID 생성
+            self.session_id = str(uuid.uuid4())
             
-            # # 새로운 채팅 히스토리 생성
-            # self.chat_history = ChatHistory(session_id=self.session_id)
+            # Agent 생성 (메인 스레드에서)
+            logger.info("Creating Agent with LLM model")
+            self.agent = Agent(
+                [self.pandas_df], 
+                config={"llm": self.llm_model},
+                memory_size=10  # 대화 내역 유지 크기 
+            )
             
-            # # SmartDataframe 생성
-            # logger.info("Creating SmartDataframe with LLM model")
-            # self.smart_df = SmartDataframe(
-            #     pandas_df, 
-            #     config={
-            #         "llm": self.llm_model,
-            #         "save_chat_history": True,
-            #         "chat_history": self.chat_history,
-            #         "verbose": True
-            #     }
-            # )
-
+            self.is_initialized = True
             self.is_session_active = True
-            return True
+            return True, "System initialized successfully"
+            
         except Exception as e:
-            logger.error(f"Failed to create SmartDataframe: {str(e)}")
+            logger.error(f"Failed to initialize system: {str(e)}")
+            self.is_initialized = False
             self.is_session_active = False
-            return False
+            return False, str(e)
 
+    def refresh_data(self):
+        """데이터 갱신 (필요할 때 호출)"""
+        try:
+            # 현재 LLM이 초기화되어 있지 않으면 먼저 초기화
+            if not self.is_initialized or self.llm_model is None:
+                return False, "LLM not initialized"
+                
+            # 필터링된 데이터프레임 가져오기
+            df = displaying_df(filtred_apply=True)
+            
+            if df is None or df.is_empty():
+                return False, "No data available"
+            
+            # Polars DataFrame을 Pandas DataFrame으로 변환
+            self.pandas_df = df.to_pandas()
+            
+            # 기존 Agent가 있으면 데이터만 업데이트
+            if self.agent is not None:
+                # 현재 Agent 인스턴스는 데이터 업데이트를 지원하지 않으므로
+                # 새 Agent를 생성하고 기존 세션 ID 유지
+                self.agent = Agent(
+                    [self.pandas_df], 
+                    config={"llm": self.llm_model},
+                    memory_size=10
+                )
+                self.is_session_active = True
+                return True, "Data refreshed successfully"
+            else:
+                # Agent가 없으면 새로 생성
+                self.session_id = str(uuid.uuid4())
+                self.agent = Agent(
+                    [self.pandas_df], 
+                    config={"llm": self.llm_model},
+                    memory_size=10
+                )
+                self.is_session_active = True
+                return True, "New agent created with refreshed data"
+                
+        except Exception as e:
+            logger.error(f"Failed to refresh data: {str(e)}")
+            return False, str(e)
 
-    def _format_chat_message(self, role, content, timestamp=None):
+    def _format_chat_message(self, role, content, timestamp=None, is_explain=False):
         """채팅 메시지 포맷 생성"""
         timestamp = timestamp or datetime.now().strftime("%H:%M:%S")
         
@@ -261,16 +310,26 @@ class LLMAnalysis:
                 )
             ], style={"marginBottom": "15px", "textAlign": "right"})
         else:  # assistant
+            # 설명 응답인 경우 특별한 배지 추가
+            badge = None
+            if is_explain:
+                badge = dmc.Badge("EXPLANATION", color="cyan", size="sm", variant="outline", mb="xs")
+            
+            header_content = [
+                dbpc.Icon(icon="robot", size=16),
+                dmc.Text(f"AI Assistant ({timestamp}):", size="xs", c="dimmed")
+            ]
+            
             return html.Div([
-                dmc.Group([
-                    dbpc.Icon(icon="robot", size=16),
-                    dmc.Text(f"AI Assistant ({timestamp}):", size="xs", c="dimmed")
-                ], gap="xs"),
+                dmc.Group(header_content, gap="xs"),
                 dmc.Paper(
-                    children=self._format_assistant_response(content),
+                    children=[
+                        badge,
+                        self._format_assistant_response(content)
+                    ] if badge else self._format_assistant_response(content),
                     p="sm",
                     style={
-                        "backgroundColor": "#f1f8e9", 
+                        "backgroundColor": "#f1f8e9" if not is_explain else "#e0f7fa", 
                         "borderRadius": "5px",
                         "maxWidth": "80%"
                     }
@@ -325,20 +384,56 @@ class LLMAnalysis:
             # 텍스트 응답 (기본)
             return dmc.Text(str(content) if content else "No result returned.")
 
-
     def register_callbacks(self, app):
         """콜백 함수 등록"""
         
         @app.callback(
             Output("flex-layout", "model", allow_duplicate=True),
             Output("toaster", "toasts", allow_duplicate=True),
+            Output("llm-initialize", "data"),
             Input("llm-btn", "n_clicks"),
             State("flex-layout", "model"),
             prevent_initial_call=True
         )
         def handle_llm_button_click(n_clicks, current_model):
-            """LLM 버튼 클릭 시 우측 패널에 탭 추가"""
-            return handle_tab_button_click(n_clicks, current_model, "llm-tab", "AI Analysis")
+            """LLM 버튼 클릭 시 우측 패널에 탭 추가 및 LLM 초기화"""
+            model_update, toaster_update = handle_tab_button_click(n_clicks, current_model, "llm-tab", "AI Analysis")
+            
+            # 탭이 추가되면 LLM 및 Agent 초기화 트리거
+            # 실제 초기화는 다음 콜백에서 수행
+            return model_update, toaster_update, n_clicks
+            
+        @app.callback(
+            Output("llm-session-badge", "style"),
+            Output("toaster", "toasts", allow_duplicate=True),
+            Input("llm-initialize", "data"),
+            State("llm-current-model", "data"),
+            prevent_initial_call=True
+        )
+        def initialize_on_tab_open(trigger, current_model):
+            """탭이 열릴 때 LLM 및 Agent 초기화"""
+            if trigger is None:
+                raise exceptions.PreventUpdate
+                
+            # LLM 및 Agent 초기화 (메인 스레드에서)
+            success, message = self.initialize_system(current_model)
+            
+            if success:
+                return {"display": "block"}, [
+                    dbpc.Toast(
+                        message="AI Analysis system initialized and ready",
+                        intent="success",
+                        icon="tick"
+                    )
+                ]
+            else:
+                return {"display": "none"}, [
+                    dbpc.Toast(
+                        message=f"System initialization warning: {message}",
+                        intent="warning",
+                        icon="warning-sign"
+                    )
+                ]
 
         @app.callback(
             Output("toaster", "toasts", allow_duplicate=True),
@@ -362,29 +457,30 @@ class LLMAnalysis:
             
             # 모델 변경 시도
             try:
-                # 새 모델 초기화
-                if self._initialize_llm(selected_model):
-                    model_label = next((m["label"] for m in self.available_models if m["value"] == selected_model), selected_model)
-                    
-                    # 세션 활성 상태 표시
-                    session_badge = dmc.Badge(
-                        "Session Active", 
-                        id="llm-session-badge",
-                        color="blue",
-                        variant="outline",
-                        style={"display": "block" if self.is_session_active else "none"}
-                    )
-                    
-                    # 모델 정보 업데이트
-                    model_info = dmc.Group([
-                        dbpc.Icon(icon="robot", size=16),
-                        dmc.Text(f"Using model: {model_label}", size="sm"),
-                        session_badge
-                    ], gap="xs")
-                    
+                # 새 모델로 시스템 초기화
+                success, message = self.initialize_system(selected_model)
+                model_label = next((m["label"] for m in self.available_models if m["value"] == selected_model), selected_model)
+                
+                # 세션 활성 상태 표시
+                session_badge = dmc.Badge(
+                    "Session Active", 
+                    id="llm-session-badge",
+                    color="blue",
+                    variant="outline",
+                    style={"display": "block" if success else "none"}
+                )
+                
+                # 모델 정보 업데이트
+                model_info = dmc.Group([
+                    dbpc.Icon(icon="robot", size=16),
+                    dmc.Text(f"Using model: {model_label}", size="sm"),
+                    session_badge
+                ], gap="xs")
+                
+                if success:
                     return [
                         dbpc.Toast(
-                            message=f"Model changed to {model_label}",
+                            message=f"Model changed to {model_label}. Session has been reset.",
                             intent="success",
                             icon="tick"
                         )
@@ -392,11 +488,11 @@ class LLMAnalysis:
                 else:
                     return [
                         dbpc.Toast(
-                            message=f"Failed to initialize model: {selected_model}",
-                            intent="danger",
-                            icon="error"
+                            message=f"Model changed but warning: {message}",
+                            intent="warning",
+                            icon="warning-sign"
                         )
-                    ], no_update, current_model
+                    ], model_info, selected_model
             
             except Exception as e:
                 logger.error(f"Error changing model: {str(e)}")
@@ -410,7 +506,7 @@ class LLMAnalysis:
 
         @app.callback(
             Output("toaster", "toasts", allow_duplicate=True),
-            Output("llm-session-badge", "style"),
+            Output("llm-session-badge", "style", allow_duplicate=True),
             Input("llm-test-connection-btn", "n_clicks"),
             State("llm-current-model", "data"),
             prevent_initial_call=True
@@ -418,10 +514,13 @@ class LLMAnalysis:
         def test_llm_connection(n_clicks, current_model):
             """LLM 연결 테스트"""
             if n_clicks:
-                if self._initialize_llm(current_model):
+                # 데이터 새로고침 및 연결 테스트
+                success, message = self.refresh_data()
+                
+                if success:
                     return [
                         dbpc.Toast(
-                            message=f"LLM connection successful!",
+                            message=f"LLM connection successful! {message}",
                             intent="success",
                             icon="tick"
                         )
@@ -429,11 +528,11 @@ class LLMAnalysis:
                 else:
                     return [
                         dbpc.Toast(
-                            message="LLM connection failed. Please check your configuration.",
-                            intent="danger",
-                            icon="error"
+                            message=f"LLM connection warning: {message}",
+                            intent="warning",
+                            icon="warning-sign"
                         )
-                    ], {"display": "none"}
+                    ], {"display": "none" if message == "LLM not initialized" else "block"}
             return no_update, no_update
 
         @app.callback(
@@ -441,49 +540,62 @@ class LLMAnalysis:
             Output("llm-chat-history-container", "children"),
             Output("llm-session-badge", "style", allow_duplicate=True),
             Output("llm-session-id", "data"),
+            Output("llm-explain-btn", "disabled"),
+            Output("llm-can-explain", "data"),
             Input("llm-reset-session-btn", "n_clicks"),
+            State("llm-current-model", "data"),
             prevent_initial_call=True
         )
-        def reset_session(n_clicks):
+        def reset_session(n_clicks, current_model):
             """세션 초기화"""
             if n_clicks:
-                # 세션 관련 변수 초기화
-                self.smart_df = None
-                self.chat_history = None
-                self.is_session_active = False
-                new_session_id = str(uuid.uuid4())
+                # 세션 관련 변수 초기화하고 새로운 Agent 생성
+                success, message = self.initialize_system(current_model)
                 
-                return [
-                    dbpc.Toast(
-                        message="Session reset. Starting a new conversation.",
-                        intent="info",
-                        icon="refresh"
-                    )
-                ], [], {"display": "none"}, new_session_id
+                if success:
+                    return [
+                        dbpc.Toast(
+                            message="Session reset. Starting a new conversation.",
+                            intent="success",
+                            icon="refresh"
+                        )
+                    ], [], {"display": "block"}, self.session_id, True, False
+                else:
+                    return [
+                        dbpc.Toast(
+                            message=f"Session reset warning: {message}",
+                            intent="warning",
+                            icon="warning-sign"
+                        )
+                    ], [], {"display": "none"}, None, True, False
             
-            return no_update, no_update, no_update, no_update
+            return no_update, no_update, no_update, no_update, no_update, no_update
         
         @app.callback(
             Output("llm-prompt-input", "value"),
             Output("llm-chat-history-container", "children", allow_duplicate=True),
+            Output("llm-explain-btn", "disabled", allow_duplicate=True),
+            Output("llm-can-explain", "data", allow_duplicate=True),
             Input("llm-clear-btn", "n_clicks"),
             prevent_initial_call=True
         )
         def clear_chat(n_clicks):
             """채팅 초기화"""
             if n_clicks:
-                return "", []
+                return "", [], True, False
             raise exceptions.PreventUpdate
         
-        # 백그라운드 콜백으로 메인 AI 분석 실행 - 올바른 문법 사용
+        # 백그라운드 콜백으로 메인 AI 분석 실행
         @callback(
-            output=Output("llm-chat-history-container", "children", allow_duplicate=True),
+            output=[
+                Output("llm-chat-history-container", "children", allow_duplicate=True),
+                Output("llm-explain-btn", "disabled", allow_duplicate=True),
+                Output("llm-can-explain", "data", allow_duplicate=True)
+            ],
             inputs=Input("llm-generate-btn", "n_clicks"),
             state=[
                 State("llm-prompt-input", "value"),
                 State("llm-chat-history-container", "children"),
-                State("llm-session-id", "data"),
-                State("llm-current-model", "data")
             ],
             background=True,
             running=[
@@ -493,10 +605,10 @@ class LLMAnalysis:
             cancel=[Input("llm-cancel-btn", "n_clicks")],
             prevent_initial_call=True,
         )
-        def generate_analysis(n_clicks, prompt, chat_history, session_id, current_model):
+        def generate_analysis(n_clicks, prompt, chat_history):
             """LLM 분석 생성 실행 (백그라운드)"""
             if not n_clicks or not prompt:
-                return no_update
+                return no_update, no_update, no_update
             
             # 현재 타임스탬프
             current_time = datetime.now().strftime("%H:%M:%S")
@@ -506,51 +618,26 @@ class LLMAnalysis:
             updated_chat = chat_history + [user_message]
             
             try:
-                # LLM 초기화
-                if not self.is_initialized or self.llm_model is None:
-                    if not self._initialize_llm(current_model):
-                        error_message = self._format_chat_message(
-                            "assistant", 
-                            "Failed to initialize LLM. Please check the connection.", 
-                            current_time
-                        )
-                        return updated_chat + [error_message]
-                
-                # 필터링된 데이터프레임 가져오기
-                df = displaying_df(filtred_apply=True)
-                
-                if df is None or df.is_empty():
+                # 시스템이 초기화되었는지 확인
+                if not self.is_initialized or self.agent is None:
                     error_message = self._format_chat_message(
                         "assistant", 
-                        "No data available for analysis. Please load or filter data first.", 
+                        "System not initialized. Please try resetting the session.", 
                         current_time
                     )
-                    return updated_chat + [error_message]
-                
-                # SmartDataframe 생성 또는 재사용
-                if not self.is_session_active or self.smart_df is None:
-                    if not self._create_smart_dataframe(df, session_id):
-                        error_message = self._format_chat_message(
-                            "assistant", 
-                            "Failed to create SmartDataframe for analysis.", 
-                            current_time
-                        )
-                        return updated_chat + [error_message]
+                    return updated_chat + [error_message], True, False
                 
                 # AI 응답 생성
                 logger.info(f"Running analysis with prompt: {prompt}")
-                # result = self.smart_df.chat(prompt)
-                import time
-                time.sleep(2)
-                result="test"
+                result = self.agent.chat(prompt)
                 logger.info(f"Analysis completed, result type: {type(result)}")
                 
                 # AI 응답 메시지 추가
                 assistant_message = self._format_chat_message("assistant", result, current_time)
                 final_chat = updated_chat + [assistant_message]
 
-                # 결과 반환
-                return final_chat
+                # 결과 반환 (설명 버튼 활성화)
+                return final_chat, False, True
                 
             except Exception as e:
                 logger.error(f"Analysis failed: {str(e)}")
@@ -562,11 +649,10 @@ class LLMAnalysis:
                     current_time
                 )
                 
-                # 세션이 끊어진 경우 초기화
-                self.is_session_active = False
-                self.smart_df = None
+                # 세션을 유지하도록 변경 (오류가 있어도 재설정 안 함)
+                # 필요시 사용자가 Reset Session 버튼을 통해 직접 초기화 가능
 
-                return updated_chat + [error_message]
+                return updated_chat + [error_message], True, False
         
         # 입력 후 입력창 초기화
         @app.callback(
@@ -580,4 +666,56 @@ class LLMAnalysis:
             if n_clicks and current_value:
                 return ""
             raise exceptions.PreventUpdate
-
+            
+        # 설명 요청 처리
+        @callback(
+            output=Output("llm-chat-history-container", "children", allow_duplicate=True),
+            inputs=Input("llm-explain-btn", "n_clicks"),
+            state=[
+                State("llm-chat-history-container", "children"),
+                State("llm-can-explain", "data")
+            ],
+            background=True,
+            running=[
+                (Output("llm-explain-btn", "loading"), True, False),
+                (Output("llm-cancel-btn", "disabled"), False, True),
+            ],
+            cancel=[Input("llm-cancel-btn", "n_clicks")],
+            prevent_initial_call=True,
+        )
+        def explain_analysis(n_clicks, chat_history, can_explain):
+            """분석 결과 설명 가져오기"""
+            if not n_clicks or not can_explain or self.agent is None:
+                return no_update
+            
+            # 현재 타임스탬프
+            current_time = datetime.now().strftime("%H:%M:%S")
+            
+            try:
+                # 설명 요청
+                logger.info("Requesting explanation from Agent")
+                explanation = self.agent.explain()
+                logger.info("Explanation received")
+                
+                # 설명 메시지 추가
+                explanation_message = self._format_chat_message(
+                    "assistant", 
+                    explanation, 
+                    current_time,
+                    is_explain=True
+                )
+                
+                # 결과 반환
+                return chat_history + [explanation_message]
+                
+            except Exception as e:
+                logger.error(f"Explanation failed: {str(e)}")
+                
+                # 오류 메시지 추가
+                error_message = self._format_chat_message(
+                    "assistant", 
+                    f"Failed to get explanation: {str(e)}", 
+                    current_time
+                )
+                
+                return chat_history + [error_message]
