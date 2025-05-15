@@ -142,27 +142,7 @@ class Formula:
                         disabled=True
                     ),
                 ], justify="center"),
-                
-                # 도움말 섹션
-                dmc.Space(h=20),
-                dmc.Accordion(
-                    value="help",
-                    children=[
-                        dmc.AccordionItem(
-                            [
-                                dmc.AccordionControl("사용 방법"),
-                                dmc.AccordionPanel([
-                                    dmc.Text("1. 결과를 저장할 새 컬럼 이름을 입력하세요.", size="sm"),
-                                    dmc.Text("2. 연산 유형을 선택하세요 (산술, 통계 등).", size="sm"),
-                                    dmc.Text("3. 구체적인 연산을 선택하세요 (더하기, 평균 등).", size="sm"),
-                                    dmc.Text("4. 필요한 입력값을 제공하세요 (컬럼, 상수 등).", size="sm"),
-                                    dmc.Text("5. 미리보기를 확인하고 Apply 버튼을 클릭하세요.", size="sm"),
-                                ])
-                            ],
-                            value="help"
-                        )
-                    ]
-                )
+
             ],
             p="md",
             shadow="sm",

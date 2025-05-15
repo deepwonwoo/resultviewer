@@ -192,32 +192,6 @@ class TypeChanges:
                 ], 
                 justify="center"
             ),
-            
-            # 도움말 섹션 
-            dmc.Space(h=20),
-            dmc.Accordion(
-                value="", 
-                children=[
-                    dmc.AccordionItem(
-                        [
-                            dmc.AccordionControl("도움말"), 
-                            dmc.AccordionPanel([
-                                dmc.Text("1. 타입을 변경할 컬럼을 하나 이상 선택하세요.", size="sm"),
-                                dmc.Text("2. 변환할 데이터 타입을 선택하세요.", size="sm"),
-                                dmc.Text("3. 필요한 경우 변환 옵션과 실패 처리 방법을 설정하세요.", size="sm"),
-                                dmc.Text("4. 미리보기를 확인하고 Apply 버튼을 클릭하세요.", size="sm"),
-                                dmc.Space(h=10),
-                                dmc.Text("💡 타입 변환 주의사항:", size="sm", fw=700),
-                                dmc.Text("- 문자열 → 숫자 변환: 숫자 형식이 아닌 문자열은 변환에 실패합니다. (예: 'abc' → 숫자 변환 불가)", size="sm"),
-                                dmc.Text("- 소수점 → 정수 변환: 소수점은 반올림/내림/올림 옵션에 따라 처리됩니다.", size="sm"),
-                                dmc.Text("- 불리언 변환: 'true', 'yes', '1', 'y'는 True로, 'false', 'no', '0', 'n'은 False로 변환됩니다.", size="sm"),
-                                dmc.Text("- 시스템 컬럼(uniqid, group, childCount 등)은 변경할 수 없습니다.", size="sm"),
-                            ])
-                        ], 
-                        value="help"
-                    )
-                ]
-            ),
         ],
         p="md",
         shadow="sm",

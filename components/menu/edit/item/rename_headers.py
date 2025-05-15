@@ -41,24 +41,7 @@ class RenameHeaders:
                 dmc.Group([
                     dbpc.Button("Apply", id="rename-headers-apply-btn", outlined=True, icon="tick", intent="primary")
                 ], justify="center"),
-                
-                # 도움말 섹션
-                dmc.Space(h=20),
-                dmc.Accordion(
-                    value="",
-                    children=[
-                        dmc.AccordionItem([
-                            dmc.AccordionControl("도움말"),
-                            dmc.AccordionPanel([
-                                dmc.Text("1. 변경하고자 하는 컬럼의 새 이름을 입력하세요."),
-                                dmc.Text("2. 새 이름은 영문자, 숫자, 언더스코어(_)만 사용 가능합니다."),
-                                dmc.Text("3. 입력하지 않은 컬럼은 이름이 변경되지 않습니다."),
-                                dmc.Text("4. Apply 버튼을 클릭하면 변경이 적용됩니다."),
-                                dmc.Text("5. 시스템 컬럼(uniqid, group, childCount)은 변경할 수 없습니다.")
-                            ])
-                        ], value="help")
-                    ]
-                ),
+
             ],
             p="md",
             shadow="sm",
