@@ -6,7 +6,6 @@ from components.grid.data_grid import DataGrid
 from components.menu.home.home import HomeMenu
 
 from components.menu.edit.edit import EditMenu
-from components.menu.analyze.analyze import AnalyzeMenu
 
 from utils.logging_utils import logger
 
@@ -16,7 +15,6 @@ class ResultViewer:
         self.home_menu = HomeMenu()
         # self.view_menu = ViewMenu()
         self.edit_menu = EditMenu()
-        self.analyze_menu = AnalyzeMenu()
         # self.waive_menu = WaiveMenu()
         # self.script_menu = ScriptMenu()
         # self.crossprobe_menu = CrossProbeMenu()
@@ -71,19 +69,27 @@ class ResultViewer:
                             "name": "Crossprobe",
                             "component": "text",
                             "id": "crossprobe-item",
-                        },
-                        {
-                            "type": "tab",
-                            "name": "Analyze",
-                            "id": "analyze-item",
                             "enableDrop": False,
                             "enableDrag": False,
                             "enableClose": False,
                             "enableFloating": False
                         },
-
                     ],
+                    
+                },
+                {
+                    "type": "border",
+                    "location": "left",
+                    # "location": "bottom",
+                    "selected": 0,
+                    "size": 200,
+                    "children": [
+                        {"type": "tab", "name": "Console", "component": "text", "id": "console-tab"},
+                        {"type": "tab", "name": "Log", "component": "text", "id": "log-tab"}
+                    ],
+                    "show": False  # 초기에는 숨김 상태
                 }
+
             ],
             "layout": {
                 "type": "row",
@@ -106,11 +112,10 @@ class ResultViewer:
 
         fl_nodes = [
             dfl.Tab(id="home-item", children=[self.home_menu.layout()]),
+            dfl.Tab(id="llm-tab", children=[self.home_menu.ai.tab_layout()]),
+                        
 
             dfl.Tab(id="edit-item", children=[self.edit_menu.layout()]),
-
-            dfl.Tab(id="analyze-item", children=[self.analyze_menu.layout()]),
-            dfl.Tab(id="llm-tab", children=[self.analyze_menu.ai.tab_layout()]),
 
             # dfl.Tab(id="waive-item", children=[self.waive_menu.layout()]),
             # dfl.Tab(id="script-item", children=[self.script_menu.layout()]),
@@ -122,12 +127,10 @@ class ResultViewer:
             dfl.Tab(id="row-add-tab", children=[self.edit_menu.add_row.tab_layout()]),
             dfl.Tab(id="type-changes-tab", children=[self.edit_menu.type_changes.tab_layout()]),
             dfl.Tab(id="formula-tab", children=[self.edit_menu.formula.tab_layout()]), 
-            dfl.Tab(id="combine-dataframes-tab", children=[self.edit_menu.combining_dataframes.tab_layout()]),
             dfl.Tab(id="split-column-tab", children=[self.edit_menu.split_column.tab_layout()]),
             dfl.Tab(id="rename-headers-tab", children=[self.edit_menu.rename_headers.tab_layout()]),
             dfl.Tab(id="fill-nan-tab", children=[self.edit_menu.fill_nan_values.tab_layout()]), 
             dfl.Tab(id="find-replace-tab", children=[self.edit_menu.find_and_replace.tab_layout()]),
-
 
         ]
 
@@ -147,6 +150,10 @@ class ResultViewer:
         """컴포넌트별 콜백 함수 등록."""
         self.home_menu.register_callbacks(app)
         self.edit_menu.register_callbacks(app)
+
+        # self.waive_menu.register_callbacks(app)
+        # self.script_menu.register_callbacks(app)
+        # self.crossprobe_menu.register_callbacks(app)
         self.data_grid.register_callbacks(app)
 
         @app.callback(Output("aggrid-table", "style"), Input("flex-layout", "model"))

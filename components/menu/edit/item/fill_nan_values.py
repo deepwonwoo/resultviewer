@@ -110,32 +110,7 @@ class FillNanValues:
                     ],
                     justify="center",
                 ),
-                # 도움말 섹션
-                dmc.Space(h=20),
-                dmc.Accordion(
-                    value="",
-                    children=[
-                        dmc.AccordionItem(
-                            [
-                                dmc.AccordionControl("도움말"),
-                                dmc.AccordionPanel(
-                                    [
-                                        dmc.Text("1. NaN/Null 값을 채울 컬럼을 하나 이상 선택하세요."),
-                                        dmc.Text("2. 대체 방법을 선택하세요:"),
-                                        dmc.Text("   - 특정 값으로 대체: 사용자가 입력한 값으로 대체합니다."),
-                                        dmc.Text("   - 0으로 대체: 모든 NaN/Null 값을 0으로 대체합니다."),
-                                        dmc.Text("   - 평균값/중앙값: 숫자형 컬럼의 경우 해당 통계값으로 대체합니다."),
-                                        dmc.Text("   - 최빈값: 가장 빈번하게 나타나는 값으로 대체합니다."),
-                                        dmc.Text("   - 앞/뒤의 값: 이전/이후의 유효한 값으로 대체합니다."),
-                                        dmc.Text("   - 빈 문자열: 문자열 컬럼의 경우 빈 문자열로 대체합니다."),
-                                        dmc.Text("3. 미리보기를 확인하고 Apply 버튼을 클릭하세요."),
-                                    ]
-                                ),
-                            ],
-                            value="help",
-                        )
-                    ],
-                ),
+
             ],
             p="md",
             shadow="sm",

@@ -252,68 +252,6 @@ class FindAndReplace:
                     )
                 ),
                 
-                # 도움말 섹션 (폴딩 가능)
-                dmc.Accordion(
-                    value="",
-                    children=[dmc.AccordionItem([
-                        dmc.AccordionControl(
-                            dmc.Group([
-                                dbpc.Icon(icon="help"),
-                                dmc.Text("도움말")
-                            ])
-                        ),
-                        dmc.AccordionPanel([
-                            dmc.Timeline(
-                                active=5,
-                                bulletSize=20,
-                                lineWidth=2,
-                                children=[
-                                    dmc.TimelineItem(
-                                        title="1. 컬럼 선택",
-                                        children=dmc.Text(
-                                            "검색 및 치환을 실행할 컬럼을 선택하세요 (복수 선택 가능)",
-                                            size="sm",
-                                            c="dimmed"
-                                        )
-                                    ),
-                                    dmc.TimelineItem(
-                                        title="2. 검색어 입력",
-                                        children=dmc.Text(
-                                            "찾을 텍스트나 패턴을 입력하세요",
-                                            size="sm",
-                                            c="dimmed"
-                                        )
-                                    ),
-                                    dmc.TimelineItem(
-                                        title="3. 치환 값 입력",
-                                        children=dmc.Text(
-                                            "검색된 값을 대체할 텍스트를 입력하세요",
-                                            size="sm",
-                                            c="dimmed"
-                                        )
-                                    ),
-                                    dmc.TimelineItem(
-                                        title="4. 검색 옵션 설정",
-                                        children=dmc.Text(
-                                            "검색 방식과 대소문자 구분 여부를 선택하세요",
-                                            size="sm",
-                                            c="dimmed"
-                                        )
-                                    ),
-                                    dmc.TimelineItem(
-                                        title="5. 미리보기 및 실행",
-                                        children=dmc.Text(
-                                            "미리보기로 결과를 확인한 후 치환을 실행하세요",
-                                            size="sm",
-                                            c="dimmed"
-                                        )
-                                    )
-                                ]
-                            )
-                        ])
-                    ], value="help")]
-                ),
-                
                 # 리셋 저장소
                 dcc.Store(id="find-replace-reset-state")
             ],

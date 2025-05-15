@@ -2,6 +2,7 @@ import dash_mantine_components as dmc
 import dash_blueprint_components as dbpc
 from components.menu.home.item.save import Saver
 from components.menu.home.item.open import Opener
+from components.menu.home.item.ai import LLMAnalysis
 from components.menu.home.item.column_sizing import ColumnSizer
 from components.menu.home.item.file_mode import FileMode
 from components.menu.home.item.group_row import GroupRow
@@ -19,6 +20,8 @@ class HomeMenu:
         self.group_row = GroupRow()
         self.filter = Filter()
         self.workspaceExplorer = WorkspaceExplorer()
+        self.ai = LLMAnalysis()
+
 
     def layout(self):
         return dbpc.ButtonGroup(
@@ -35,6 +38,8 @@ class HomeMenu:
                 dbpc.Divider(),
                 self.filter.layout(),
                 dbpc.Divider(),
+                self.ai.button_layout(),
+
             ],
             style={"height": 35}
         )
@@ -47,3 +52,4 @@ class HomeMenu:
         self.group_row.register_callbacks(app)
         self.filter.register_callbacks(app)
         self.workspaceExplorer.register_callbacks(app)
+        self.ai.register_callbacks(app)

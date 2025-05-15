@@ -168,23 +168,7 @@ class AddColumn:
                     align="center",
                     grow=True,
                 ),
-                
-                # 도움말 섹션
-                dmc.Space(h=20),
-                dmc.Accordion(
-                    value="", 
-                    children=[
-                        dmc.AccordionItem([
-                            dmc.AccordionControl("도움말"), 
-                            dmc.AccordionPanel([
-                                dmc.Text("1. 기본값 설정: 모든 행에 동일한 값을 가진 새 컬럼을 추가합니다."),
-                                dmc.Text("2. 컬럼 복사: 기존 컬럼을 복사하여 새 컬럼을 만듭니다."),
-                                dmc.Text("3. 변환 함수: 원본 데이터에 특정 변환을 적용할 수 있습니다."),
-                            ])
-                        ], value="help")
-                    ]
-                ),
-                
+
                 # 에러 메시지 표시 영역
                 dmc.Space(h=10),
                 html.Div(id="add-column-error-container", style={"color": "red"})

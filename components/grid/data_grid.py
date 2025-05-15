@@ -9,7 +9,6 @@ from components.grid.dag.server_side_operations import extract_rows_from_data
 from components.grid.dag.column_definitions import determine_column_type
 from dash_extensions import EventListener
 
-# from utils.component_template import get_icon
 from utils.db_management import SSDF
 from utils.logging_utils import logger
 from utils.config import CONFIG

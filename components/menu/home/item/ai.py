@@ -11,8 +11,6 @@ from datetime import datetime
 import uuid
 import os
 
-from pandasai import Agent
-from pandasai.llm.local_llm import LocalLLM
 
 from utils.data_processing import displaying_df
 from utils.db_management import SSDF
@@ -42,7 +40,7 @@ class LLMAnalysis:
 
     def button_layout(self):
         """LLM 분석 버튼 레이아웃"""
-        return dbpc.Button("AI Analysis", id="llm-btn", icon="robot", minimal=True, outlined=True)
+        return html.Div([dbpc.Button("AI Analysis", id="llm-btn", icon="lightbulb", minimal=True, outlined=True)])
 
     def tab_layout(self):
         """LLM 분석 탭 레이아웃"""
@@ -50,7 +48,7 @@ class LLMAnalysis:
             children=[
                 # 상단 타이틀 및 설정 영역
                 dmc.Group([
-                    dbpc.EntityTitle(title="AI Data Analysis", heading="H5", icon="robot"),
+                    dbpc.EntityTitle(title="AI Data Analysis", heading="H5", icon="lightbulb"),
                     dmc.Menu(
                         [
                             dmc.MenuTarget(dbpc.Button("Settings", icon="cog", minimal=True, small=True)),
@@ -78,7 +76,7 @@ class LLMAnalysis:
                     id="llm-model-info",
                     children=[
                         dmc.Group([
-                            dbpc.Icon(icon="robot", size=16),
+                            dbpc.Icon(icon="lightbulb", size=16),
                             dmc.Text(
                                 f"Using model: {next((m['label'] for m in self.available_models if m['value'] == self.default_model), self.default_model)}",
                                 size="sm"
@@ -206,6 +204,7 @@ class LLMAnalysis:
             
             # LLM 모델 초기화
             logger.info(f"Initializing LLM model: {model_name}")
+            from pandasai.llm.local_llm import LocalLLM
             self.llm_model = LocalLLM(
                 api_base=self.api_base,
                 model=model_name
@@ -230,6 +229,7 @@ class LLMAnalysis:
             
             # Agent 생성 (메인 스레드에서)
             logger.info("Creating Agent with LLM model")
+            from pandasai import Agent
             self.agent = Agent(
                 [self.pandas_df], 
                 config={"llm": self.llm_model},
@@ -316,7 +316,7 @@ class LLMAnalysis:
                 badge = dmc.Badge("EXPLANATION", color="cyan", size="sm", variant="outline", mb="xs")
             
             header_content = [
-                dbpc.Icon(icon="robot", size=16),
+                dbpc.Icon(icon="lightbulb", size=16),
                 dmc.Text(f"AI Assistant ({timestamp}):", size="xs", c="dimmed")
             ]
             
@@ -472,7 +472,7 @@ class LLMAnalysis:
                 
                 # 모델 정보 업데이트
                 model_info = dmc.Group([
-                    dbpc.Icon(icon="robot", size=16),
+                    dbpc.Icon(icon="lightbulb", size=16),
                     dmc.Text(f"Using model: {model_label}", size="sm"),
                     session_badge
                 ], gap="xs")

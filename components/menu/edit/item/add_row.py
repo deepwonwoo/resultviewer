@@ -82,28 +82,6 @@ class AddRow:
                         intent="primary"
                     ),
                 ], justify="center"),
-                
-                # 도움말 섹션
-                dmc.Space(h=20),
-                dmc.Accordion(
-                    value="",
-                    children=[
-                        dmc.AccordionItem(
-                            [
-                                dmc.AccordionControl("도움말"),
-                                dmc.AccordionPanel([
-                                    dmc.Text("1. 추가 방식을 선택하세요:"),
-                                    dmc.Text("   - 상단에 추가: 데이터 맨 앞에 새 행을 추가합니다."),
-                                    dmc.Text("   - 하단에 추가: 데이터 맨 뒤에 새 행을 추가합니다."),
-                                    dmc.Text("2. 추가할 행 수를 설정하세요."),
-                                    dmc.Text("3. 원하는 컬럼에 기본값을 입력하세요. 비워둔 컬럼은 빈 값으로 설정됩니다."),
-                                    dmc.Text("4. Add Row 버튼을 클릭하면 행이 추가됩니다.")
-                                ])
-                            ],
-                            value="help"
-                        )
-                    ]
-                )
             ],
             p="md",
             shadow="sm",

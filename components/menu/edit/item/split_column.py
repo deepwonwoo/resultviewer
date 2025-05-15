@@ -172,32 +172,6 @@ class SplitColumn:
                         intent="primary"
                     ),
                 ], justify="center"),
-                
-                # 도움말 섹션
-                dmc.Space(h=20),
-                dmc.Accordion(
-                    value="",
-                    children=[
-                        dmc.AccordionItem(
-                            [
-                                dmc.AccordionControl("도움말"),
-                                dmc.AccordionPanel([
-                                    dmc.Text("1. 분할할 텍스트가 포함된 컬럼을 선택하세요.", size="sm"),
-                                    dmc.Text("2. 구분자를 선택하거나 직접 입력하세요.", size="sm"),
-                                    dmc.Text("3. 결과 컬럼의 이름 지정 방법을 선택하세요.", size="sm"),
-                                    dmc.Text("4. 필요한 추가 옵션을 설정하세요.", size="sm"),
-                                    dmc.Text("5. 미리보기를 확인하고 적용 버튼을 클릭하세요.", size="sm"),
-                                    dmc.Space(h=10),
-                                    dmc.Text("예시:", w=500, size="sm"),
-                                    dmc.Text("- 이메일에서 ID와 도메인 분리: '@' (결과: [id, domain])", size="sm"),
-                                    dmc.Text("- 날짜 형식 분할: '-' (2023-01-30 → [2023, 01, 30])", size="sm"),
-                                    dmc.Text("- IP 주소 분할: '.' (192.168.0.1 → [192, 168, 0, 1])", size="sm"),
-                                ])
-                            ],
-                            value="help"
-                        )
-                    ]
-                ),
             ],
             p="md",
             shadow="sm",
