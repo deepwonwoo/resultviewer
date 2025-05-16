@@ -5,7 +5,6 @@ from components.menu.home.item.open import Opener
 from components.menu.home.item.ai import LLMAnalysis
 from components.menu.home.item.column_sizing import ColumnSizer
 from components.menu.home.item.file_mode import FileMode
-from components.menu.home.item.group_row import GroupRow
 from components.menu.home.item.filtering import Filter
 from components.menu.home.item.workspace_explorer import WorkspaceExplorer
 
@@ -17,7 +16,6 @@ class HomeMenu:
         self.saver = Saver()
         self.opener = Opener()
         self.column_sizer = ColumnSizer()
-        self.group_row = GroupRow()
         self.filter = Filter()
         self.workspaceExplorer = WorkspaceExplorer()
         self.ai = LLMAnalysis()
@@ -34,8 +32,6 @@ class HomeMenu:
                 dbpc.Divider(),
                 self.column_sizer.layout(),
                 dbpc.Divider(),
-                self.group_row.layout(),
-                dbpc.Divider(),
                 self.filter.layout(),
                 dbpc.Divider(),
                 self.ai.button_layout(),
@@ -49,7 +45,6 @@ class HomeMenu:
         self.opener.register_callbacks(app)
         self.saver.register_callbacks(app)
         self.column_sizer.register_callbacks(app)
-        self.group_row.register_callbacks(app)
         self.filter.register_callbacks(app)
         self.workspaceExplorer.register_callbacks(app)
         self.ai.register_callbacks(app)
