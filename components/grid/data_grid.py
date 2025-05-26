@@ -14,6 +14,7 @@ from utils.db_management import SSDF
 from utils.logging_utils import logger
 from utils.config import CONFIG
 
+
 class DataGrid:
 
     DASH_GRID_OPTIONS = {
@@ -78,10 +79,8 @@ class DataGrid:
                 dcc.Store("cp_selected_rows"),
                 dcc.Store("waiver_selected_rows"),
                 dcc.Store("sub_info_selected_rows"),
-
                 # CSS 파일 로드
-                html.Link(rel='stylesheet', href='/assets/custom.css'),
-
+                html.Link(rel="stylesheet", href="/assets/custom.css"),
                 EventListener(
                     id="el",
                     children=dag.AgGrid(
@@ -231,36 +230,27 @@ class DataGrid:
                 logger.error(f"컬럼 상태(순서) 변경 실패: {e}")
             return no_update
 
-
-
-
         # 컬럼 editable 속성 변경 처리를 위한 콜백 추가
-        @app.callback(
-            Output("aggrid-table", "columnDefs", allow_duplicate=True),
-            Input("aggrid-table", "cellRendererData"),
-            State("aggrid-table", "columnDefs"),
-            prevent_initial_call=True
-        )
+        @app.callback(Output("aggrid-table", "columnDefs", allow_duplicate=True), Input("aggrid-table", "cellRendererData"), State("aggrid-table", "columnDefs"), prevent_initial_call=True)
         def update_column_editable(cell_data, column_defs):
             """cellRendererData를 통해 headerComponent에서 전송된 editable 변경 처리"""
             if not cell_data or "action" not in cell_data or cell_data["action"] != "toggle_editable":
                 return no_update
-            
+
             col_id = cell_data.get("colId")
             editable = cell_data.get("value", False)
-            
+
             if not col_id:
                 return no_update
-            
+
             # 해당 컬럼 정의 찾기 및 업데이트
             for col in column_defs:
                 if col["field"] == col_id:
                     col["editable"] = editable
                     col["cellClass"] = "text-dark editable-column" if editable else "text-secondary"
                     break
-                
-            return column_defs
 
+            return column_defs
 
         @app.callback(
             Output("toaster", "toasts", allow_duplicate=True),
@@ -287,7 +277,7 @@ class DataGrid:
                     if count == 0:
                         for rule in propa_rule:
                             if not rule in dff.columns:
-                                return [dbpc.Toast(message=f"No '{rule}' in data. Please re-define propagation rule.",intent="warning",icon="warning-sign")],[],no_update
+                                return [dbpc.Toast(message=f"No '{rule}' in data. Please re-define propagation rule.", intent="warning", icon="warning-sign")], [], no_update
                         request = SSDF.request
                         if SSDF.tree_mode:
                             route = cell["data"].get(SSDF.tree_col).split(".")
@@ -306,10 +296,10 @@ class DataGrid:
                         else:
                             conditions_expr = conditions_expr & (dff[col] == cell["data"][col])
 
-                    update_target_column = (pl.when(conditions_expr).then(pl.lit(new_value)).otherwise(pl.col(target_col)).alias(target_col))
+                    update_target_column = pl.when(conditions_expr).then(pl.lit(new_value)).otherwise(pl.col(target_col)).alias(target_col)
                     dff = dff.with_columns(update_target_column)
                     if (target_col == "waiver") and ("user" in dff.columns):
-                        update_user_column = (pl.when(conditions_expr).then(pl.lit(CONFIG.USERNAME + "(propagated)")).otherwise(pl.col("user")).alias("user"))
+                        update_user_column = pl.when(conditions_expr).then(pl.lit(CONFIG.USERNAME + "(propagated)")).otherwise(pl.col("user")).alias("user")
                         dff = dff.with_columns(update_user_column)
                         dff = dff.with_columns((pl.when(pl.col("uniqid") == uid).then(pl.lit(CONFIG.USERNAME)).otherwise(pl.col("user"))).alias("user"))
                 else:
@@ -318,12 +308,9 @@ class DataGrid:
             SSDF.dataframe = dff
 
             return no_update, route, 1
-            
-            
-            
 
         app.clientside_callback(
-        """
+            """
         function (data, grid_id) {
             for (; data.length > 0; ) {
                 dash_ag_grid.getApi(grid_id).refreshServerSide({route: data});
@@ -332,15 +319,10 @@ class DataGrid:
             dash_ag_grid.getApi(grid_id).refreshServerSide({route: data});
         }
         """,
-        Input("refresh-route", "data"),
-        State("aggrid-table", "id"),
-        prevent_initial_call=True,
+            Input("refresh-route", "data"),
+            State("aggrid-table", "id"),
+            prevent_initial_call=True,
         )
-
-
-
-
-
 
     @staticmethod
     def _generate_counter_info() -> str:
@@ -351,11 +333,3 @@ class DataGrid:
             if row_count:
                 counter_info += f"{name.capitalize()}: {row_count}    "
         return counter_info.rstrip()
-
-
-
-
-
-
-
-

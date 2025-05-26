@@ -8,74 +8,45 @@ from utils.data_processing import displaying_df
 from utils.db_management import SSDF
 from utils.logging_utils import logger
 from components.grid.dag.column_definitions import generate_column_definitions, SYSTEM_COLUMNS
-from components.menu.edit.utils import find_tab_in_layout, handle_tab_button_click
+from components.menu.edit.common_utils import find_tab_in_layout, handle_tab_button_click
+
 
 class AddColumn:
     def __init__(self):
-        self.data_types = [
-            {"label": "자동 감지", "value": "auto"},
-            {"label": "문자열 (String)", "value": "str"},
-            {"label": "정수 (Integer)", "value": "int"},
-            {"label": "실수 (Float)", "value": "float"},
-            {"label": "불리언 (Boolean)", "value": "bool"}
-        ]
+        self.data_types = [{"label": "자동 감지", "value": "auto"}, {"label": "문자열 (String)", "value": "str"}, {"label": "정수 (Integer)", "value": "int"}, {"label": "실수 (Float)", "value": "float"}, {"label": "불리언 (Boolean)", "value": "bool"}]
         self.boolean_true = ["true", "1", "yes", "y", "ok", "o", "O"]
         self.boolean_false = ["false", "0", "no", "n", "no", "x", "X"]
-        self.transform_functions = [
-            {"label": "대문자로 변환", "value": "upper", "description": "모든 문자를 대문자로 변환합니다"},
-            {"label": "소문자로 변환", "value": "lower", "description": "모든 문자를 소문자로 변환합니다"},
-            {"label": "공백 제거", "value": "strip", "description": "문자열의 앞뒤 공백을 제거합니다"},
-            {"label": "소수점 제거", "value": "remove_decimal", "description": "숫자에서 소수점을 제거하고 정수로 변환합니다"}
-        ]
-
+        self.transform_functions = [{"label": "대문자로 변환", "value": "upper", "description": "모든 문자를 대문자로 변환합니다"}, {"label": "소문자로 변환", "value": "lower", "description": "모든 문자를 소문자로 변환합니다"}, {"label": "공백 제거", "value": "strip", "description": "문자열의 앞뒤 공백을 제거합니다"}, {"label": "소수점 제거", "value": "remove_decimal", "description": "숫자에서 소수점을 제거하고 정수로 변환합니다"}]
 
     def button_layout(self):
-        return dbpc.Button(
-            "Add Column", 
-            id="add-column-btn", 
-            icon="add-column-left", 
-            minimal=True, 
-            outlined=True
-        )
-    
+        return dbpc.Button("Add Column", id="add-column-btn", icon="add-column-left", minimal=True, outlined=True)
+
     def tab_layout(self):
         return dmc.Paper(
             children=[
-                dmc.Group([
-                    dbpc.EntityTitle(title="Add Column", heading="H5", icon="add-column-left")
-                ], grow=True),
+                dmc.Group([dbpc.EntityTitle(title="Add Column", heading="H5", icon="add-column-left")], grow=True),
                 dmc.Space(h=10),
-                
                 # 컬럼 이름 입력 필드 - 유효성 검사 메시지 추가
-                dmc.TextInput(
-                    id="add-column-header-input",
-                    value="",
-                    size="sm",
-                    placeholder="새 컬럼 이름 입력",
-                    label="New Column Name",
-                    required=True,
-                    description="컬럼 이름은 공백 없이 영문자, 숫자, 언더스코어(_)만 사용 가능합니다",
-                    error=""
-                ),
+                dmc.TextInput(id="add-column-header-input", value="", size="sm", placeholder="새 컬럼 이름 입력", label="New Column Name", required=True, description="컬럼 이름은 공백 없이 영문자, 숫자, 언더스코어(_)만 사용 가능합니다", error=""),
                 dmc.Space(h=15),
-                
                 # 입력 방법 선택 탭
                 dmc.Tabs(
                     id="add-column-tabs",
                     variant="outline",
                     value="default",
                     children=[
-                        dmc.TabsList([
-                            dmc.TabsTab(
-                                "Default Value", 
-                                value="default", 
-                            ),
-                            dmc.TabsTab(
-                                "Copy Column", 
-                                value="copy", 
-                            )
-                        ]),
-                        
+                        dmc.TabsList(
+                            [
+                                dmc.TabsTab(
+                                    "Default Value",
+                                    value="default",
+                                ),
+                                dmc.TabsTab(
+                                    "Copy Column",
+                                    value="copy",
+                                ),
+                            ]
+                        ),
                         # 기본값 입력 탭 패널
                         dmc.TabsPanel(
                             value="default",
@@ -102,21 +73,12 @@ class AddColumn:
                                 dmc.Text(id="add-column-value-preview", size="sm", c="dimmed", style={"fontStyle": "italic"}),
                             ],
                         ),
-                        
                         # 컬럼 복사 탭 패널
                         dmc.TabsPanel(
                             value="copy",
                             children=[
                                 dmc.Space(h=10),
-                                dmc.Select(
-                                    id="add-column-copy-select",
-                                    label="Source Column",
-                                    description="복사할 원본 컬럼을 선택하세요",
-                                    data=[],
-                                    searchable=True,
-                                    nothingFoundMessage="일치하는 컬럼이 없습니다",
-                                    size="sm"
-                                ),
+                                dmc.Select(id="add-column-copy-select", label="Source Column", description="복사할 원본 컬럼을 선택하세요", data=[], searchable=True, nothingFoundMessage="일치하는 컬럼이 없습니다", size="sm"),
                                 dmc.Space(h=10),
                                 dmc.Checkbox(
                                     id="add-column-transform-checkbox",
@@ -124,7 +86,6 @@ class AddColumn:
                                     description="원본 컬럼 값에 변환 함수를 적용합니다",
                                 ),
                                 dmc.Space(h=10),
-                                
                                 # 변환 함수 선택 (체크박스 선택 시만 표시)
                                 html.Div(
                                     id="add-column-transform-container",
@@ -142,7 +103,7 @@ class AddColumn:
                                         dmc.Text(id="add-column-transform-preview", size="sm", c="dimmed", style={"fontStyle": "italic"}),
                                         dmc.Space(h=5),
                                         # 변환 함수 설명
-                                        html.Div(id="add-column-transform-description", style={"marginTop": "5px"})
+                                        html.Div(id="add-column-transform-description", style={"marginTop": "5px"}),
                                     ],
                                 ),
                             ],
@@ -152,42 +113,35 @@ class AddColumn:
                 dmc.Space(h=15),
                 dmc.Group(
                     [
-                        dmc.Button(
-                            "왼쪽에 추가", 
-                            id="add-column-apply-left-btn", 
-                            variant="outline", 
-                            color="blue"
-                        ),
-                        dmc.Button(
-                            "오른쪽에 추가", 
-                            id="add-column-apply-right-btn", 
-                            variant="outline", 
-                            color="blue"
-                        ),
+                        dmc.Button("왼쪽에 추가", id="add-column-apply-left-btn", variant="outline", color="blue"),
+                        dmc.Button("오른쪽에 추가", id="add-column-apply-right-btn", variant="outline", color="blue"),
                     ],
                     align="center",
                     grow=True,
                 ),
-                
                 # 도움말 섹션
                 dmc.Space(h=20),
                 dmc.Accordion(
-                    value="", 
+                    value="",
                     children=[
-                        dmc.AccordionItem([
-                            dmc.AccordionControl("도움말"), 
-                            dmc.AccordionPanel([
-                                dmc.Text("1. 기본값 설정: 모든 행에 동일한 값을 가진 새 컬럼을 추가합니다."),
-                                dmc.Text("2. 컬럼 복사: 기존 컬럼을 복사하여 새 컬럼을 만듭니다."),
-                                dmc.Text("3. 변환 함수: 원본 데이터에 특정 변환을 적용할 수 있습니다."),
-                            ])
-                        ], value="help")
-                    ]
+                        dmc.AccordionItem(
+                            [
+                                dmc.AccordionControl("도움말"),
+                                dmc.AccordionPanel(
+                                    [
+                                        dmc.Text("1. 기본값 설정: 모든 행에 동일한 값을 가진 새 컬럼을 추가합니다."),
+                                        dmc.Text("2. 컬럼 복사: 기존 컬럼을 복사하여 새 컬럼을 만듭니다."),
+                                        dmc.Text("3. 변환 함수: 원본 데이터에 특정 변환을 적용할 수 있습니다."),
+                                    ]
+                                ),
+                            ],
+                            value="help",
+                        )
+                    ],
                 ),
-                
                 # 에러 메시지 표시 영역
                 dmc.Space(h=10),
-                html.Div(id="add-column-error-container", style={"color": "red"})
+                html.Div(id="add-column-error-container", style={"color": "red"}),
             ],
             p="md",
             shadow="sm",
@@ -197,23 +151,13 @@ class AddColumn:
 
     def register_callbacks(self, app):
         """콜백 함수 등록"""
-        
-        @app.callback(
-            Output("flex-layout", "model", allow_duplicate=True),
-            Output("toaster", "toasts", allow_duplicate=True),
-            Input("add-column-btn", "n_clicks"),
-            State("flex-layout", "model"),
-            prevent_initial_call=True
-        )
+
+        @app.callback(Output("flex-layout", "model", allow_duplicate=True), Output("toaster", "toasts", allow_duplicate=True), Input("add-column-btn", "n_clicks"), State("flex-layout", "model"), prevent_initial_call=True)
         def handle_add_column_button_click(n_clicks, current_model):
             """Add Column 버튼 클릭 시 우측 패널에 탭 추가"""
             return handle_tab_button_click(n_clicks, current_model, "col-add-tab", "Add Column")
 
-        @app.callback(
-            Output("add-column-copy-select", "data"),
-            Input("add-column-tabs", "value"), 
-            State("aggrid-table", "columnDefs")
-        )
+        @app.callback(Output("add-column-copy-select", "data"), Input("add-column-tabs", "value"), State("aggrid-table", "columnDefs"))
         def update_column_list(tab_value, columnDefs):
             """탭 변경 시 컬럼 목록 업데이트"""
             if tab_value != "copy" or not columnDefs:
@@ -222,28 +166,22 @@ class AddColumn:
             column_data = [{"label": col["field"], "value": col["field"]} for col in columnDefs if col["field"] != "waiver" and col["field"] != "uniqid"]
             return column_data
 
-        @app.callback(
-            Output("add-column-transform-container", "style"),
-            Input("add-column-transform-checkbox", "checked")
-        )
+        @app.callback(Output("add-column-transform-container", "style"), Input("add-column-transform-checkbox", "checked"))
         def toggle_transform_options(checked):
             """변환 함수 체크박스 상태에 따라 변환 옵션 표시/숨김"""
             if checked:
                 return {"display": "block"}
             return {"display": "none"}
-            
-        @app.callback(
-            Output("add-column-transform-description", "children"),
-            Input("add-column-transform-select", "value")
-        )
+
+        @app.callback(Output("add-column-transform-description", "children"), Input("add-column-transform-select", "value"))
         def update_transform_description(transform_value):
             """선택한 변환 함수의 설명 표시"""
             if not transform_value:
                 return []
-                
+
             # 선택한 함수의 설명 찾기
             description = next((func["description"] for func in self.transform_functions if func["value"] == transform_value), "")
-            
+
             if description:
                 return dmc.Alert(
                     description,
@@ -253,11 +191,7 @@ class AddColumn:
                 )
             return []
 
-        @app.callback(
-            Output("add-column-value-preview", "children"),
-            Input("add-column-value-input", "value"),
-            Input("add-column-datatype", "value")
-        )
+        @app.callback(Output("add-column-value-preview", "children"), Input("add-column-value-input", "value"), Input("add-column-datatype", "value"))
         def update_value_preview(value, datatype):
             """입력된 값과 데이터 타입에 따라 미리보기 업데이트"""
             if not value and value != "0":
@@ -293,11 +227,7 @@ class AddColumn:
             except Exception as e:
                 return f"미리보기: 변환 오류 ({str(e)})"
 
-        @app.callback(
-            Output("add-column-transform-preview", "children"),
-            Input("add-column-transform-select", "value"),
-            Input("add-column-copy-select", "value")
-        )
+        @app.callback(Output("add-column-transform-preview", "children"), Input("add-column-transform-select", "value"), Input("add-column-copy-select", "value"))
         def update_transform_preview(transform, column):
             """변환 함수와 선택된 컬럼에 따라 변환 결과 미리보기"""
             if not transform or not column or column not in SSDF.dataframe.columns:
@@ -334,47 +264,27 @@ class AddColumn:
             except Exception as e:
                 return f"미리보기: 변환 오류 ({str(e)})"
 
-        @app.callback(
-            Output("add-column-header-input", "error"),
-            Input("add-column-header-input", "value")
-        )
+        @app.callback(Output("add-column-header-input", "error"), Input("add-column-header-input", "value"))
         def validate_column_name(header):
             """컬럼 이름 유효성 검사 및 실시간 피드백"""
             if not header:
                 return ""
-                
+
             # 특수문자 및 공백 검증 (언더스코어는 허용)
             if not re.match(r"^[a-zA-Z0-9_]+$", header):
                 return "컬럼 이름은 영문자, 숫자, 언더스코어(_)만 사용 가능합니다"
-                
+
             # 중복 이름 검증
             if header in SSDF.dataframe.columns:
                 return f"'{header}' 컬럼이 이미 존재합니다"
-                
+
             # 보호된 컬럼 검증
             if header in SYSTEM_COLUMNS and header not in ["waiver", "user"]:
                 return f"'{header}'는 시스템 예약 컬럼입니다"
-                
+
             return ""
 
-        @app.callback(
-            Output("toaster", "toasts", allow_duplicate=True),
-            Output("aggrid-table", "columnDefs", allow_duplicate=True),
-            Output("add-column-header-input", "value"),
-            Output("add-column-value-input", "value"),
-            Output("add-column-copy-select", "value"),
-            Output("add-column-transform-checkbox", "checked"),
-            Input("add-column-apply-left-btn", "n_clicks"),
-            Input("add-column-apply-right-btn", "n_clicks"),
-            State("add-column-header-input", "value"),
-            State("add-column-tabs", "value"),
-            State("add-column-datatype", "value"),
-            State("add-column-value-input", "value"),
-            State("add-column-copy-select", "value"),
-            State("add-column-transform-checkbox", "checked"),
-            State("add-column-transform-select", "value"),
-            prevent_initial_call=True
-        )
+        @app.callback(Output("toaster", "toasts", allow_duplicate=True), Output("aggrid-table", "columnDefs", allow_duplicate=True), Output("add-column-header-input", "value"), Output("add-column-value-input", "value"), Output("add-column-copy-select", "value"), Output("add-column-transform-checkbox", "checked"), Input("add-column-apply-left-btn", "n_clicks"), Input("add-column-apply-right-btn", "n_clicks"), State("add-column-header-input", "value"), State("add-column-tabs", "value"), State("add-column-datatype", "value"), State("add-column-value-input", "value"), State("add-column-copy-select", "value"), State("add-column-transform-checkbox", "checked"), State("add-column-transform-select", "value"), prevent_initial_call=True)
         def handle_add_column_submission(left_clicks, right_clicks, header, tab_value, datatype, default_value, copy_column, apply_transform, transform_function):
             """컬럼 추가 로직 실행"""
             if not left_clicks and not right_clicks:

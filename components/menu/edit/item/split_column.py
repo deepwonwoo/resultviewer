@@ -1,528 +1,402 @@
+import re
 import polars as pl
 import dash_mantine_components as dmc
 import dash_blueprint_components as dbpc
 from dash import Output, Input, State, Patch, html, no_update, exceptions, ctx, dcc
+from typing import List, Tuple, Optional, Any
 
 from utils.data_processing import displaying_df
 from utils.db_management import SSDF
 from utils.logging_utils import logger
 from components.grid.dag.column_definitions import generate_column_definitions
-from components.menu.edit.utils import handle_tab_button_click
+from components.menu.edit.common_utils import handle_tab_button_click, FormComponents
+
 
 class SplitColumn:
     def __init__(self):
-        # 미리 정의된 구분자 옵션
-        self.predefined_delimiters = [
-            {"value": ",", "label": "쉼표 (,)"},
-            {"value": ";", "label": "세미콜론 (;)"},
-            {"value": " ", "label": "공백 ( )"},
-            {"value": "\t", "label": "탭 (\\t)"},
-            {"value": "|", "label": "파이프 (|)"},
-            {"value": "-", "label": "하이픈 (-)"},
-            {"value": "_", "label": "언더스코어 (_)"},
-            {"value": ".", "label": "점 (.)"},
-            {"value": ":", "label": "콜론 (:)"},
-            {"value": "custom", "label": "직접 입력"}
-        ]
-        
-    def button_layout(self):
-        """메뉴에 표시될 버튼 레이아웃"""
-        return dbpc.Button(
-            "Split Column", 
-            id="split-column-btn", 
-            icon="segmented-control", 
-            minimal=True, 
-            outlined=True
-        )
-        
-    def tab_layout(self):
-        """분할 기능 탭 레이아웃"""
-        return dmc.Paper(
-            children=[
-                dmc.Group([
-                    dbpc.EntityTitle(
-                        title="Split Text to Columns", 
-                        heading="H5", 
-                        icon="segmented-control"
-                    )
-                ], grow=True),
-                dmc.Space(h=10),
-                
-                # 소스 컬럼 선택
-                dmc.Select(
-                    id="split-column-source",
-                    label="소스 컬럼 선택",
-                    description="분할할 텍스트가 포함된 컬럼을 선택하세요",
-                    placeholder="컬럼 선택...",
-                    searchable=True,
-                    clearable=False,
-                    data=[],
-                    size="md",
-                    required=True,
-                    leftSection=dbpc.Icon(icon="th-derived"),
-                ),
-                
-                dmc.Space(h=20),
-                
-                # 구분자 기반 분할 옵션
-                html.Div(
-                    id="split-column-delimiter-container",
-                    children=[
-                        dmc.Select(
-                            id="split-column-delimiter-select",
-                            label="구분자 선택",
-                            description="텍스트를 분할할 구분자를 선택하세요",
-                            placeholder="구분자 선택...",
-                            data=self.predefined_delimiters,
-                            value=",",
-                            size="sm",
-                            searchable=True,
-                        ),
-                        dmc.Space(h=10),
-                        # 직접 입력 필드 (선택한 값이 'custom'일 때만 표시)
-                        html.Div(
-                            id="split-column-custom-delimiter-container",
-                            style={"display": "none"},
-                            children=[
-                                dmc.TextInput(
-                                    id="split-column-custom-delimiter",
-                                    label="직접 입력",
-                                    description="분할에 사용할 구분자를 직접 입력하세요",
-                                    placeholder="예: /, #, => 등",
-                                    size="sm",
-                                ),
-                            ],
-                        ),
-                    ]
-                ),
-                
-                dmc.Space(h=20),
-                
-                # 추가 옵션
-                dmc.Group([
-                    dmc.Checkbox(
-                        id="split-column-keep-original",
-                        label="원본 컬럼 유지",
-                        description="분할 후에도 원본 컬럼을 유지합니다",
-                        checked=True,
-                        size="sm",
-                    ),
-                    dmc.Checkbox(
-                        id="split-column-skip-empty",
-                        label="빈 결과 건너뛰기",
-                        description="분할 결과가 빈 문자열인 경우 해당 컬럼을 생성하지 않습니다",
-                        checked=True,
-                        size="sm",
-                    ),
-                ]),
-                
-                dmc.Space(h=20),
-                
-                # 결과 컬럼 이름 설정
-                dmc.RadioGroup(
-                    id="split-column-naming-method",
-                    label="결과 컬럼 이름 지정 방법",
-                    description="분할된 결과 컬럼의 이름 지정 방법을 선택하세요",
-                    value="auto",
-                    children=[
-                        dmc.Radio(value="auto", label="자동 생성 (컬럼명_1, 컬럼명_2, ...)"),
-                        dmc.Radio(value="custom", label="직접 입력"),
-                    ],
-                ),
-                
-                dmc.Space(h=10),
-                
-                # 커스텀 컬럼 이름 입력 (naming_method가 'custom'일 때만 표시)
-                html.Div(
-                    id="split-column-custom-names-container",
-                    style={"display": "none"},
-                    children=[
-                        dmc.TextInput(
-                            id="split-column-custom-names",
-                            label="커스텀 컬럼 이름",
-                            description="쉼표(,)로 구분하여 컬럼 이름을 입력하세요",
-                            placeholder="첫번째컬럼,두번째컬럼,세번째컬럼",
-                            size="sm",
-                        ),
-                    ],
-                ),
-                
-                dmc.Space(h=20),
-                
-                # 미리보기 영역
-                dmc.Paper(
-                    id="split-column-preview-container",
-                    withBorder=True,
-                    p="sm",
-                    style={"maxHeight": "200px", "overflow": "auto"},
-                    children=[
-                        dmc.Text("미리보기: 컬럼과 분할 방법을 선택하면 변환 예시가 표시됩니다.", size="sm", c="dimmed"),
-                    ],
-                ),
-                
-                dmc.Space(h=20),
-                
-                # 적용 버튼
-                dmc.Group([
-                    dbpc.Button(
-                        "Apply", 
-                        id="split-column-apply-btn", 
-                        outlined=True,
-                        icon="tick",
-                        intent="primary"
-                    ),
-                ], justify="center"),
-                
-                # 도움말 섹션
-                dmc.Space(h=20),
-                dmc.Accordion(
-                    value="",
-                    children=[
-                        dmc.AccordionItem(
-                            [
-                                dmc.AccordionControl("도움말"),
-                                dmc.AccordionPanel([
-                                    dmc.Text("1. 분할할 텍스트가 포함된 컬럼을 선택하세요.", size="sm"),
-                                    dmc.Text("2. 구분자를 선택하거나 직접 입력하세요.", size="sm"),
-                                    dmc.Text("3. 결과 컬럼의 이름 지정 방법을 선택하세요.", size="sm"),
-                                    dmc.Text("4. 필요한 추가 옵션을 설정하세요.", size="sm"),
-                                    dmc.Text("5. 미리보기를 확인하고 적용 버튼을 클릭하세요.", size="sm"),
-                                    dmc.Space(h=10),
-                                    dmc.Text("예시:", w=500, size="sm"),
-                                    dmc.Text("- 이메일에서 ID와 도메인 분리: '@' (결과: [id, domain])", size="sm"),
-                                    dmc.Text("- 날짜 형식 분할: '-' (2023-01-30 → [2023, 01, 30])", size="sm"),
-                                    dmc.Text("- IP 주소 분할: '.' (192.168.0.1 → [192, 168, 0, 1])", size="sm"),
-                                ])
-                            ],
-                            value="help"
-                        )
-                    ]
-                ),
-            ],
-            p="md",
-            shadow="sm",
-            radius="xs",
-            withBorder=True
-        )
-        
-    def register_callbacks(self, app):
-        """콜백 함수 등록"""
+        self.form = FormComponents()
 
-        @app.callback(
-            Output("flex-layout", "model", allow_duplicate=True),
-            Output("toaster", "toasts", allow_duplicate=True),
-            Input("split-column-btn", "n_clicks"),
-            State("flex-layout", "model"),
-            prevent_initial_call=True
+        # Predefined delimiter options
+        self.predefined_delimiters = [{"value": ",", "label": "Comma (,)"}, {"value": ";", "label": "Semicolon (;)"}, {"value": " ", "label": "Space ( )"}, {"value": "\t", "label": "Tab (\\t)"}, {"value": "|", "label": "Pipe (|)"}, {"value": "-", "label": "Hyphen (-)"}, {"value": "_", "label": "Underscore (_)"}, {"value": ".", "label": "Dot (.)"}, {"value": ":", "label": "Colon (:)"}, {"value": "custom", "label": "Custom delimiter"}]
+
+        # Split position options
+        self.split_positions = [{"value": "all", "label": "Split at all occurrences"}, {"value": "first", "label": "Split at first occurrence"}, {"value": "last", "label": "Split at last occurrence"}, {"value": "n", "label": "Split at Nth occurrence"}]
+
+    def button_layout(self):
+        """Menu button layout"""
+        return dbpc.Button("Split Column", id="split-column-btn", icon="segmented-control", minimal=True, outlined=True)
+
+    def tab_layout(self):
+        """Enhanced split column tab layout"""
+        return dmc.Stack(
+            [
+                self.form.create_section_card(
+                    title="Split Text to Columns",
+                    icon="segmented-control",
+                    description="Split text data into multiple columns based on delimiters",
+                    children=[
+                        # Source column selection
+                        self.form.create_column_selector(id="split-column-source", label="Source Column", description="Select the column containing text to split", multi=False, data=[]),
+                        dmc.Space(h=20),
+                        # Split method tabs
+                        dmc.Tabs(
+                            id="split-method-tabs",
+                            value="delimiter",
+                            children=[
+                                dmc.TabsList([dmc.TabsTab("By Delimiter", value="delimiter"), dmc.TabsTab("By Position", value="position"), dmc.TabsTab("Extract Pattern", value="pattern")]),
+                                # Delimiter-based split
+                                dmc.TabsPanel(
+                                    value="delimiter",
+                                    children=[
+                                        dmc.Space(h=15),
+                                        dmc.Select(id="split-column-delimiter-select", label="Delimiter", description="Choose or enter a delimiter", data=self.predefined_delimiters, value=".", searchable=True, clearable=False),
+                                        # Custom delimiter input
+                                        html.Div(
+                                            id="split-column-custom-delimiter-container",
+                                            style={"display": "none"},
+                                            children=[
+                                                dmc.Space(h=10),
+                                                dmc.TextInput(
+                                                    id="split-column-custom-delimiter",
+                                                    label="Custom Delimiter",
+                                                    description="Enter your custom delimiter",
+                                                    placeholder="e.g., //, #, =>",
+                                                ),
+                                            ],
+                                        ),
+                                        dmc.Space(h=15),
+                                        # Split position selection
+                                        dmc.RadioGroup(id="split-position", label="Split Position", description="Where to split the text", value="all", children=[dmc.Radio(label=opt["label"], value=opt["value"]) for opt in self.split_positions]),
+                                        # N-th occurrence input
+                                        html.Div(id="split-nth-container", style={"display": "none"}, children=[dmc.Space(h=10), dmc.NumberInput(id="split-nth-value", label="Occurrence Number", description="Which occurrence to split at (1-based)", value=1, min=1, step=1)]),
+                                        dmc.Space(h=15),
+                                        # Extract specific part option
+                                        dmc.Checkbox(id="extract-part-checkbox", label="Extract specific part only", description="Extract a specific part instead of creating multiple columns", checked=False),
+                                        html.Div(id="extract-part-container", style={"display": "none"}, children=[dmc.Space(h=10), dmc.RadioGroup(id="extract-part-position", label="Part to Extract", value="last", children=[dmc.Radio("First part", value="first"), dmc.Radio("Last part", value="last"), dmc.Radio("All except last", value="all_except_last"), dmc.Radio("Specific index", value="index")]), html.Div(id="extract-index-container", style={"display": "none"}, children=[dmc.NumberInput(id="extract-index-value", label="Part Index (0-based)", value=0, min=0)])]),
+                                    ],
+                                ),
+                                # Position-based split
+                                dmc.TabsPanel(value="position", children=[dmc.Space(h=15), dmc.NumberInput(id="split-position-value", label="Split at Position", description="Character position to split at", value=5, min=1)]),
+                                # Pattern extraction
+                                dmc.TabsPanel(value="pattern", children=[dmc.Space(h=15), dmc.TextInput(id="split-pattern-regex", label="Regular Expression", description="Extract text matching this pattern", placeholder=r"e.g., \d+, [A-Z]+, \w+", value=r"\.xm[np]\d*$"), dmc.Space(h=10), dmc.Alert("Example patterns:\n" "• \\.xm[np]\\d*$ - Extract MOS type (xmn0, xmp1, etc.)\n" "• ^[^.]+\\. - Extract first part with dot\n" "• [^.]+$ - Extract last part after any dot", color="blue", variant="light")]),
+                            ],
+                        ),
+                        dmc.Space(h=20),
+                        # Additional options
+                        dmc.Group([dmc.Checkbox(id="split-column-keep-original", label="Keep original column", checked=True), dmc.Checkbox(id="split-column-skip-empty", label="Skip empty results", checked=True)]),
+                        dmc.Space(h=20),
+                        # Column naming
+                        dmc.RadioGroup(id="split-column-naming-method", label="Result Column Naming", value="auto", children=[dmc.Radio("Auto generate (column_1, column_2, ...)", value="auto"), dmc.Radio("Custom names", value="custom")]),
+                        html.Div(id="split-column-custom-names-container", style={"display": "none"}, children=[dmc.Space(h=10), dmc.TextInput(id="split-column-custom-names", label="Custom Column Names", description="Comma-separated names for result columns", placeholder="first_part,second_part,third_part")]),
+                    ],
+                ),
+                # Preview section
+                self.form.create_preview_section(id="split-column-preview-container"),
+                # Action buttons
+                dmc.Group([self.form.create_action_button(id="split-column-apply-btn", label="Apply Split", icon="tick")], justify="center"),
+                # Help section
+                self.form.create_help_section(["Select the column containing text to split", "Choose split method: delimiter, position, or pattern", "Configure split options (position, extract specific part)", "Preview the results before applying", "Click Apply to create new columns", "Example: x_edge.xlog2.xmn0 → x_edge.xlog2 (extract all except last)"]),
+            ],
+            gap="md",
         )
+
+    def register_callbacks(self, app):
+        """Register all callbacks for split column functionality"""
+
+        @app.callback(Output("flex-layout", "model", allow_duplicate=True), Output("toaster", "toasts", allow_duplicate=True), Input("split-column-btn", "n_clicks"), State("flex-layout", "model"), prevent_initial_call=True)
         def handle_split_column_button_click(n_clicks, current_model):
-            """Add Row 버튼 클릭 시 우측 패널에 탭 추가"""
+            """Handle split column button click"""
             return handle_tab_button_click(n_clicks, current_model, "split-column-tab", "Split Column")
 
-
-        @app.callback(
-            Output("split-column-source", "data"),
-            Input("split-column-btn", "n_clicks"),
-            State("aggrid-table", "columnDefs"),
-            prevent_initial_call=True
-        )
+        @app.callback(Output("split-column-source", "data"), Input("split-column-btn", "n_clicks"), State("aggrid-table", "columnDefs"), prevent_initial_call=True)
         def update_column_list(n_clicks, columnDefs):
-            """Split Column 버튼 클릭 시 컬럼 목록 로드"""
+            """Update column list for source selection"""
             if n_clicks is None or not columnDefs:
                 return []
-                
-            # 보호할 컬럼 리스트 (시스템 컬럼)
+
             protected_columns = ["uniqid", "group", "childCount"]
-            
-            # 문자열 타입 컬럼만 필터링
             df = SSDF.dataframe
+
             text_columns = []
-            
             for col in df.columns:
                 if col not in protected_columns:
                     col_dtype = df[col].dtype
-                    if col_dtype == pl.Utf8 or col_dtype == pl.String or col_dtype == pl.Categorical:
+                    if col_dtype in [pl.Utf8, pl.String, pl.Categorical]:
                         text_columns.append({"label": col, "value": col})
-            
+
             return text_columns
-                
-        @app.callback(
-            Output("split-column-custom-delimiter-container", "style"),
-            Input("split-column-delimiter-select", "value"),
-            prevent_initial_call=True
-        )
-        def toggle_custom_delimiter_input(delimiter):
-            """직접 입력을 선택한 경우 커스텀 구분자 입력 필드 표시"""
-            if delimiter == "custom":
-                return {"display": "block"}
-            return {"display": "none"}
-            
-        @app.callback(
-            Output("split-column-custom-names-container", "style"),
-            Input("split-column-naming-method", "value"),
-            prevent_initial_call=True
-        )
-        def toggle_custom_names_input(naming_method):
-            """직접 입력을 선택한 경우 커스텀 컬럼 이름 입력 필드 표시"""
-            if naming_method == "custom":
-                return {"display": "block"}
-            return {"display": "none"}
-            
-        @app.callback(
-            Output("split-column-preview-container", "children"),
-            [
-                Input("split-column-source", "value"),
-                Input("split-column-delimiter-select", "value"),
-                Input("split-column-custom-delimiter", "value"),
-                Input("split-column-naming-method", "value"),
-                Input("split-column-custom-names", "value"),
-                Input("split-column-skip-empty", "checked")
-            ],
-            prevent_initial_call=True
-        )
-        def update_preview(source_column, delimiter_select, custom_delimiter, 
-                          naming_method, custom_names, skip_empty):
-            """선택한 설정에 따라 미리보기 업데이트"""
+
+        @app.callback(Output("split-column-custom-delimiter-container", "style"), Input("split-column-delimiter-select", "value"), prevent_initial_call=True)
+        def toggle_custom_delimiter(delimiter):
+            """Show/hide custom delimiter input"""
+            return {"display": "block" if delimiter == "custom" else "none"}
+
+        @app.callback(Output("split-nth-container", "style"), Input("split-position", "value"), prevent_initial_call=True)
+        def toggle_nth_input(position):
+            """Show/hide nth occurrence input"""
+            return {"display": "block" if position == "n" else "none"}
+
+        @app.callback(Output("extract-part-container", "style"), Input("extract-part-checkbox", "checked"), prevent_initial_call=True)
+        def toggle_extract_options(checked):
+            """Show/hide extract part options"""
+            return {"display": "block" if checked else "none"}
+
+        @app.callback(Output("extract-index-container", "style"), Input("extract-part-position", "value"), prevent_initial_call=True)
+        def toggle_extract_index(position):
+            """Show/hide extract index input"""
+            return {"display": "block" if position == "index" else "none"}
+
+        @app.callback(Output("split-column-custom-names-container", "style"), Input("split-column-naming-method", "value"), prevent_initial_call=True)
+        def toggle_custom_names(naming_method):
+            """Show/hide custom names input"""
+            return {"display": "block" if naming_method == "custom" else "none"}
+
+        @app.callback(Output("split-column-preview-container", "children"), [Input("split-column-source", "value"), Input("split-method-tabs", "value"), Input("split-column-delimiter-select", "value"), Input("split-column-custom-delimiter", "value"), Input("split-position", "value"), Input("split-nth-value", "value"), Input("extract-part-checkbox", "checked"), Input("extract-part-position", "value"), Input("extract-index-value", "value"), Input("split-position-value", "value"), Input("split-pattern-regex", "value"), Input("split-column-skip-empty", "checked")], prevent_initial_call=True)
+        def update_preview(source_column, method, delimiter_select, custom_delimiter, split_pos, nth_value, extract_part, extract_position, extract_index, position_value, pattern_regex, skip_empty):
+            """Update preview based on current settings"""
             if not source_column:
-                return [dmc.Text("미리보기: 소스 컬럼을 선택하세요.", size="sm", c="dimmed")]
-                
+                return [dmc.Text("Select a source column", size="sm", c="dimmed")]
+
             try:
                 df = SSDF.dataframe
-                
-                # 소스 컬럼에서 최대 5개의 샘플 값 선택 (null이 아닌 값 중에서)
+
+                # Get sample values
                 sample_values = []
                 count = 0
-                
                 for val in df[source_column]:
                     if val is not None and val != "" and count < 5:
                         sample_values.append(val)
                         count += 1
-                        
-                if not sample_values:
-                    return [dmc.Text("선택한 컬럼에 표시할 샘플 데이터가 없습니다.", size="sm", c="dimmed")]
-                
-                # 구분자 설정
-                actual_delimiter = custom_delimiter if delimiter_select == "custom" else delimiter_select
-                if not actual_delimiter and delimiter_select == "custom":
-                    return [dmc.Text("미리보기: 직접 입력 구분자를 입력하세요.", size="sm", c="dimmed")]
-                
-                # 각 샘플 값에 대해 분할 수행
-                split_results = []
-                for val in sample_values:
-                    split_values = str(val).split(actual_delimiter)
-                    # 빈 결과 건너뛰기 옵션이 활성화된 경우 빈 문자열 제거
-                    if skip_empty:
-                        split_values = [v for v in split_values if v]
-                    split_results.append((val, split_values))
-                
-                # 컬럼 이름 생성
-                column_names = []
-                if naming_method == "auto":
-                    # 자동 생성 (최대 분할 개수에 맞춰 생성)
-                    max_splits = max(len(split_values) for _, split_values in split_results)
-                    column_names = [f"{source_column}_{i+1}" for i in range(max_splits)]
-                else:
-                    # 사용자 정의 이름
-                    if custom_names:
-                        column_names = [name.strip() for name in custom_names.split(",")]
-                    else:
-                        return [dmc.Text("미리보기: 직접 입력 컬럼 이름을 입력하세요.", size="sm", c="dimmed")]
-                
-                # 미리보기 테이블 생성
-                preview_content = []
-                
-                # 설정 정보 요약
-                delimiter_display = actual_delimiter.replace("\t", "\\t").replace(" ", "공백")
-                method_info = f"구분자: '{delimiter_display}'"
-                
-                preview_content.append(
-                    dmc.Text(
-                        f"컬럼 '{source_column}'의 분할 미리보기 - {method_info}:", 
-                        size="sm", 
-                        w=500,
-                        mb="xs"
-                    )
-                )
-                
-                # 각 샘플에 대한 미리보기 테이블 생성
-                for i, (original, split_values) in enumerate(split_results):
-                    # 헤더 생성
-                    header_cells = [
-                        dmc.TableTh("원본", style={"width": "30%"}),
-                    ]
-                    
-                    for j, name in enumerate(column_names):
-                        if j < len(split_values):
-                            header_cells.append(dmc.TableTh(name))
-                        else:
-                            header_cells.append(dmc.TableTh(f"{name} (빈 값)"))
-                    
-                    # 데이터 셀 생성
-                    data_cells = [
-                        dmc.TableTd(original),
-                    ]
-                    
-                    for j, name in enumerate(column_names):
-                        if j < len(split_values):
-                            data_cells.append(dmc.TableTd(split_values[j]))
-                        else:
-                            data_cells.append(dmc.TableTd("-", style={"color": "lightgray"}))
-                    
-                    # 테이블 생성
-                    preview_table = dmc.Table(
-                        [
-                            dmc.TableThead(dmc.TableTr(header_cells)),
-                            dmc.TableTbody([dmc.TableTr(data_cells)]),
-                        ],
-                        striped=True,
-                        highlightOnHover=True,
-                        withTableBorder=True,
-                        withColumnBorders=True,
-                        mb="md"
-                    )
-                    
-                    preview_content.append(preview_table)
-                
-                return preview_content
-                
-            except Exception as e:
-                logger.error(f"미리보기 생성 오류: {str(e)}")
-                return [
-                    dmc.Alert(
-                        f"미리보기를 생성할 수 없습니다: {str(e)}",
-                        color="red",
-                        variant="light"
-                    )
-                ]
 
-        @app.callback(
-            Output("toaster", "toasts", allow_duplicate=True),
-            Output("aggrid-table", "columnDefs", allow_duplicate=True),
-            [
-                Input("split-column-apply-btn", "n_clicks")
-            ],
-            [
-                State("split-column-source", "value"),
-                State("split-column-delimiter-select", "value"),
-                State("split-column-custom-delimiter", "value"),
-                State("split-column-naming-method", "value"),
-                State("split-column-custom-names", "value"),
-                State("split-column-keep-original", "checked"),
-                State("split-column-skip-empty", "checked")
-            ],
-            prevent_initial_call=True
-        )
-        def apply_split_column(n_clicks, source_column, delimiter_select, custom_delimiter, 
-                            naming_method, custom_names, keep_original, skip_empty):
-            """분할 적용"""
+                if not sample_values:
+                    return [dmc.Text("No sample data available", size="sm", c="dimmed")]
+
+                # Process based on method
+                preview_results = []
+
+                for val in sample_values:
+                    if method == "delimiter":
+                        # Get actual delimiter
+                        actual_delimiter = custom_delimiter if delimiter_select == "custom" else delimiter_select
+                        if not actual_delimiter:
+                            return [dmc.Text("Please enter a delimiter", size="sm", c="dimmed")]
+
+                        result = self._split_by_delimiter(val, actual_delimiter, split_pos, nth_value, extract_part, extract_position, extract_index, skip_empty)
+
+                    elif method == "position":
+                        result = self._split_by_position(val, position_value)
+
+                    elif method == "pattern":
+                        result = self._split_by_pattern(val, pattern_regex)
+
+                    preview_results.append((val, result))
+
+                # Create preview table
+                return self._create_preview_table(preview_results, extract_part)
+
+            except Exception as e:
+                logger.error(f"Preview generation error: {str(e)}")
+                return [dmc.Alert(f"Error: {str(e)}", color="red")]
+
+        @app.callback(Output("toaster", "toasts", allow_duplicate=True), Output("aggrid-table", "columnDefs", allow_duplicate=True), Output("split-column-apply-btn", "loading"), [Input("split-column-apply-btn", "n_clicks")], [State("split-column-source", "value"), State("split-method-tabs", "value"), State("split-column-delimiter-select", "value"), State("split-column-custom-delimiter", "value"), State("split-position", "value"), State("split-nth-value", "value"), State("extract-part-checkbox", "checked"), State("extract-part-position", "value"), State("extract-index-value", "value"), State("split-position-value", "value"), State("split-pattern-regex", "value"), State("split-column-naming-method", "value"), State("split-column-custom-names", "value"), State("split-column-keep-original", "checked"), State("split-column-skip-empty", "checked")], prevent_initial_call=True)
+        def apply_split_column(n_clicks, source_column, method, delimiter_select, custom_delimiter, split_pos, nth_value, extract_part, extract_position, extract_index, position_value, pattern_regex, naming_method, custom_names, keep_original, skip_empty):
+            """Apply the split column operation"""
             if not n_clicks or not source_column:
                 raise exceptions.PreventUpdate
-                
+
             try:
-                # 원본 데이터프레임 복사
                 df = SSDF.dataframe.clone()
-                
-                # 구분자 설정
-                actual_delimiter = custom_delimiter if delimiter_select == "custom" else delimiter_select
-                if not actual_delimiter and delimiter_select == "custom":
-                    return ([dbpc.Toast(
-                        message="직접 입력 구분자를 입력하세요.",
-                        intent="warning",
-                        icon="warning-sign"
-                    )], no_update)
-                
-                # 분할 함수 정의
-                def split_text(text):
-                    if text is None or text == "":
-                        return []
-                    parts = str(text).split(actual_delimiter)
-                    if skip_empty:
-                        return [p for p in parts if p]
-                    return parts
-                
-                # 각 행에 대해 분할 처리
-                split_results = []
-                max_splits = 0
-                
-                # 샘플 데이터로 최대 분할 수 확인 (모든 행을 처리하지 않고 효율적으로)
-                sample_size = min(1000, df.height)  # 최대 1000개 행 샘플링
-                sample_df = df.slice(0, sample_size)
-                
-                for val in sample_df[source_column]:
-                    split_parts = split_text(val)
-                    split_results.append(split_parts)
-                    max_splits = max(max_splits, len(split_parts))
-                
-                # 최대 분할 수가 0인 경우 (모든 결과가 빈 문자열인 경우)
-                if max_splits == 0:
-                    return ([dbpc.Toast(
-                        message=f"분할 결과가 없습니다. 다른 구분자를 시도해보세요.",
-                        intent="warning",
-                        icon="warning-sign"
-                    )], no_update)
-                
-                # 컬럼 이름 생성
-                if naming_method == "auto":
-                    # 자동 생성
-                    column_names = [f"{source_column}_{i+1}" for i in range(max_splits)]
+
+                if method == "delimiter":
+                    # Apply delimiter-based split
+                    actual_delimiter = custom_delimiter if delimiter_select == "custom" else delimiter_select
+                    if not actual_delimiter:
+                        return ([dbpc.Toast(message="Please specify a delimiter", intent="warning", icon="warning-sign")], no_update, False)
+
+                    new_columns = self._apply_delimiter_split(df, source_column, actual_delimiter, split_pos, nth_value, extract_part, extract_position, extract_index, skip_empty, naming_method, custom_names)
+
+                elif method == "position":
+                    new_columns = self._apply_position_split(df, source_column, position_value, naming_method, custom_names)
+
+                elif method == "pattern":
+                    new_columns = self._apply_pattern_split(df, source_column, pattern_regex, naming_method, custom_names)
+
+                # Remove original column if not keeping
+                if not keep_original and not extract_part:
+                    SSDF.dataframe = SSDF.dataframe.drop(source_column)
+
+                # Update dataframe
+                updated_columnDefs = generate_column_definitions(SSDF.dataframe)
+
+                # Success message
+                if extract_part:
+                    message = f"Successfully extracted data to column '{new_columns[0]}'"
                 else:
-                    # 사용자 정의 이름
-                    if custom_names:
-                        column_names = [name.strip() for name in custom_names.split(",")]
-                        # 사용자가 제공한 이름이 충분하지 않은 경우, 나머지는 자동 생성
-                        if len(column_names) < max_splits:
-                            column_names.extend([f"{source_column}_{i+1}" for i in range(len(column_names), max_splits)])
-                    else:
-                        column_names = [f"{source_column}_{i+1}" for i in range(max_splits)]
-                
-                # 이미 존재하는 컬럼명 확인 및 처리
-                existing_columns = set(df.columns)
-                for i, name in enumerate(column_names):
-                    if name in existing_columns:
-                        # 중복 이름이 있는 경우 이름 수정
-                        j = 1
-                        new_name = f"{name}_{j}"
-                        while new_name in existing_columns:
-                            j += 1
-                            new_name = f"{name}_{j}"
-                        column_names[i] = new_name
-                
-                # 각 분할 결과를 새 컬럼으로 추가
-                for i, col_name in enumerate(column_names):
-                    if i < max_splits:
-                        # i번째 요소 추출 함수
-                        def get_split_item(text, idx=i):
-                            parts = split_text(text)
-                            return parts[idx] if idx < len(parts) else None
-                        
-                        # 새 컬럼 추가
-                        df = df.with_columns(
-                            pl.col(source_column).map_elements(lambda x: get_split_item(x), return_dtype=pl.Utf8).alias(col_name)
-                        )
-                
-                # 원본 컬럼 제거 (keep_original이 False인 경우)
-                if not keep_original:
-                    df = df.drop(source_column)
-                
-                # 성공 메시지 및 변경된 데이터프레임 반영
-                SSDF.dataframe = df
-                updated_columnDefs = generate_column_definitions(df)
-                
-                # 구분자 표시 생성
-                delimiter_display = actual_delimiter.replace("\t", "\\t").replace(" ", "공백")
-                
-                return ([dbpc.Toast(
-                    message=f"컬럼 '{source_column}'이(가) 구분자 '{delimiter_display}'로 {len(column_names)}개 컬럼으로 분할되었습니다.",
-                    intent="success",
-                    icon="endorsed",
-                    timeout=3000
-                )], updated_columnDefs)
-                
+                    message = f"Successfully split into {len(new_columns)} columns: {', '.join(new_columns)}"
+
+                return ([dbpc.Toast(message=message, intent="success", icon="endorsed", timeout=3000)], updated_columnDefs, False)
+
             except Exception as e:
-                # 전체 처리 오류
-                logger.error(f"컬럼 분할 처리 오류: {str(e)}")
-                return ([dbpc.Toast(
-                    message=f"컬럼 분할 처리 오류: {str(e)}",
-                    intent="danger",
-                    icon="error"
-                )], no_update)
+                logger.error(f"Split column error: {str(e)}")
+                return ([dbpc.Toast(message=f"Error: {str(e)}", intent="danger", icon="error")], no_update, False)
+
+    def _split_by_delimiter(self, text: str, delimiter: str, split_pos: str, nth_value: int, extract_part: bool, extract_position: str, extract_index: int, skip_empty: bool) -> List[str]:
+        """Split text by delimiter with various options"""
+        if split_pos == "all":
+            parts = text.split(delimiter)
+        elif split_pos == "first":
+            parts = text.split(delimiter, 1)
+        elif split_pos == "last":
+            # Split at last occurrence
+            parts = text.rsplit(delimiter, 1)
+        elif split_pos == "n":
+            # Split at nth occurrence
+            splits = text.split(delimiter)
+            if len(splits) > nth_value:
+                parts = [delimiter.join(splits[:nth_value]), delimiter.join(splits[nth_value:])]
+            else:
+                parts = [text]
+
+        if skip_empty:
+            parts = [p for p in parts if p]
+
+        if extract_part:
+            if extract_position == "first":
+                return [parts[0]] if parts else [""]
+            elif extract_position == "last":
+                return [parts[-1]] if parts else [""]
+            elif extract_position == "all_except_last":
+                if len(parts) > 1:
+                    return [delimiter.join(parts[:-1])]
+                return [""]
+            elif extract_position == "index":
+                if 0 <= extract_index < len(parts):
+                    return [parts[extract_index]]
+                return [""]
+
+        return parts
+
+    def _split_by_position(self, text: str, position: int) -> List[str]:
+        """Split text at specific position"""
+        if position >= len(text):
+            return [text, ""]
+        return [text[:position], text[position:]]
+
+    def _split_by_pattern(self, text: str, pattern: str) -> List[str]:
+        """Extract text matching pattern"""
+        try:
+            match = re.search(pattern, text)
+            if match:
+                return [match.group()]
+            return [""]
+        except re.error:
+            return [""]
+
+    def _create_preview_table(self, results: List[Tuple[str, List[str]]], extract_only: bool) -> List[Any]:
+        """Create preview table for split results"""
+        preview_content = []
+
+        # Determine maximum parts
+        max_parts = max(len(result[1]) for result in results)
+
+        # Create table headers
+        headers = [dmc.TableTh("Original")]
+        if extract_only:
+            headers.append(dmc.TableTh("Extracted"))
+        else:
+            for i in range(max_parts):
+                headers.append(dmc.TableTh(f"Part {i+1}"))
+
+        # Create table rows
+        rows = []
+        for original, parts in results:
+            cells = [dmc.TableTd(original)]
+            for i in range(max_parts if not extract_only else 1):
+                if i < len(parts):
+                    cells.append(dmc.TableTd(parts[i]))
+                else:
+                    cells.append(dmc.TableTd("-", style={"color": "gray"}))
+            rows.append(dmc.TableTr(cells))
+
+        preview_table = dmc.Table([dmc.TableThead(dmc.TableTr(headers)), dmc.TableTbody(rows)], striped=True, highlightOnHover=True, withTableBorder=True, withColumnBorders=True)
+
+        preview_content.append(preview_table)
+        return preview_content
+
+    def _apply_delimiter_split(self, df: pl.DataFrame, source_column: str, delimiter: str, split_pos: str, nth_value: int, extract_part: bool, extract_position: str, extract_index: int, skip_empty: bool, naming_method: str, custom_names: str) -> List[str]:
+        """Apply delimiter-based split to dataframe"""
+
+        # Define split function
+        def split_text(text):
+            if text is None or text == "":
+                return []
+            return self._split_by_delimiter(str(text), delimiter, split_pos, nth_value, extract_part, extract_position, extract_index, skip_empty)
+
+        # Apply split to get max parts
+        split_results = []
+        max_parts = 0
+
+        for val in df[source_column]:
+            parts = split_text(val)
+            split_results.append(parts)
+            max_parts = max(max_parts, len(parts))
+
+        # Generate column names
+        if extract_part:
+            if naming_method == "custom" and custom_names:
+                column_names = [custom_names.strip()]
+            else:
+                if extract_position == "all_except_last":
+                    column_names = [f"{source_column}_prefix"]
+                else:
+                    column_names = [f"{source_column}_extracted"]
+        else:
+            if naming_method == "auto":
+                column_names = [f"{source_column}_{i+1}" for i in range(max_parts)]
+            else:
+                names = [name.strip() for name in custom_names.split(",")]
+                column_names = names[:max_parts]
+                if len(names) < max_parts:
+                    column_names.extend([f"{source_column}_{i+1}" for i in range(len(names), max_parts)])
+
+            # Add new columns to dataframe
+            for i, col_name in enumerate(column_names):
+                values = []
+                for parts in split_results:
+                    if i < len(parts):
+                        values.append(parts[i])
+                    else:
+                        values.append(None)
+
+                SSDF.dataframe = SSDF.dataframe.with_columns(pl.Series(name=col_name, values=values))
+
+        return column_names
+
+    def _apply_position_split(self, df: pl.DataFrame, source_column: str, position: int, naming_method: str, custom_names: str) -> List[str]:
+        """Apply position-based split to dataframe"""
+
+        # Generate column names
+        if naming_method == "auto":
+            column_names = [f"{source_column}_left", f"{source_column}_right"]
+        else:
+            names = [name.strip() for name in custom_names.split(",")]
+            column_names = names[:2] if len(names) >= 2 else [f"{source_column}_left", f"{source_column}_right"]
+
+        # Apply split
+        SSDF.dataframe = SSDF.dataframe.with_columns([pl.col(source_column).str.slice(0, position).alias(column_names[0]), pl.col(source_column).str.slice(position, None).alias(column_names[1])])
+
+        return column_names
+
+    def _apply_pattern_split(self, df: pl.DataFrame, source_column: str, pattern: str, naming_method: str, custom_names: str) -> List[str]:
+        """Apply pattern-based extraction to dataframe"""
+
+        # Generate column name
+        if naming_method == "auto":
+            column_name = f"{source_column}_extracted"
+        else:
+            column_name = custom_names.strip() if custom_names else f"{source_column}_extracted"
+
+        # Apply pattern extraction
+        SSDF.dataframe = SSDF.dataframe.with_columns(pl.col(source_column).str.extract(pattern, group_index=0).alias(column_name))
+
+        return [column_name]

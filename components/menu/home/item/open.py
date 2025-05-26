@@ -66,7 +66,7 @@ class Opener:
                     [
                         dmc.TextInput(
                             # value=self.init_csv,
-                            value="C:\\Users\\deepw\\OneDrive\\문서\\Python\\olympics.csv",
+                            value="C:\\Users\\deepw\\OneDrive\\문서\\Python\\mos.csv",
                             label="Open하려는 파일 경로를 입력하세요.",
                             leftSection=dbpc.Button(
                                 id="open-csv-file-search",
@@ -100,30 +100,23 @@ class Opener:
 
     def _register_workspace_upload_callback(self, app):
 
-        @app.callback(
-            Output("flex-layout", "model", allow_duplicate=True),
-            Input("open-workspace-btn", "n_clicks"),
-            State("flex-layout", "model"),
-            prevent_initial_call=True
-        )
+        @app.callback(Output("flex-layout", "model", allow_duplicate=True), Input("open-workspace-btn", "n_clicks"), State("flex-layout", "model"), prevent_initial_call=True)
         def toggle_workspace_panel(n_clicks, current_model):
             print("toggle_workspace_panel")
             if n_clicks is None:
                 raise exceptions.PreventUpdate
-            
+
             patched_model = Patch()
-            
+
             # 왼쪽 경계의 인덱스 찾기
             left_border_index = next((i for i, b in enumerate(current_model["borders"]) if b["location"] == "left"), None)
-            
+
             if left_border_index is not None:
                 # 현재 표시 상태 확인 및 토글
                 current_show = current_model["borders"][left_border_index].get("show", True)
                 patched_model["borders"][left_border_index]["show"] = not current_show
-            
+
             return patched_model
-
-
 
     def _register_local_upload_callback(self, app):
 
@@ -237,20 +230,8 @@ class Opener:
                     ],
                     False,
                     False,
-
-                    ret_pre_defined_value
+                    ret_pre_defined_value,
                 )
 
             except Exception as e:
-                return (
-                    no_update,
-                    no_update,
-                    no_update,
-                    no_update,
-                    no_update,
-                    no_update,
-                    [dbpc.Toast(message=f"Error: {str(e)}", intent="danger", icon="error")],
-                    no_update,
-                    False,
-                    no_update
-                )
+                return (no_update, no_update, no_update, no_update, no_update, no_update, [dbpc.Toast(message=f"Error: {str(e)}", intent="danger", icon="error")], no_update, False, no_update)

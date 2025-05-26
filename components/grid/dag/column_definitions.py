@@ -4,6 +4,7 @@ from enum import Enum
 
 SYSTEM_COLUMNS = ["uniqid", "waiver", "user", "group", "childCount", "tree_group"]
 
+
 class ColumnType(Enum):
     NUMERIC = "numeric"
     STRING = "text"
@@ -59,31 +60,30 @@ def generate_waiver_column_definition(column_name: str) -> Dict[str, Any]:
 
 
 def generate_column_definition(
-  column_name: str,
-  column_expr: pl.Expr,
-  col_hide: List[str] = [],
-  cellClassRules: Dict[str, str] = None,
-  is_editable: bool = False,
-  enable_sorting: bool = True,  # 정렬 활성화 파라미터 추가
+    column_name: str,
+    column_expr: pl.Expr,
+    col_hide: List[str] = [],
+    cellClassRules: Dict[str, str] = None,
+    is_editable: bool = False,
+    enable_sorting: bool = True,  # 정렬 활성화 파라미터 추가
 ) -> Dict[str, Any]:
-  if column_name == "waiver":
-    return generate_waiver_column_definition(column_name)
+    if column_name == "waiver":
+        return generate_waiver_column_definition(column_name)
 
-  col_def = {
-    "headerName": column_name,
-    "field": column_name,
-    "cellDataType": ("text" if determine_column_type(column_expr) == ColumnType.STRING else "number"),
-    "hide": column_name in col_hide,
-    "editable": is_editable,
-    "headerComponent": "EditableHeaderComponent",
-    "sortable": enable_sorting,  # 정렬 가능 여부 설정
-  }
+    col_def = {
+        "headerName": column_name,
+        "field": column_name,
+        "cellDataType": ("text" if determine_column_type(column_expr) == ColumnType.STRING else "number"),
+        "hide": column_name in col_hide,
+        "editable": is_editable,
+        "headerComponent": "EditableHeaderComponent",
+        "sortable": enable_sorting,  # 정렬 가능 여부 설정
+    }
 
-  if cellClassRules:
-    col_def["cellClassRules"] = cellClassRules
+    if cellClassRules:
+        col_def["cellClassRules"] = cellClassRules
 
-  return col_def
-
+    return col_def
 
 
 def generate_column_definitions(df: pl.DataFrame, col_hide: List[str] = []) -> List[Dict[str, Any]]:

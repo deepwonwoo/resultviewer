@@ -6,22 +6,13 @@ from utils.data_processing import displaying_df
 from utils.db_management import SSDF
 from utils.logging_utils import logger
 from components.grid.dag.column_definitions import generate_column_definitions, SYSTEM_COLUMNS
-from components.menu.edit.utils import find_tab_in_layout, handle_tab_button_click
+from components.menu.edit.common_utils import find_tab_in_layout, handle_tab_button_click
 
 
 class FillNanValues:
     def __init__(self):
         # 대체 방법 옵션
-        self.fill_methods = [
-            {"value": "value", "label": "특정 값으로 대체"},
-            {"value": "zero", "label": "0으로 대체"},
-            {"value": "mean", "label": "평균값으로 대체 (숫자 컬럼만)"},
-            {"value": "median", "label": "중앙값으로 대체 (숫자 컬럼만)"},
-            {"value": "mode", "label": "최빈값으로 대체"},
-            {"value": "forward", "label": "앞의 값으로 대체 (forward fill)"},
-            {"value": "backward", "label": "뒤의 값으로 대체 (backward fill)"},
-            {"value": "empty_string", "label": "빈 문자열로 대체 (문자열 컬럼만)"}
-        ]
+        self.fill_methods = [{"value": "value", "label": "특정 값으로 대체"}, {"value": "zero", "label": "0으로 대체"}, {"value": "mean", "label": "평균값으로 대체 (숫자 컬럼만)"}, {"value": "median", "label": "중앙값으로 대체 (숫자 컬럼만)"}, {"value": "mode", "label": "최빈값으로 대체"}, {"value": "forward", "label": "앞의 값으로 대체 (forward fill)"}, {"value": "backward", "label": "뒤의 값으로 대체 (backward fill)"}, {"value": "empty_string", "label": "빈 문자열로 대체 (문자열 컬럼만)"}]
 
     def button_layout(self):
         return dbpc.Button("Fill NaN Values", id="fill-nan-btn", icon="edit", minimal=True, outlined=True)
@@ -169,11 +160,7 @@ class FillNanValues:
                 return []
 
             # 컬럼 필터링 (보호할 컬럼 제외)
-            column_data = [
-                {"label": col["field"], "value": col["field"]}
-                for col in columnDefs
-                if col["field"] not in SYSTEM_COLUMNS
-            ]
+            column_data = [{"label": col["field"], "value": col["field"]} for col in columnDefs if col["field"] not in SYSTEM_COLUMNS]
 
             return column_data
 
@@ -218,12 +205,12 @@ class FillNanValues:
                     # 컬럼의 NaN/Null 값 정보
                     null_count = df[col].null_count()
                     nan_count = 0
-                    
+
                     # -99999 값 (현재 대체되고 있는 NaN/Null) 개수 확인
                     temp_neg_count = 0
                     if dtype in [pl.Float64, pl.Float32, pl.Int64, pl.Int32, pl.UInt32, pl.UInt64]:
                         temp_neg_count = df.filter(pl.col(col) == -99999).height
-                    
+
                     total_count = len(df[col])
                     missing_percent = ((null_count + nan_count + temp_neg_count) / total_count * 100) if total_count > 0 else 0
 
@@ -306,7 +293,7 @@ class FillNanValues:
 
                 # 최대 5개의 샘플 값 선택 (최소 하나 이상의 NaN/Null 값 포함)
                 sample_rows = []
-                
+
                 # NaN/-99999 값이 포함된 행 먼저 찾기
                 if dtype in [pl.Float64, pl.Float32, pl.Int64, pl.Int32, pl.UInt32, pl.UInt64]:
                     nan_rows = df.filter((pl.col(col).is_null()) | (pl.col(col) == -99999)).head(3)
@@ -316,12 +303,12 @@ class FillNanValues:
                     nan_rows = df.filter(pl.col(col).is_null()).head(3)
                     if len(nan_rows) > 0:
                         sample_rows.extend(nan_rows.to_dicts())
-                
+
                 # 일반 값이 포함된 행 추가
                 normal_rows = df.filter(~pl.col(col).is_null() & (pl.col(col) != -99999)).head(2)
                 if len(normal_rows) > 0:
                     sample_rows.extend(normal_rows.to_dicts())
-                
+
                 # 샘플 행이 없으면 일반 행만 표시
                 if not sample_rows:
                     sample_rows = df.head(5).to_dicts()
@@ -340,7 +327,7 @@ class FillNanValues:
                     else:
                         new_value = orig_value
                         status = "유지"
-                    
+
                     transformed_values.append((orig_value, new_value, status))
 
                 # 미리보기 테이블 생성
@@ -438,7 +425,7 @@ class FillNanValues:
                     try:
                         # 컬럼 데이터 타입 확인
                         dtype = df[col].dtype
-                        
+
                         # 대체값 계산
                         replacement_value = self._get_replacement_value(method, value, df, col)
 
@@ -451,18 +438,13 @@ class FillNanValues:
                             else:
                                 # 비숫자 컬럼의 경우 Null만 처리
                                 condition = (pl.col("uniqid").is_in(filtered_ids)) & (pl.col(col).is_null())
-                            
+
                             # 교체 전에 개수 확인
                             replace_count = df.filter(condition).height
                             replaced_counts[col] = replace_count
-                            
+
                             # 조건에 맞는 값 대체
-                            df = df.with_columns([
-                                pl.when(condition)
-                                .then(pl.lit(replacement_value))
-                                .otherwise(pl.col(col))
-                                .alias(col)
-                            ])
+                            df = df.with_columns([pl.when(condition).then(pl.lit(replacement_value)).otherwise(pl.col(col)).alias(col)])
                         else:
                             # 전체 적용
                             if dtype in [pl.Float64, pl.Float32, pl.Int64, pl.Int32, pl.UInt32, pl.UInt64]:
@@ -471,18 +453,13 @@ class FillNanValues:
                             else:
                                 # 비숫자 컬럼의 경우 Null만 처리
                                 condition = pl.col(col).is_null()
-                            
+
                             # 교체 전에 개수 확인
                             replace_count = df.filter(condition).height
                             replaced_counts[col] = replace_count
-                            
+
                             # 조건에 맞는 값 대체
-                            df = df.with_columns([
-                                pl.when(condition)
-                                .then(pl.lit(replacement_value))
-                                .otherwise(pl.col(col))
-                                .alias(col)
-                            ])
+                            df = df.with_columns([pl.when(condition).then(pl.lit(replacement_value)).otherwise(pl.col(col)).alias(col)])
 
                         successful_columns.append(col)
 
@@ -527,19 +504,10 @@ class FillNanValues:
                 # 모든 컬럼 변환 성공
                 SSDF.dataframe = df
                 updated_columnDefs = generate_column_definitions(df)
-                
+
                 # 대체 방법 설명 텍스트 생성
-                method_text = {
-                    "value": f"사용자 값({value})",
-                    "zero": "0",
-                    "mean": "평균값",
-                    "median": "중앙값",
-                    "mode": "최빈값",
-                    "forward": "앞의 값",
-                    "backward": "뒤의 값",
-                    "empty_string": "빈 문자열"
-                }.get(method, method)
-                
+                method_text = {"value": f"사용자 값({value})", "zero": "0", "mean": "평균값", "median": "중앙값", "mode": "최빈값", "forward": "앞의 값", "backward": "뒤의 값", "empty_string": "빈 문자열"}.get(method, method)
+
                 # 대체된 값 개수 정보 생성
                 replacement_info = ", ".join([f"{col}: {count}개" for col, count in replaced_counts.items() if count > 0])
                 if not replacement_info:
@@ -571,7 +539,6 @@ class FillNanValues:
                     no_update,
                 )
 
-
     def _get_replacement_value(self, method, value, df, col):
         """대체 방법에 따른 대체값 계산"""
         dtype = df[col].dtype
@@ -580,7 +547,7 @@ class FillNanValues:
         if method == "value":
             if value is None:
                 return ""
-            
+
             # 데이터 타입에 맞게 변환
             try:
                 if dtype in [pl.Int64, pl.Int32, pl.UInt32, pl.UInt64]:
@@ -594,7 +561,7 @@ class FillNanValues:
             except:
                 # 변환 실패 시 원래 값 그대로 반환
                 return value
-        
+
         # 0으로 대체
         elif method == "zero":
             if dtype in [pl.Int64, pl.Int32, pl.UInt32, pl.UInt64]:
@@ -605,35 +572,35 @@ class FillNanValues:
                 return False
             else:
                 return "0"
-        
+
         # 평균값으로 대체 (숫자 컬럼만)
         elif method == "mean":
             if dtype in [pl.Int64, pl.Int32, pl.UInt32, pl.UInt64, pl.Float64, pl.Float32]:
                 # -99999 값 제외하고 평균 계산
                 filtered_df = df.filter(pl.col(col) != -99999)
                 mean_value = filtered_df[col].mean()
-                
+
                 # 정수형이면 반올림
                 if dtype in [pl.Int64, pl.Int32, pl.UInt32, pl.UInt64]:
                     return int(round(mean_value))
                 return mean_value
             else:
                 return ""
-        
+
         # 중앙값으로 대체 (숫자 컬럼만)
         elif method == "median":
             if dtype in [pl.Int64, pl.Int32, pl.UInt32, pl.UInt64, pl.Float64, pl.Float32]:
                 # -99999 값 제외하고 중앙값 계산
                 filtered_df = df.filter(pl.col(col) != -99999)
                 median_value = filtered_df[col].median()
-                
+
                 # 정수형이면 반올림
                 if dtype in [pl.Int64, pl.Int32, pl.UInt32, pl.UInt64]:
                     return int(round(median_value))
                 return median_value
             else:
                 return ""
-        
+
         # 최빈값으로 대체
         elif method == "mode":
             try:
@@ -642,7 +609,7 @@ class FillNanValues:
                     filtered_df = df.filter((pl.col(col) != -99999) & (~pl.col(col).is_null()))
                 else:
                     filtered_df = df.filter(~pl.col(col).is_null())
-                
+
                 # 값 빈도 계산
                 value_counts = filtered_df[col].value_counts()
                 if len(value_counts) > 0:
@@ -670,7 +637,7 @@ class FillNanValues:
                     return False
                 else:
                     return ""
-        
+
         # 빈 문자열로 대체 (문자열 컬럼만)
         elif method == "empty_string":
             if dtype in [pl.Utf8, pl.String, pl.Categorical]:
@@ -685,7 +652,7 @@ class FillNanValues:
                     return False
                 else:
                     return ""
-        
+
         # 앞의 값으로 대체 (forward fill) 및 뒤의 값으로 대체 (backward fill)
         # 이 두 방법은 미리보기에서는 간단한 값으로 표시하고, 실제 적용 시 fill_null 메서드를 사용
         elif method == "forward" or method == "backward":
@@ -704,7 +671,7 @@ class FillNanValues:
                     return False
                 else:
                     return ""
-        
+
         # 기본 대체값
         else:
             if dtype in [pl.Int64, pl.Int32, pl.UInt32, pl.UInt64]:

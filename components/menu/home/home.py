@@ -7,7 +7,7 @@ class HomeMenu:
 
     def __init__(self):
         self.opener = Opener()
-        
+
     def layout(self):
         return dbpc.ButtonGroup(
             [
@@ -15,7 +15,7 @@ class HomeMenu:
                 self.opener.layout(),
                 dbpc.Divider(),
             ],
-            style={"height": 35}
+            style={"height": 35},
         )
 
     def register_callbacks(self, app):

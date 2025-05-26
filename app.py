@@ -1,8 +1,5 @@
-import os
-import sys
 import dash
 import argparse
-import screeninfo
 from flask import Flask
 from flaskwebgui import FlaskUI, get_free_port
 from dash import DiskcacheManager
@@ -25,7 +22,7 @@ def parse_arguments():
 
     args = parser.parse_args()
     SSDF.init_csv = args.csv
-    SSDF.cp = {"host": args.host,"port": args.port,"lib": args.lib,"cell": args.cell,"tool": args.tool}
+    SSDF.cp = {"host": args.host, "port": args.port, "lib": args.lib, "cell": args.cell, "tool": args.tool}
 
 
 def create_dash_app():

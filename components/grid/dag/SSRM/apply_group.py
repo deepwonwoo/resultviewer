@@ -55,9 +55,7 @@ def apply_group(df, request):
             else:
                 group_counts = df.group_by(groupBy[0]).agg(pl.len().alias("childCount"))  # no group_keys
                 if agg:
-                    agg_expressions = [
-                        agg_function_mapping[agg_func](col_name).alias(col_name) for col_name, agg_func in agg.items()
-                    ]  # 집계 함수 매핑을 사용하여 집계 표현식 리스트 생성
+                    agg_expressions = [agg_function_mapping[agg_func](col_name).alias(col_name) for col_name, agg_func in agg.items()]  # 집계 함수 매핑을 사용하여 집계 표현식 리스트 생성
                     df_agg = df.group_by(groupBy[: len(groupKeys) + 1], maintain_order=True).agg(agg_expressions)
                 else:
                     df_agg = df.group_by(groupBy[0], maintain_order=True).agg([pl.first("*")])
